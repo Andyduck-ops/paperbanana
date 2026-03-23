@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	criticagent "github.com/paperbanana/paperbanana/internal/application/agents/critic"
 	planneragent "github.com/paperbanana/paperbanana/internal/application/agents/planner"
 	retrieveragent "github.com/paperbanana/paperbanana/internal/application/agents/retriever"
@@ -20,7 +21,6 @@ import (
 	sqlitePersistence "github.com/paperbanana/paperbanana/internal/infrastructure/persistence/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 

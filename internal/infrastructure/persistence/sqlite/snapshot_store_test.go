@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	agentstate "github.com/paperbanana/paperbanana/internal/infrastructure/agentstate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
