@@ -60,6 +60,21 @@ type StreamChunk struct {
 	Done    bool
 }
 
+// ModelInfo describes a model exposed by a provider listing endpoint.
+type ModelInfo struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Provider       string `json:"provider,omitempty"`
+	Description    string `json:"description,omitempty"`
+	MaxTokens      int    `json:"max_tokens,omitempty"`
+	SupportsVision bool   `json:"supports_vision,omitempty"`
+}
+
+// ModelLister defines a provider-specific model listing capability.
+type ModelLister interface {
+	ListModels(ctx context.Context) ([]ModelInfo, error)
+}
+
 func ResolveModel(requestModel, defaultModel string) string {
 	if requestModel != "" {
 		return requestModel

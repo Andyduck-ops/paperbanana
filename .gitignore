@@ -19,6 +19,13 @@ web/tsconfig.tsbuildinfo
 /server
 /paperbanana-server
 /orchestrator.test
+/configs/config.yaml
+/configs/custom_nodes.yaml
+/data/PaperBananaBench.zip
+/data/PaperBananaBench/diagram/images/
+/data/PaperBananaBench/plot/images/
+/data/PaperBananaBench/diagram/test.json
+/data/PaperBananaBench/plot/test.json
 
 .DS_Store
 Thumbs.db
