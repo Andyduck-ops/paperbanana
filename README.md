@@ -37,6 +37,15 @@ npm install
 npm run dev
 ```
 
+Reference benchmark data:
+
+```bash
+# Optional: point to a shared local PaperBananaBench directory
+set PAPERBANANA_BENCH_ROOT=D:\datasets\PaperBananaBench
+```
+
+If `PAPERBANANA_BENCH_ROOT` is not set, the backend uses `data/PaperBananaBench` relative to the repository root. This dataset is intended for local development and should usually stay out of Git.
+
 ## Configuration
 
 Copy environment variables from `.env.example` and provide the provider API keys you want to enable. The app exposes provider settings in the UI, while the backend still needs to start successfully for the settings API to respond.

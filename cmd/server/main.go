@@ -29,6 +29,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultBenchRoot = "data/PaperBananaBench"
+
 func main() {
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -110,6 +112,8 @@ func main() {
 		logger.Fatal("failed to load node catalog", zap.Error(err))
 	}
 
+	benchRoot := resolveBenchRoot()
+
 	queryClient := llminfra.NewRuntimeClient(
 		llminfra.RuntimePurposeQuery,
 		cfg.LLM.Default,
@@ -127,7 +131,7 @@ func main() {
 		apiKeyRepo,
 	)
 
-	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog)
+	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot)
 	if err != nil {
 		logger.Fatal("failed to build runner", zap.Error(err))
 	}
@@ -136,6 +140,7 @@ func main() {
 	agentFactory := &agentFactory{
 		queryClient:    queryClient,
 		genClient:      genClient,
+		benchRoot:      benchRoot,
 		providerConfig: providerConfig,
 		nodeCatalog:    nodeCatalog,
 		snapshotStore:  snapshotStore,
@@ -160,6 +165,7 @@ func main() {
 		zap.String("provider", cfg.LLM.Default),
 		zap.String("model", providerConfig.Model),
 		zap.String("database", cfg.Persistence.DatabasePath),
+		zap.String("bench_root", benchRoot),
 	)
 
 	if err := router.Run(address); err != nil {
@@ -173,6 +179,7 @@ func buildRunner(
 	genClient domainllm.LLMClient,
 	snapshotStore orchestrator.SnapshotStore,
 	nodeCatalog *config.NodeCatalog,
+	benchRoot string,
 ) (*orchestrator.Runner, error) {
 	visualizerAgent := visualizeragent.NewAgent(genClient, visualizeragent.Config{
 		Model:       providerConfig.Model,
@@ -188,10 +195,13 @@ func buildRunner(
 	return orchestrator.NewCanonicalRunner(
 		retrieveragent.NewAgent(queryClient, retrieveragent.Config{
 			Mode:  retrieveragent.RetrievalModeAuto,
-			Store: retrieveragent.FileStore{Root: "data/PaperBananaBench"},
+			Store: retrieveragent.FileStore{Root: benchRoot},
 			Model: providerConfig.Model,
 		}),
-		planneragent.NewAgent(queryClient, planneragent.Config{Model: providerConfig.Model}),
+		planneragent.NewAgent(queryClient, planneragent.Config{
+			Model:        providerConfig.Model,
+			ExamplesRoot: benchRoot,
+		}),
 		stylistAgent,
 		visualizerAgent,
 		criticAgent,
@@ -216,6 +226,7 @@ func buildStartupLLMClient(logger *zap.Logger, providerName string, providerConf
 type agentFactory struct {
 	queryClient    domainllm.LLMClient
 	genClient      domainllm.LLMClient
+	benchRoot      string
 	providerConfig config.ProviderConfig
 	nodeCatalog    *config.NodeCatalog
 	snapshotStore  orchestrator.SnapshotStore
@@ -224,13 +235,16 @@ type agentFactory struct {
 func (f *agentFactory) CreateRetriever() domainagent.BaseAgent {
 	return retrieveragent.NewAgent(f.queryClient, retrieveragent.Config{
 		Mode:  retrieveragent.RetrievalModeAuto,
-		Store: retrieveragent.FileStore{Root: "data/PaperBananaBench"},
+		Store: retrieveragent.FileStore{Root: f.benchRoot},
 		Model: f.providerConfig.Model,
 	})
 }
 
 func (f *agentFactory) CreatePlanner() domainagent.BaseAgent {
-	return planneragent.NewAgent(f.queryClient, planneragent.Config{Model: f.providerConfig.Model})
+	return planneragent.NewAgent(f.queryClient, planneragent.Config{
+		Model:        f.providerConfig.Model,
+		ExamplesRoot: f.benchRoot,
+	})
 }
 
 func (f *agentFactory) CreateStylist() domainagent.BaseAgent {
@@ -277,4 +291,11 @@ func loadNodeCatalog(logger *zap.Logger) (*config.NodeCatalog, error) {
 	}
 
 	return nil, nil
+}
+
+func resolveBenchRoot() string {
+	if value := strings.TrimSpace(os.Getenv("PAPERBANANA_BENCH_ROOT")); value != "" {
+		return value
+	}
+	return defaultBenchRoot
 }
