@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  /* Semantic color tokens - map to theme-specific values */
+  --color-primary: var(--theme-primary);
+  --color-secondary: var(--theme-secondary);
+  --color-background: var(--theme-background);
+  --color-foreground: var(--theme-foreground);
+  --color-accent: var(--theme-accent);
+  --color-muted: var(--theme-muted);
+  --color-border: var(--theme-border);
+
+  /* Typography tokens */
+  --font-heading: var(--theme-font-heading);
+  --font-body: var(--theme-font-body);
+
+  /* Spacing tokens (consistent across themes) */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+}
+
+/* Base styles applied to all themes */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}

@@ -1,0 +1,23 @@
+/* Minimalist B&W Theme - Grayscale, high contrast, print-friendly */
+[data-theme="minimalist-bw"] {
+  /* Pure grayscale palette for print compatibility */
+  --theme-primary: oklch(0.15 0 0);           /* Near black */
+  --theme-secondary: oklch(0.40 0 0);         /* Dark gray */
+  --theme-background: oklch(0.98 0 0);        /* Pure white */
+  --theme-foreground: oklch(0.12 0 0);        /* Black text */
+  --theme-accent: oklch(0.50 0 0);            /* Medium gray */
+  --theme-muted: oklch(0.90 0 0);             /* Light gray */
+  --theme-border: oklch(0.25 0 0);            /* Dark gray border */
+
+  /* Clean, readable sans-serif fonts */
+  --theme-font-heading: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+  --theme-font-body: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+}
+
+/* Print optimizations for B&W theme */
+@media print {
+  [data-theme="minimalist-bw"] * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}

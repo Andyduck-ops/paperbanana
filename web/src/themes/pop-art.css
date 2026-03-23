@@ -1,0 +1,15 @@
+/* Pop Art Theme - Vibrant colors, high contrast, bold shapes */
+[data-theme="pop-art"] {
+  /* Vibrant oklch colors for Pop Art aesthetic */
+  --theme-primary: oklch(0.70 0.25 25);       /* Vibrant red-orange */
+  --theme-secondary: oklch(0.85 0.20 90);     /* Bright yellow */
+  --theme-background: oklch(0.95 0.05 90);    /* Warm cream */
+  --theme-foreground: oklch(0.20 0.10 250);   /* Deep blue-black */
+  --theme-accent: oklch(0.65 0.30 180);       /* Electric cyan */
+  --theme-muted: oklch(0.80 0.05 90);         /* Muted cream */
+  --theme-border: oklch(0.30 0.15 25);        /* Bold red-orange border */
+
+  /* Bold display fonts for Pop Art feel */
+  --theme-font-heading: "Bebas Neue", "Impact", sans-serif;
+  --theme-font-body: "Inter", "Helvetica Neue", sans-serif;
+}

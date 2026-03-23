@@ -1,0 +1,41 @@
+server:
+  host: localhost
+  port: 8080
+
+llm:
+  default: gemini
+  providers:
+    gemini:
+      api_key: ${GEMINI_API_KEY}
+      base_url: https://generativelanguage.googleapis.com
+      model: gemini-2.0-flash-exp
+      timeout: 60s
+    openai:
+      api_key: ${OPENAI_API_KEY}
+      base_url: https://api.openai.com/v1
+      model: gpt-4o
+      timeout: 60s
+    anthropic:
+      api_key: ${ANTHROPIC_API_KEY}
+      base_url: https://api.anthropic.com/v1
+      model: claude-3-5-sonnet-20241022
+      timeout: 60s
+    openrouter:
+      api_key: ${OPENROUTER_API_KEY}
+      base_url: https://openrouter.ai/api/v1
+      model: anthropic/claude-3.5-sonnet
+      timeout: 60s
+
+cache:
+  redis:
+    enabled: false
+    addr: ${REDIS_ADDR}
+    password: ${REDIS_PASSWORD}
+    db: 0
+
+output:
+  dpi: 300
+  formats:
+    - png
+    - svg
+    - pdf

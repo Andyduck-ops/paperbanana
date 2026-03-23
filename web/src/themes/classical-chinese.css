@@ -1,0 +1,15 @@
+/* Classical Chinese Theme - Traditional colors, calligraphy-inspired */
+[data-theme="classical-chinese"] {
+  /* Traditional Chinese color palette */
+  --theme-primary: oklch(0.45 0.12 25);       /* Cinnabar red */
+  --theme-secondary: oklch(0.55 0.10 70);     /* Bronze gold */
+  --theme-background: oklch(0.96 0.02 85);    /* Rice paper white */
+  --theme-foreground: oklch(0.20 0.02 250);   /* Ink black */
+  --theme-accent: oklch(0.50 0.14 150);       /* Jade green */
+  --theme-muted: oklch(0.85 0.03 85);         /* Aged paper */
+  --theme-border: oklch(0.35 0.08 25);        /* Dark cinnabar */
+
+  /* Serif fonts for traditional Chinese aesthetic */
+  --theme-font-heading: "Noto Serif SC", "SimSun", serif;
+  --theme-font-body: "Noto Sans SC", "PingFang SC", sans-serif;
+}
