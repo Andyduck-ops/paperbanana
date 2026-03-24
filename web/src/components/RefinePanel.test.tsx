@@ -16,7 +16,13 @@ vi.mock('../hooks', () => ({
         'refine.resolution4K': '4K (3840x2160)',
         'refine.refineButton': 'Refine Image',
         'refine.refining': 'Refining...',
+        'refine.enableIteration': 'Enable Iterative Refinement',
+        'refine.maxIterations': 'Maximum Iterations',
+        'refine.iterationHint': 'More iterations may improve quality but take longer',
         'common.clear': 'Clear',
+        'common.show': 'Show',
+        'common.hide': 'Hide',
+        'batch.review': 'Batch review',
       };
       return translations[key] || key;
     },
@@ -88,6 +94,8 @@ describe('RefinePanel', () => {
     expect(callArg.imageData).toMatch(/^data:image\/png;base64,/);
     expect(callArg.instructions).toBe('Make the colors more vibrant');
     expect(callArg.resolution).toBe('4K');
+    expect(callArg.enableIteration).toBe(false);
+    expect(callArg.maxIterations).toBe(3);
   });
 
   it('shows loading state during refinement', () => {
@@ -105,5 +113,22 @@ describe('RefinePanel', () => {
     render(<RefinePanel onRefine={mockOnRefine} />);
     const radio2K = screen.getByLabelText(/2K/i) as HTMLInputElement;
     expect(radio2K).toBeChecked();
+  });
+
+  it('shows iteration controls by default', () => {
+    render(<RefinePanel onRefine={mockOnRefine} />);
+
+    expect(screen.getByLabelText(/enable iterative refinement/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/maximum iterations/i)).toBeInTheDocument();
+  });
+
+  it('disables max iterations until iterative refinement is enabled', () => {
+    render(<RefinePanel onRefine={mockOnRefine} />);
+
+    expect(screen.getByLabelText(/maximum iterations/i)).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText(/enable iterative refinement/i));
+
+    expect(screen.getByLabelText(/maximum iterations/i)).not.toBeDisabled();
   });
 });

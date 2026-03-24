@@ -13,18 +13,35 @@ import (
 func TestNewLLMClient(t *testing.T) {
 	tests := []struct {
 		provider string
+		cfg      pbconfig.ProviderConfig
 		wantErr  bool
 	}{
 		{provider: "gemini"},
 		{provider: "openai"},
 		{provider: "anthropic"},
 		{provider: "openrouter"},
+		{
+			provider: "grok",
+			cfg: pbconfig.ProviderConfig{
+				APIKey:  "test-key",
+				BaseURL: "https://example.invalid/v1",
+				Model:   "grok-2-image-1212",
+			},
+		},
 		{provider: "unknown", wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.provider, func(t *testing.T) {
-			client, err := NewLLMClient(tt.provider, "test-key", "test-model")
+			cfg := tt.cfg
+			if cfg.APIKey == "" {
+				cfg.APIKey = "test-key"
+			}
+			if cfg.Model == "" {
+				cfg.Model = "test-model"
+			}
+
+			client, err := NewLLMClientWithOptions(tt.provider, cfg, ClientOptions{})
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, client)

@@ -1,15 +1,31 @@
 {
   "app": {
     "name": "PaperBanana",
-    "tagline": "学术论文可视化生成器",
+    "tagline": "学术论文插图生成与精修",
     "tabGenerate": "生成",
     "tabRefine": "精修"
   },
   "theme": {
-    "title": "选择主题",
-    "popArt": "波普艺术",
-    "classicalChinese": "古典中国风",
-    "minimalistBw": "黑白极简"
+    "title": "主题",
+    "subtitle": "选择工作区外观。",
+    "options": {
+      "qi-baishi": {
+        "label": "齐白石",
+        "description": "纸本、墨色与朱砂印感。"
+      },
+      "pop-anime": {
+        "label": "波普动漫",
+        "description": "粗黑轮廓、高对比配色与漫画张力。"
+      },
+      "rococo": {
+        "label": "洛可可",
+        "description": "珠光底色、浅金边框与柔粉点缀。"
+      },
+      "japanese-bw": {
+        "label": "夜色黑白",
+        "description": "深色背景、克制灰阶与静谧留白。"
+      }
+    }
   },
   "language": {
     "title": "语言",
@@ -17,45 +33,92 @@
     "english": "英文"
   },
   "workspace": {
+    "kicker": "论文插图工作流",
     "title": "工作区",
+    "mainTitle": "左侧专注当前内容，右侧收纳历史与辅助信息。",
+    "mainDescription": "把画布、结果和支持信息分层组织，减少干扰。",
+    "emptyState": {
+      "generateTitle": "先贴近论文上下文，再收敛到目标配图",
+      "generateDescription": "把论文摘录、相关工作和审稿约束整理成适合发表的论文配图，保持窄幅、克制、可继续精修的学术表达。",
+      "refineTitle": "把当前配图继续带入精修",
+      "refineDescription": "上传已有配图，或直接从生成候选继续推进，进一步收紧层级、标注和发表质感。",
+      "exampleIntro": "从一个真实的论文配图 brief 开始",
+      "generateHint": "或者直接在下方粘贴论文上下文和目标配图说明开始。",
+      "refineHint": "在下方上传已有配图，开始新一轮精修。",
+      "examples": {
+        "workflow": {
+          "title": "方法流程图",
+          "description": "适合方法章节的窄幅横向流程结构"
+        },
+        "ablation": {
+          "title": "消融结果图",
+          "description": "适合 benchmark 对比与审稿说明的紧凑柱状图"
+        },
+        "framework": {
+          "title": "系统框架图",
+          "description": "把输入、检索、规划与输出组织到一张会议论文配图里"
+        },
+        "refine": {
+          "title": "返修精修稿",
+          "description": "根据 reviewer 意见降低密度并提升成稿完成度"
+        }
+      }
+    },
     "newProject": "新建项目",
     "openProject": "打开项目",
     "noProjects": "暂无项目"
   },
   "generate": {
-    "title": "生成可视化",
-    "descriptionLabel": "描述您的可视化需求",
-    "descriptionPlaceholder": "输入方法描述和可视化意图...",
-    "visualizerNode": "可视化节点",
+    "title": "论文配图生成",
+    "panelTitle": "先对齐论文上下文，再定义最终配图。",
+    "panelDescription": "左侧输入论文摘录、相关工作、参考配图和说明；右侧定义目标配图的结构、风格、标注与限制。",
+    "descriptionLabel": "描述您的任务",
+    "descriptionPlaceholder": "输入参考信息与目标图像需求...",
+    "visualizerNode": "执行节点",
     "defaultVisualizer": "默认",
     "submit": "生成",
     "generating": "生成中...",
     "progress": "生成进度",
+    "progressAriaLabel": "生成进度阶段",
     "result": "生成结果",
+    "completed": "已完成",
     "new": "新建生成",
     "artifacts": "产物",
+    "resumedFrom": "从",
+    "resumedFromAriaLabel": "会话已从 {{stage}} 阶段恢复",
+    "elapsedTimeAriaLabel": "已用时间：{{time}}",
+    "progressCount": "已完成 {{completed}} / {{total}} 个阶段",
     "batchMode": "批量模式",
     "numCandidates": "候选数量",
-    "numCandidatesHint": "并行生成多个变体",
+    "numCandidatesHint": "并行生成多个论文配图变体",
     "batchProgress": "批量进度",
     "candidate": "候选 {{number}}",
     "batchComplete": "批量完成",
     "successful": "成功",
     "failed": "失败",
     "bestResult": "最佳结果",
-    "methodSection": "方法章节",
-    "figureCaption": "图片标题",
-    "methodPlaceholder": "粘贴方法章节内容...",
-    "captionPlaceholder": "输入图片标题...",
-    "loadExample": "加载示例",
-    "previewMarkdown": "预览 Markdown",
-    "advancedSettings": "高级设置",
+    "methodSection": "论文上下文与参考资料",
+    "figureCaption": "目标配图说明",
+    "referenceImage": "参考配图",
+    "methodPlaceholder": "粘贴论文摘录、方法步骤、参考配图、相似已发表图例或审稿约束...",
+    "captionPlaceholder": "说明你需要的论文配图，包括分栏布局、标注、风格和修改目标...",
+    "loadExample": "加载任务示例",
+    "previewMarkdown": "预览内容",
+    "advancedSettings": "检索与生成路由",
     "aspectRatio": "宽高比",
-    "criticRounds": "评估轮数",
+    "criticRounds": "迭代轮数",
     "retrievalMode": "检索模式",
-    "pipelineMode": "管道模式",
-    "queryModel": "查询模型",
-    "genModel": "生成模型",
+    "pipelineMode": "工作流模式",
+    "queryModel": "检索/推理模型",
+    "genModel": "出图/精修模型",
+    "statusPending": "等待中",
+    "statusRunning": "运行中",
+    "statusComplete": "已完成",
+    "statusError": "出错",
+    "statusNotRun": "未运行",
+    "announcementRunning": "{{stage}} 阶段正在运行",
+    "announcementFailed": "{{stage}} 阶段失败：{{error}}",
+    "announcementComplete": "所有阶段已完成",
     "modes": {
       "auto": "自动",
       "manual": "手动",
@@ -73,14 +136,32 @@
     "running": "运行中...",
     "downloadAll": "下载全部为 ZIP",
     "downloading": "下载中...",
-    "configureProviders": "在设置中配置提供商"
+    "configureProviders": "先在设置中配置通道"
   },
   "history": {
-    "title": "历史记录",
-    "empty": "暂无历史记录",
+    "title": "工作记录",
+    "subtitle": "论文配图生成与精修会话",
+    "empty": "暂无工作记录",
+    "emptyHint": "最近的论文配图生成与精修任务会显示在这里。",
     "untitled": "未命名",
     "version": "版本 {{number}}",
-    "restore": "恢复"
+    "restore": "恢复",
+    "restoreFailed": "恢复该会话失败。",
+    "restoreUnavailable": "这条工作记录暂时没有可恢复的会话快照。",
+    "loading": "加载历史记录...",
+    "error": "加载历史记录失败",
+    "retry": "重试",
+    "close": "关闭",
+    "session": "会话",
+    "generate": "生成",
+    "refine": "精修",
+    "batch": "批量",
+    "status": {
+      "completed": "已完成",
+      "failed": "失败",
+      "running": "运行中",
+      "pending": "等待中"
+    }
   },
   "export": {
     "title": "导出",
@@ -96,6 +177,7 @@
   },
   "settings": {
     "title": "设置",
+    "modelConfigDescription": "仅展示已配置通道，并为检索与出图流程分配模型。",
     "providers": "LLM 提供商",
     "addProvider": "添加提供商",
     "editProvider": "编辑提供商",
@@ -108,10 +190,10 @@
     "apiKey": "API 密钥",
     "apiKeyOptional": "可选，添加新密钥",
     "queryModel": "查询模型",
-    "queryModelHint": "用于检索、规划和评估",
+    "queryModelHint": "用于检索匹配、规划和评估",
     "queryModelHintSelect": "从可用模型中选择",
     "genModel": "生成模型",
-    "genModelHint": "用于可视化代码生成",
+    "genModelHint": "用于图像生成与精修",
     "useSameModel": "生成使用相同模型",
     "testConnection": "测试连接",
     "connectionSuccess": "连接成功！可用 {{count}} 个模型。",
@@ -187,18 +269,18 @@
     "remove": "移除"
   },
   "refine": {
-    "title": "精炼图像",
-    "dropImage": "拖放图片或点击上传",
-    "instructions": "精炼说明",
-    "instructionsPlaceholder": "描述您希望如何改进图像...",
+    "title": "论文配图精修",
+    "dropImage": "拖入论文配图或点击上传",
+    "instructions": "精修目标",
+    "instructionsPlaceholder": "说明需要保留、修正或补充的配图细节...",
     "resolution": "目标分辨率",
     "resolution2K": "2K (2560x1440)",
     "resolution4K": "4K (3840x2160)",
-    "refineButton": "精炼图像",
-    "refining": "精炼中...",
+    "refineButton": "开始精修",
+    "refining": "精修中...",
     "enableIteration": "启用迭代精修",
     "maxIterations": "最大迭代轮数",
-    "iterationHint": "更多迭代可能提升质量，但耗时更长"
+    "iterationHint": "启用后会自动继续小步精修，适合收紧论文成稿细节"
   },
   "comparison": {
     "before": "原始",
@@ -209,11 +291,6 @@
     "networkError": "网络错误，请检查您的连接。",
     "serverError": "服务器错误，请稍后重试。",
     "validationError": "请检查您的输入。"
-  },
-  "workspace": {
-    "kicker": "主工作区",
-    "mainTitle": "左侧专注当前内容，右侧保留历史和笔记。",
-    "mainDescription": "让画布、结果和辅助信息各归其位，减少干扰。"
   },
   "batch": {
     "review": "批量审阅",
@@ -232,5 +309,90 @@
   "footer": {
     "github": "GitHub",
     "docs": "文档"
+  },
+  "modelConfig": {
+    "title": "模型配置",
+    "channels": "通道",
+    "models": "模型",
+    "enabled": "已启用",
+    "addChannel": "添加通道",
+    "editChannel": "编辑通道",
+    "deleteChannel": "删除通道",
+    "confirmDeleteChannel": "删除通道？",
+    "deleteChannelWarning": "这将永久删除 {{name}} 及其所有模型配置。",
+    "noChannels": "未配置通道",
+    "addChannelHint": "添加通道以开始使用模型",
+    "channelsDescription": "只显示已经接入的通道；默认模板保持隐藏。",
+    "availableModels": "可用模型",
+    "modelsDescription": "浏览当前已接入通道中的模型。",
+    "providerType": "提供商类型",
+    "customProvider": "自定义提供商",
+    "displayName": "显示名称",
+    "displayNamePlaceholder": "我的通道",
+    "baseUrl": "基础 URL",
+    "apiKey": "API 密钥",
+    "timeout": "超时时间",
+    "fetchModels": "获取模型",
+    "lastFetched": "最后获取：{{time}}",
+    "status": {
+      "configured": "已配置",
+      "noKeys": "无 API 密钥",
+      "invalid": "无效",
+      "pending": "待处理"
+    },
+    "addModel": "添加模型",
+    "removeModel": "移除模型",
+    "noModelsAvailable": "无可用模型",
+    "fetchModelsHint": "从通道获取模型以开始使用",
+    "hiddenSystemChannelsHint": "添加并配置一个通道后，这里才会显示可选模型。",
+    "noEnabledModels": "无已启用模型",
+    "enableModelsHint": "使用 + 按钮启用模型",
+    "noMatchingModels": "无匹配模型",
+    "tryDifferentSearch": "尝试不同的搜索词",
+    "searchModels": "搜索模型...",
+    "allChannels": "所有通道",
+    "selected": "已选择",
+    "selectorDisabled": "模型选择器已禁用",
+    "noModels": "无可用模型",
+    "selectModel": "选择模型...",
+    "roleMapping": "角色映射",
+    "roleMappingDescription": "只对已启用且已配置的模型做角色分配",
+    "roleMappingEmptyHint": "先配置一个通道，再在这里分配检索与生成角色。",
+    "configurationSummary": "配置摘要",
+    "assigned": "已分配",
+    "assignModel": "分配模型",
+    "channel": "通道",
+    "model": "模型",
+    "change": "更改",
+    "clear": "清除",
+    "assign": "分配",
+    "noAssignments": "未配置角色分配",
+    "assignRolesHint": "在上面为工作流角色分配模型",
+    "totalChannels": "已配置通道",
+    "imageGenAssigned": "图像生成已分配",
+    "totalAssignments": "已分配角色",
+    "currentAssignments": "当前分配",
+    "showSummary": "显示摘要",
+    "hideSummary": "隐藏摘要",
+    "quickAssign": "快速分配",
+    "quickAssignTitle": "快速分配模型",
+    "roles": {
+      "imageGeneration": {
+        "title": "图像生成",
+        "short": "生成",
+        "description": "生成可视化代码并渲染科学图表",
+        "cap1": "代码生成",
+        "cap2": "SVG/PNG 渲染",
+        "cap3": "样式应用"
+      },
+      "retrievalReasoning": {
+        "title": "检索与推理",
+        "short": "推理",
+        "description": "分析论文、规划可视化结构并提供关键反馈",
+        "cap1": "论文分析",
+        "cap2": "规划与结构",
+        "cap3": "质量评估"
+      }
+    }
   }
 }

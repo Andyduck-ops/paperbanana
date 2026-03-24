@@ -12,6 +12,24 @@ import (
 	"github.com/paperbanana/paperbanana/internal/infrastructure/llm/openrouter"
 )
 
+var openAICompatibleProviders = map[string]bool{
+	"deepseek":          true,
+	"zhipu":             true,
+	"moonshot":          true,
+	"qwen":              true,
+	"doubao":            true,
+	"baichuan":          true,
+	"minimax":           true,
+	"yi":                true,
+	"hunyuan":           true,
+	"stepfun":           true,
+	"silicon":           true,
+	"ollama":            true,
+	"grok":              true,
+	"xai":               true,
+	"openai-compatible": true,
+}
+
 type ClientOptions struct {
 	HTTPClient *http.Client
 	Cache      ResponseCache
@@ -56,6 +74,13 @@ func newRawLLMClient(provider string, cfg pbconfig.ProviderConfig, httpClient *h
 	case "openrouter":
 		return openrouter.NewClientWithConfig(cfg.APIKey, cfg.BaseURL, cfg.Model, cfg.Timeout, httpClient)
 	default:
+		if openAICompatibleProviders[provider] || cfg.BaseURL != "" {
+			client, err := openaiclient.NewClientWithConfig(cfg.APIKey, cfg.BaseURL, cfg.Model, cfg.Timeout, httpClient)
+			if err != nil {
+				return nil, err
+			}
+			return newProviderAliasClient(provider, client), nil
+		}
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
 }

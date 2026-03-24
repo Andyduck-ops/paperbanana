@@ -1,0 +1,65 @@
+/* Pop Anime Theme - bold frames, halftone tension, and loud contrast */
+[data-theme="pop-anime"] {
+  --theme-primary: oklch(0.66 0.24 28);
+  --theme-secondary: oklch(0.88 0.18 95);
+  --theme-background: oklch(0.97 0.02 90);
+  --theme-foreground: oklch(0.16 0.03 260);
+  --theme-accent: oklch(0.71 0.22 245);
+  --theme-muted: oklch(0.94 0.02 88);
+  --theme-border: oklch(0.17 0.04 260);
+  --theme-card: rgba(255, 250, 236, 0.94);
+  --theme-muted-foreground: oklch(0.42 0.05 260);
+  --theme-primary-muted: color-mix(in srgb, var(--theme-primary) 12%, white);
+  --theme-primary-alpha: color-mix(in srgb, var(--theme-primary) 28%, transparent);
+  --theme-background-rgb: 249, 242, 220;
+  --theme-surface-shadow: 8px 8px 0 rgba(18, 18, 18, 0.92);
+  --theme-status-success: oklch(0.64 0.2 145);
+  --theme-status-warning: oklch(0.78 0.18 92);
+  --theme-status-error: oklch(0.6 0.23 30);
+  --theme-status-info: oklch(0.66 0.18 240);
+  --theme-status-pending: oklch(0.72 0.08 82);
+  --theme-status-running: oklch(0.71 0.18 210);
+  --theme-font-heading: "Bungee", "Arial Black", sans-serif;
+  --theme-font-body: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+}
+
+[data-theme="pop-anime"] .theme-card,
+[data-theme="pop-anime"] .history-item,
+[data-theme="pop-anime"] .workspace-stage__surface {
+  box-shadow: 6px 6px 0 rgba(17, 17, 17, 0.95);
+}
+
+[data-theme="pop-anime"] .theme-card__preview,
+[data-theme="pop-anime"] .history-trigger__icon,
+[data-theme="pop-anime"] .history-item__stamp {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="pop-anime"] .theme-card__preview::after,
+[data-theme="pop-anime"] .history-trigger__icon::after,
+[data-theme="pop-anime"] .history-item__stamp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.85) 0 10%, transparent 11%),
+    radial-gradient(circle at 70% 65%, rgba(255, 255, 255, 0.5) 0 8%, transparent 9%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+[data-theme="pop-anime"] .pb-header__settings,
+[data-theme="pop-anime"] .theme-card__preview-button,
+[data-theme="pop-anime"] .history-panel__action,
+[data-theme="pop-anime"] .history-item__status {
+  border: 2px solid var(--theme-border);
+  box-shadow: 3px 3px 0 rgba(17, 17, 17, 0.9);
+}
+
+[data-theme="pop-anime"] .pb-header__settings:hover,
+[data-theme="pop-anime"] .theme-card:hover,
+[data-theme="pop-anime"] .history-trigger:hover,
+[data-theme="pop-anime"] .history-item:hover {
+  transform: translate(-2px, -2px);
+}

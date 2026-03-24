@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { subscribeToConfigChanges } from '../lib/configStream';
 
 export interface ModelInfo {
   id: string;
@@ -68,6 +69,9 @@ export function useProviders() {
 
   useEffect(() => {
     fetchProviders();
+    return subscribeToConfigChanges(() => {
+      fetchProviders();
+    });
   }, [fetchProviders]);
 
   return { providers, loading, error, refetch: fetchProviders };

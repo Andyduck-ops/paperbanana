@@ -20,6 +20,8 @@ var openAICompatibleProviders = map[string]bool{
 	"stepfun":  true,
 	"silicon":  true,
 	"ollama":   true,
+	"grok":     true,
+	"xai":      true,
 }
 
 // GetModelLister returns a model lister for the given provider.

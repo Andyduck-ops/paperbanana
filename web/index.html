@@ -5,11 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PaperBanana</title>
+
+    <!-- Preconnect to Google Fonts for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Theme fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet" />
+
     <script>
-      // Prevent flash of unstyled content - apply theme before React loads
+      // Prevent a first-paint theme mismatch before React hydrates.
       (function() {
-        var theme = localStorage.getItem('paperbanana-theme') || 'pop-art';
-        document.documentElement.setAttribute('data-theme', theme);
+        var stored = localStorage.getItem('paperbanana-theme');
+        if (stored) {
+          document.documentElement.setAttribute('data-theme', stored);
+        } else {
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var defaultTheme = prefersDark ? 'japanese-bw' : 'qi-baishi';
+          document.documentElement.setAttribute('data-theme', defaultTheme);
+        }
       })();
     </script>
   </head>

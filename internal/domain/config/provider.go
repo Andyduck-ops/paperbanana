@@ -21,6 +21,7 @@ const (
 	ProviderTypeHunyuan          ProviderType = "hunyuan"
 	ProviderTypeStepfun          ProviderType = "stepfun"
 	ProviderTypeSilicon          ProviderType = "silicon"
+	ProviderTypeGrok             ProviderType = "grok"
 	ProviderTypeOpenRouter       ProviderType = "openrouter"
 	ProviderTypeOllama           ProviderType = "ollama"
 	ProviderTypeOpenAICompatible ProviderType = "openai-compatible"
@@ -28,11 +29,11 @@ const (
 
 // ModelInfo represents a model configuration.
 type ModelInfo struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	MaxTokens     int    `json:"max_tokens,omitempty"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	MaxTokens      int    `json:"max_tokens,omitempty"`
 	SupportsVision bool   `json:"supports_vision,omitempty"`
-	Enabled       bool   `json:"enabled"`
+	Enabled        bool   `json:"enabled"`
 }
 
 // SystemProviderPreset defines a predefined provider configuration.
@@ -231,6 +232,20 @@ func SystemProviderPresets() []SystemProviderPreset {
 			},
 		},
 		{
+			Type:        ProviderTypeGrok,
+			Name:        "grok",
+			DisplayName: "xAI Grok",
+			APIHost:     "https://api.x.ai/v1",
+			DocsURL:     "https://docs.x.ai",
+			APIKeyURL:   "https://console.x.ai",
+			DefaultModels: []ModelInfo{
+				{ID: "grok-2-image-1212", Name: "Grok 2 Image", SupportsVision: true, Enabled: true},
+				{ID: "grok-2-vision-1212", Name: "Grok 2 Vision", SupportsVision: true, Enabled: true},
+				{ID: "grok-2-1212", Name: "Grok 2", Enabled: true},
+			},
+			SupportsVision: true,
+		},
+		{
 			Type:        ProviderTypeOpenRouter,
 			Name:        "openrouter",
 			DisplayName: "OpenRouter",
@@ -249,7 +264,7 @@ func SystemProviderPresets() []SystemProviderPreset {
 			DisplayName: "Ollama (本地)",
 			APIHost:     "http://localhost:11434/v1",
 			DocsURL:     "https://ollama.com/library",
-			APIKeyURL:    "",
+			APIKeyURL:   "",
 			DefaultModels: []ModelInfo{
 				{ID: "llama3.2", Name: "Llama 3.2", Enabled: true},
 				{ID: "qwen2.5", Name: "Qwen 2.5", Enabled: true},
@@ -297,10 +312,10 @@ type Provider struct {
 	IsDefault   bool         `json:"is_default"`
 	TimeoutMs   int          `json:"timeout_ms"`
 	// Task-specific model selection
-	QueryModel string `json:"query_model"` // Model for retrieval/planning/critique
-	GenModel   string `json:"gen_model"`   // Model for visualization generation
-	CreatedAt  time.Time    `json:"created_at"`
-	UpdatedAt  time.Time    `json:"updated_at"`
+	QueryModel string    `json:"query_model"` // Model for retrieval/planning/critique
+	GenModel   string    `json:"gen_model"`   // Model for visualization generation
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // BaseURL returns the API host (alias for backward compatibility).

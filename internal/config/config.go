@@ -13,17 +13,56 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig      `mapstructure:"server"`
-	LLM         LLMConfig         `mapstructure:"llm"`
-	Cache       CacheConfig       `mapstructure:"cache"`
-	Output      OutputConfig      `mapstructure:"output"`
-	Persistence PersistenceConfig `mapstructure:"persistence"`
-	Assets      AssetsConfig      `mapstructure:"assets"`
+	Server       ServerConfig       `mapstructure:"server"`
+	LLM          LLMConfig          `mapstructure:"llm"`
+	Cache        CacheConfig        `mapstructure:"cache"`
+	Output       OutputConfig       `mapstructure:"output"`
+	Persistence  PersistenceConfig  `mapstructure:"persistence"`
+	Assets       AssetsConfig       `mapstructure:"assets"`
+	StageTimeout StageTimeoutConfig `mapstructure:"stage_timeout"`
+	Security     SecurityConfig     `mapstructure:"security"`
+}
+
+// StageTimeoutConfig defines timeout durations for each pipeline stage.
+type StageTimeoutConfig struct {
+	Retriever  time.Duration `mapstructure:"retriever"`
+	Planner    time.Duration `mapstructure:"planner"`
+	Stylist    time.Duration `mapstructure:"stylist"`
+	Visualizer time.Duration `mapstructure:"visualizer"`
+	Critic     time.Duration `mapstructure:"critic"`
 }
 
 type ServerConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
+}
+
+// SecurityConfig defines security settings.
+type SecurityConfig struct {
+	// Enable API key authentication
+	AuthEnabled bool `mapstructure:"auth_enabled"`
+
+	// List of valid API keys
+	APIKeys []string `mapstructure:"api_keys"`
+
+	// Rate limiting settings
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+
+	// CORS settings
+	CORS CORSConfig `mapstructure:"cors"`
+}
+
+// RateLimitConfig defines rate limiting settings.
+type RateLimitConfig struct {
+	Enabled           bool `mapstructure:"enabled"`
+	RequestsPerMinute int  `mapstructure:"requests_per_minute"`
+	Burst             int  `mapstructure:"burst"`
+}
+
+// CORSConfig defines CORS settings.
+type CORSConfig struct {
+	AllowedOrigins   []string `mapstructure:"allowed_origins"`
+	AllowCredentials bool     `mapstructure:"allow_credentials"`
 }
 
 type LLMConfig struct {
@@ -117,10 +156,24 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("persistence.database_path", ".paperbanana/paperbanana.db")
 	v.SetDefault("persistence.enable_foreign_keys", true)
 	v.SetDefault("persistence.busy_timeout_ms", 5000)
-	v.SetDefault("persistence.enable_wal", false)
+	v.SetDefault("persistence.enable_wal", true)
 	// Assets defaults
 	v.SetDefault("assets.root", ".paperbanana/assets")
 	v.SetDefault("assets.max_file_size", int64(100*1024*1024)) // 100MB
+	// Stage timeout defaults
+	v.SetDefault("stage_timeout.retriever", 30*time.Second)
+	v.SetDefault("stage_timeout.planner", 60*time.Second)
+	v.SetDefault("stage_timeout.stylist", 30*time.Second)
+	v.SetDefault("stage_timeout.visualizer", 120*time.Second)
+	v.SetDefault("stage_timeout.critic", 60*time.Second)
+	// Security defaults
+	v.SetDefault("security.auth_enabled", false)
+	v.SetDefault("security.api_keys", []string{})
+	v.SetDefault("security.rate_limit.enabled", true)
+	v.SetDefault("security.rate_limit.requests_per_minute", 60)
+	v.SetDefault("security.rate_limit.burst", 10)
+	v.SetDefault("security.cors.allowed_origins", []string{"*"})
+	v.SetDefault("security.cors.allow_credentials", false)
 }
 
 func readConfigFile(v *viper.Viper) error {
@@ -194,6 +247,7 @@ func applyProviderEnvFallbacks(cfg *Config) {
 		"openai":     os.Getenv("OPENAI_API_KEY"),
 		"anthropic":  os.Getenv("ANTHROPIC_API_KEY"),
 		"openrouter": os.Getenv("OPENROUTER_API_KEY"),
+		"grok":       firstNonEmpty(os.Getenv("GROK_API_KEY"), os.Getenv("XAI_API_KEY")),
 	}
 
 	for provider, apiKey := range fallbacks {
@@ -206,6 +260,16 @@ func applyProviderEnvFallbacks(cfg *Config) {
 			cfg.LLM.Providers[provider] = entry
 		}
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
 }
 
 func validate(cfg *Config) error {

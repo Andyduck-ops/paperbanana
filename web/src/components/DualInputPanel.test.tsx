@@ -8,10 +8,13 @@ vi.mock('../hooks', () => ({
       const translations: Record<string, string> = {
         'generate.methodSection': 'Method Section',
         'generate.figureCaption': 'Figure Caption',
+        'generate.referenceImage': 'Reference Image',
         'generate.methodPlaceholder': 'Paste method section content...',
         'generate.captionPlaceholder': 'Enter figure caption...',
         'generate.loadExample': 'Load Example',
         'generate.previewMarkdown': 'Preview Markdown',
+        'refine.dropImage': 'Drop image here or click to upload',
+        'common.clear': 'Clear',
       };
       return translations[key] || key;
     },
@@ -41,19 +44,18 @@ describe('DualInputPanel', () => {
     const textareas = screen.getAllByRole('textbox');
     expect(textareas).toHaveLength(2);
 
-    // Check for col-span-3 and col-span-2 layout
-    const container = textareas[0].closest('.grid');
-    expect(container).toHaveClass('grid-cols-5');
+    const panel = textareas[0].closest('.dual-input-panel');
+    expect(panel).toHaveClass('md:grid-cols-5');
 
-    const methodSection = textareas[0].closest('.col-span-3');
+    const methodSection = textareas[0].closest('.dual-input-panel__context');
     expect(methodSection).toBeInTheDocument();
 
-    const captionSection = textareas[1].closest('.col-span-2');
+    const captionSection = textareas[1].closest('.dual-input-panel__brief');
     expect(captionSection).toBeInTheDocument();
   });
 
   it('method section textarea has correct placeholder', () => {
-    render(
+    const { container } = render(
       <DualInputPanel
         methodContent=""
         caption=""
@@ -140,7 +142,7 @@ describe('DualInputPanel', () => {
     expect(previewElements.length).toBeGreaterThan(0);
   });
 
-  it('example dropdown populates respective textarea', () => {
+  it('example dropdown populates both textareas from a shared selector', () => {
     const examples = [
       { method: 'Example method 1', caption: 'Example caption 1' },
       { method: 'Example method 2', caption: 'Example caption 2' },
@@ -156,16 +158,26 @@ describe('DualInputPanel', () => {
       />
     );
 
-    // Find example selects (one for each field)
-    const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBeGreaterThan(0);
-
-    // Select first example for method
-    fireEvent.change(selects[0], { target: { value: '0' } });
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: '0' } });
     expect(mockOnMethodChange).toHaveBeenCalledWith('Example method 1');
-
-    // Select first example for caption
-    fireEvent.change(selects[1], { target: { value: '0' } });
     expect(mockOnCaptionChange).toHaveBeenCalledWith('Example caption 1');
+  });
+
+  it('renders reference image upload when handler is provided', () => {
+    const mockOnReferenceImageChange = vi.fn();
+
+    render(
+      <DualInputPanel
+        methodContent=""
+        caption=""
+        onMethodChange={mockOnMethodChange}
+        onCaptionChange={mockOnCaptionChange}
+        onReferenceImageChange={mockOnReferenceImageChange}
+      />
+    );
+
+    expect(screen.getByText('Reference Image')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /drop image here or click to upload/i })).toBeInTheDocument();
   });
 });

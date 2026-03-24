@@ -1,15 +1,31 @@
 {
   "app": {
     "name": "PaperBanana",
-    "tagline": "Academic Visualization Generator",
+    "tagline": "Academic paper figure generation and refinement",
     "tabGenerate": "Generate",
     "tabRefine": "Refine"
   },
   "theme": {
-    "title": "Select Theme",
-    "popArt": "Pop Art",
-    "classicalChinese": "Classical Chinese",
-    "minimalistBw": "Minimalist B&W"
+    "title": "Theme",
+    "subtitle": "Choose workspace look.",
+    "options": {
+      "qi-baishi": {
+        "label": "Qi Baishi",
+        "description": "Paper warmth, ink contrast, and a restrained cinnabar accent."
+      },
+      "pop-anime": {
+        "label": "Pop Anime",
+        "description": "Bold outlines, bright accents, and compressed comic energy."
+      },
+      "rococo": {
+        "label": "Rococo",
+        "description": "Pearl surfaces, pale gold framing, and soft pink ornament."
+      },
+      "japanese-bw": {
+        "label": "Night Mono",
+        "description": "Dark monochrome, restrained contrast, and quiet negative space."
+      }
+    }
   },
   "language": {
     "title": "Language",
@@ -17,45 +33,92 @@
     "english": "English"
   },
   "workspace": {
+    "kicker": "Academic Figure Workflow",
     "title": "Workspace",
+    "mainTitle": "Keep current work primary, with history and support information tucked aside.",
+    "mainDescription": "Organize canvas, results, and support signals into a calmer academic workflow.",
+    "emptyState": {
+      "generateTitle": "Start from paper context, then shape the figure",
+      "generateDescription": "Turn paper excerpts, related work, and reviewer constraints into publication-ready figures with a narrow academic layout.",
+      "refineTitle": "Carry the current figure into a refinement pass",
+      "refineDescription": "Upload an existing figure or continue from a generated candidate to tighten hierarchy, labels, and publication finish.",
+      "exampleIntro": "Start from a paper-figure brief",
+      "generateHint": "Or paste a paper excerpt and target figure brief below to begin.",
+      "refineHint": "Upload an existing figure below to start a refinement pass.",
+      "examples": {
+        "workflow": {
+          "title": "Method workflow",
+          "description": "A narrow left-to-right pipeline for a paper method section"
+        },
+        "ablation": {
+          "title": "Ablation chart",
+          "description": "Compact comparative bars for benchmark and reviewer discussion"
+        },
+        "framework": {
+          "title": "System framework",
+          "description": "Input, retrieval, planner, and output arranged for a conference page"
+        },
+        "refine": {
+          "title": "Revision polish",
+          "description": "Use reviewer feedback to simplify density and improve figure finish"
+        }
+      }
+    },
     "newProject": "New Project",
     "openProject": "Open Project",
     "noProjects": "No projects yet"
   },
   "generate": {
-    "title": "Generate Visualization",
-    "descriptionLabel": "Describe your visualization",
-    "descriptionPlaceholder": "Enter your method description and visualization intent...",
-    "visualizerNode": "Visualizer Node",
+    "title": "Paper Figure Generation",
+    "panelTitle": "Ground the figure in paper context, then define the final visual.",
+    "panelDescription": "Use the left side for paper excerpts, related work, figure references, and notes. Use the right side for the target figure layout, style, labels, and constraints.",
+    "descriptionLabel": "Describe your task",
+    "descriptionPlaceholder": "Describe the references you want to use and the image you want to produce...",
+    "visualizerNode": "Execution Node",
     "defaultVisualizer": "Default",
     "submit": "Generate",
     "generating": "Generating...",
     "progress": "Generation Progress",
+    "progressAriaLabel": "Generation progress stages",
     "result": "Result",
+    "completed": "Completed",
     "new": "New Generation",
     "artifacts": "artifacts",
+    "resumedFrom": "Resumed from",
+    "resumedFromAriaLabel": "Session resumed from {{stage}} stage",
+    "elapsedTimeAriaLabel": "Elapsed time: {{time}}",
+    "progressCount": "{{completed}} of {{total}} stages completed",
     "batchMode": "Batch Mode",
     "numCandidates": "Number of Candidates",
-    "numCandidatesHint": "Generate multiple variants in parallel",
+    "numCandidatesHint": "Generate multiple paper-figure variants in parallel",
     "batchProgress": "Batch Progress",
     "candidate": "Candidate {{number}}",
     "batchComplete": "Batch Complete",
     "successful": "successful",
     "failed": "failed",
     "bestResult": "Best Result",
-    "methodSection": "Method Section",
-    "figureCaption": "Figure Caption",
-    "methodPlaceholder": "Paste method section content...",
-    "captionPlaceholder": "Enter figure caption...",
-    "loadExample": "Load Example",
-    "previewMarkdown": "Preview Markdown",
-    "advancedSettings": "Advanced Settings",
+    "methodSection": "Paper Context & References",
+    "figureCaption": "Target Figure Brief",
+    "referenceImage": "Reference Figure",
+    "methodPlaceholder": "Paste paper excerpts, method steps, figure references, similar published figures, or reviewer constraints...",
+    "captionPlaceholder": "Describe the paper figure you need, including panel layout, labels, style, and revision goals...",
+    "loadExample": "Load Task Example",
+    "previewMarkdown": "Preview",
+    "advancedSettings": "Retrieval & Generation Routing",
     "aspectRatio": "Aspect Ratio",
-    "criticRounds": "Critic Rounds",
+    "criticRounds": "Iteration Passes",
     "retrievalMode": "Retrieval Mode",
-    "pipelineMode": "Pipeline Mode",
-    "queryModel": "Query Model",
-    "genModel": "Generation Model",
+    "pipelineMode": "Workflow Mode",
+    "queryModel": "Retrieval/Reasoning Model",
+    "genModel": "Image Generation/Refinement Model",
+    "statusPending": "Pending",
+    "statusRunning": "Running",
+    "statusComplete": "Complete",
+    "statusError": "Error",
+    "statusNotRun": "Not Run",
+    "announcementRunning": "{{stage}} stage is running",
+    "announcementFailed": "{{stage}} stage failed: {{error}}",
+    "announcementComplete": "All stages completed successfully",
     "modes": {
       "auto": "Auto",
       "manual": "Manual",
@@ -73,14 +136,32 @@
     "running": "Running...",
     "downloadAll": "Download All as ZIP",
     "downloading": "Downloading...",
-    "configureProviders": "Configure providers in Settings"
+    "configureProviders": "Configure a channel in Settings"
   },
   "history": {
-    "title": "History",
-    "empty": "No history yet",
+    "title": "Work Records",
+    "subtitle": "Paper figure generation and refinement sessions",
+    "empty": "No work records yet",
+    "emptyHint": "Recent paper figure generation and refinement tasks will appear here.",
     "untitled": "Untitled",
     "version": "Version {{number}}",
-    "restore": "Restore"
+    "restore": "Restore",
+    "restoreFailed": "Failed to restore this session.",
+    "restoreUnavailable": "This work record does not have a restorable snapshot yet.",
+    "loading": "Loading history...",
+    "error": "Failed to load history",
+    "retry": "Retry",
+    "close": "Close",
+    "session": "Session",
+    "generate": "Generate",
+    "refine": "Refine",
+    "batch": "Batch",
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "pending": "Pending"
+    }
   },
   "export": {
     "title": "Export",
@@ -96,6 +177,7 @@
   },
   "settings": {
     "title": "Settings",
+    "modelConfigDescription": "Show configured channels only and assign models for retrieval and figure generation.",
     "providers": "LLM Providers",
     "addProvider": "Add Provider",
     "editProvider": "Edit Provider",
@@ -108,10 +190,10 @@
     "apiKey": "API Key",
     "apiKeyOptional": "optional, add new key",
     "queryModel": "Query Model",
-    "queryModelHint": "Used for retrieval, planning, and critique",
+    "queryModelHint": "Used for retrieval matching, planning, and critique",
     "queryModelHintSelect": "Select from available models",
     "genModel": "Generation Model",
-    "genModelHint": "Used for visualization code generation",
+    "genModelHint": "Used for image generation and refinement",
     "useSameModel": "Use same model for generation",
     "testConnection": "Test Connection",
     "connectionSuccess": "Connection successful! {{count}} models available.",
@@ -187,18 +269,18 @@
     "remove": "Remove"
   },
   "refine": {
-    "title": "Refine Image",
-    "dropImage": "Drop image here or click to upload",
-    "instructions": "Refinement Instructions",
-    "instructionsPlaceholder": "Describe how you want to improve the image...",
+    "title": "Paper Figure Refinement",
+    "dropImage": "Drop a paper figure here or click to upload",
+    "instructions": "Refinement Brief",
+    "instructionsPlaceholder": "Describe what to preserve, revise, or add in the figure...",
     "resolution": "Target Resolution",
     "resolution2K": "2K (2560x1440)",
     "resolution4K": "4K (3840x2160)",
-    "refineButton": "Refine Image",
-    "refining": "Refining...",
+    "refineButton": "Start Refinement",
+    "refining": "Refining Figure...",
     "enableIteration": "Enable Iterative Refinement",
     "maxIterations": "Maximum Iterations",
-    "iterationHint": "More iterations may improve quality but take longer"
+    "iterationHint": "When enabled, the system keeps tightening details over small refinement rounds"
   },
   "comparison": {
     "before": "Before",
@@ -209,11 +291,6 @@
     "networkError": "Network error. Please check your connection.",
     "serverError": "Server error. Please try again later.",
     "validationError": "Please check your input."
-  },
-  "workspace": {
-    "kicker": "Main workspace",
-    "mainTitle": "Keep the current work on the left, with history and notes on the right.",
-    "mainDescription": "Give the canvas, results, and support info a clear place with less distraction."
   },
   "batch": {
     "review": "Batch review",
@@ -232,5 +309,90 @@
   "footer": {
     "github": "GitHub",
     "docs": "Docs"
+  },
+  "modelConfig": {
+    "title": "Model Configuration",
+    "channels": "Channels",
+    "models": "Models",
+    "enabled": "enabled",
+    "addChannel": "Add Channel",
+    "editChannel": "Edit Channel",
+    "deleteChannel": "Delete Channel",
+    "confirmDeleteChannel": "Delete Channel?",
+    "deleteChannelWarning": "This will permanently delete {{name}} and all its model configurations.",
+    "noChannels": "No channels configured",
+    "addChannelHint": "Add a channel to start using models",
+    "channelsDescription": "Only connected channels are shown here; built-in presets stay hidden until configured.",
+    "availableModels": "Available Models",
+    "modelsDescription": "Browse models from channels you have already connected.",
+    "providerType": "Provider Type",
+    "customProvider": "Custom Provider",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "My Channel",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "timeout": "Timeout",
+    "fetchModels": "Fetch Models",
+    "lastFetched": "Last fetched: {{time}}",
+    "status": {
+      "configured": "Configured",
+      "noKeys": "No API Key",
+      "invalid": "Invalid",
+      "pending": "Pending"
+    },
+    "addModel": "Add model",
+    "removeModel": "Remove model",
+    "noModelsAvailable": "No models available",
+    "fetchModelsHint": "Fetch models from a channel to get started",
+    "hiddenSystemChannelsHint": "Add and configure a channel before models appear here.",
+    "noEnabledModels": "No enabled models",
+    "enableModelsHint": "Enable models using the + button",
+    "noMatchingModels": "No matching models",
+    "tryDifferentSearch": "Try a different search term",
+    "searchModels": "Search models...",
+    "allChannels": "All Channels",
+    "selected": "Selected",
+    "selectorDisabled": "Model selector is disabled",
+    "noModels": "No models available",
+    "selectModel": "Select model...",
+    "roleMapping": "Role Mapping",
+    "roleMappingDescription": "Assign roles only from enabled, configured models",
+    "roleMappingEmptyHint": "Configure a channel first, then assign retrieval and generation roles here.",
+    "configurationSummary": "Configuration Summary",
+    "assigned": "Assigned",
+    "assignModel": "Assign Model",
+    "channel": "Channel",
+    "model": "Model",
+    "change": "Change",
+    "clear": "Clear",
+    "assign": "Assign",
+    "noAssignments": "No role assignments configured",
+    "assignRolesHint": "Assign models to workflow roles above",
+    "totalChannels": "Configured Channels",
+    "imageGenAssigned": "Image Gen Assigned",
+    "totalAssignments": "Assigned Roles",
+    "currentAssignments": "Current Assignments",
+    "showSummary": "Show Summary",
+    "hideSummary": "Hide Summary",
+    "quickAssign": "Quick Assign",
+    "quickAssignTitle": "Quick Assign Models",
+    "roles": {
+      "imageGeneration": {
+        "title": "Image Generation",
+        "short": "Generation",
+        "description": "Generates visualization code and renders scientific diagrams",
+        "cap1": "Code generation",
+        "cap2": "SVG/PNG rendering",
+        "cap3": "Style application"
+      },
+      "retrievalReasoning": {
+        "title": "Retrieval & Reasoning",
+        "short": "Reasoning",
+        "description": "Analyzes papers, plans visualization structure, and provides critical feedback",
+        "cap1": "Paper analysis",
+        "cap2": "Planning & structure",
+        "cap3": "Quality evaluation"
+      }
+    }
   }
 }

@@ -75,6 +75,35 @@ func TestDefaultModelSelection(t *testing.T) {
 	assert.NotEmpty(t, cfg.LLM.Providers[cfg.LLM.Default].Model)
 }
 
+func TestApplyProviderEnvFallbacksSupportsGrok(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := []byte(`
+server:
+  host: localhost
+  port: 8080
+llm:
+  default: grok
+  providers:
+    grok:
+      api_key: ""
+      base_url: https://example.invalid/v1
+      model: grok-2-image-1212
+      timeout: 60s
+output:
+  dpi: 300
+  formats: [png]
+`)
+	require.NoError(t, os.WriteFile(configPath, content, 0o644))
+
+	t.Setenv("PAPERBANANA_CONFIG_FILE", configPath)
+	t.Setenv("XAI_API_KEY", "xai-test-key")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "xai-test-key", cfg.LLM.Providers["grok"].APIKey)
+}
+
 func TestOutputParams(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("OPENAI_API_KEY", "openai-test-key")

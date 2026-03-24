@@ -20,8 +20,12 @@ export interface GeneratePanelProps {
 // Example content for users to load
 const DEFAULT_EXAMPLES = [
   {
-    method: `We propose a novel attention mechanism that combines sparse attention patterns with local context windows. The architecture consists of three main components: (1) a sparse global attention layer that captures long-range dependencies, (2) a local attention layer with sliding windows for fine-grained patterns, and (3) a gating mechanism that dynamically adjusts the contribution of each component based on input characteristics.`,
-    caption: 'Figure 1: Architecture of the proposed sparse-local attention mechanism. The global attention layer (top) captures long-range dependencies, while the local attention layer (bottom) processes sliding windows. The gating network dynamically combines outputs from both layers.',
+    method: `Database retrieval notes:
+- matched three medical workflow diagrams with left-to-right sequencing
+- useful reference traits: pale paper background, thin connector arrows, no 3D effects
+- avoid crowded legends and avoid saturated gradients
+- previous failed attempt was too dashboard-like and too colorful`,
+    caption: 'Generate a clean process diagram for a tumor staging workflow. Keep the layout horizontal, highlight decision nodes, and leave enough white space for later annotation.',
   },
 ];
 
@@ -35,6 +39,7 @@ export function GeneratePanel({
   const { providers } = useProviders();
   const [methodContent, setMethodContent] = useState('');
   const [caption, setCaption] = useState('');
+  const [referenceImageData, setReferenceImageData] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string>('');
   const [batchMode, setBatchMode] = useState(false);
   const [numCandidates, setNumCandidates] = useState(3);
@@ -52,7 +57,7 @@ export function GeneratePanel({
     const cap = caption.trim();
 
     if (method && cap) {
-      return `Method Section:\n${method}\n\nFigure Caption:\n${cap}`;
+      return `Paper Context & References:\n${method}\n\nTarget Figure Brief:\n${cap}`;
     }
     return method || cap;
   };
@@ -78,9 +83,46 @@ export function GeneratePanel({
         caption={caption}
         onMethodChange={setMethodContent}
         onCaptionChange={setCaption}
+        referenceImageData={referenceImageData}
+        onReferenceImageChange={setReferenceImageData}
+        onReferenceImageClear={() => setReferenceImageData(null)}
         disabled={isGenerating}
         examples={DEFAULT_EXAMPLES}
       />
+
+      <section className="rounded-2xl border border-border/70 bg-card/70 px-4 py-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={batchMode}
+                onChange={(e) => setBatchMode(e.target.checked)}
+                disabled={isGenerating}
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-foreground">{t('generate.batchMode')}</span>
+            </label>
+            <p className="text-xs text-muted-foreground">{t('generate.numCandidatesHint')}</p>
+          </div>
+
+          <div className={`grid gap-2 md:w-44 ${batchMode ? '' : 'opacity-60'}`}>
+            <label htmlFor="num-candidates" className="text-xs font-medium text-muted-foreground">
+              {t('generate.numCandidates')}
+            </label>
+            <input
+              id="num-candidates"
+              type="number"
+              min={1}
+              max={50}
+              value={numCandidates}
+              onChange={(e) => setNumCandidates(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+              disabled={!batchMode || isGenerating}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+        </div>
+      </section>
 
       {visualizerNodes.length > 0 && (
         <div>
@@ -101,33 +143,6 @@ export function GeneratePanel({
           </select>
         </div>
       )}
-
-      <div className="flex items-center gap-3 py-2">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={batchMode}
-            onChange={(e) => setBatchMode(e.target.checked)}
-            disabled={isGenerating}
-            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-          />
-          <span className="text-sm text-foreground">{t('generate.batchMode')}</span>
-        </label>
-        {batchMode && (
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={numCandidates}
-              onChange={(e) => setNumCandidates(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
-              disabled={isGenerating}
-              className="w-16 px-2 py-1 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <span className="text-sm text-muted-foreground">{t('generate.numCandidatesHint')}</span>
-          </div>
-        )}
-      </div>
 
       <div className="mt-4">
         <ConfigPanel
