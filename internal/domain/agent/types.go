@@ -54,6 +54,7 @@ const (
 	ArtifactKindRenderedFigure  ArtifactKind = "rendered_figure"
 	ArtifactKindPromptTrace     ArtifactKind = "prompt_trace"
 	ArtifactKindCritique        ArtifactKind = "critique"
+	ArtifactKindPolishedImage   ArtifactKind = "polished_image"
 )
 
 type VisualIntent struct {
@@ -89,7 +90,8 @@ type Artifact struct {
 	MIMEType string            `json:"mime_type"`
 	URI      string            `json:"uri"`
 	Content  string            `json:"content,omitempty"`
-	Bytes    []byte            `json:"bytes,omitempty"`
+	Bytes    []byte            `json:"data,omitempty"`
+	AssetID  string            `json:"asset_id,omitempty"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
@@ -109,10 +111,12 @@ type RestoreMetadata struct {
 }
 
 type ErrorDetail struct {
-	Message   string    `json:"message"`
-	Code      string    `json:"code,omitempty"`
-	Retryable bool      `json:"retryable"`
-	Stage     StageName `json:"stage,omitempty"`
+	Message    string    `json:"message"`
+	Code       string    `json:"code,omitempty"`
+	Category   string    `json:"category,omitempty"`
+	Retryable  bool      `json:"retryable"`
+	Suggestion string    `json:"suggestion,omitempty"`
+	Stage      StageName `json:"stage,omitempty"`
 }
 
 type Timing struct {
@@ -165,6 +169,7 @@ type SessionState struct {
 	RequestID     string            `json:"request_id"`
 	Status        RunStatus         `json:"status"`
 	CurrentStage  StageName         `json:"current_stage"`
+	FailedStage   StageName         `json:"failed_stage,omitempty"`
 	Pipeline      []StageName       `json:"pipeline"`
 	InitialInput  AgentInput        `json:"initial_input"`
 	StageStates   []AgentState      `json:"stage_states,omitempty"`
@@ -195,9 +200,9 @@ type CandidateResult struct {
 
 // BatchResult aggregates the results from all candidates in a batch execution.
 type BatchResult struct {
-	BatchID    string           `json:"batch_id"`
+	BatchID    string            `json:"batch_id"`
 	Results    []CandidateResult `json:"results"`
-	Successful int              `json:"successful"`
-	Failed     int              `json:"failed"`
-	Timing     BatchTiming      `json:"timing"`
+	Successful int               `json:"successful"`
+	Failed     int               `json:"failed"`
+	Timing     BatchTiming       `json:"timing"`
 }

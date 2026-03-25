@@ -6,6 +6,7 @@ export interface Artifact {
   summary: string;
   data?: string;
   assetId?: string;
+  projectId?: string;
 }
 
 export interface ArtifactPreviewProps {
@@ -14,15 +15,29 @@ export interface ArtifactPreviewProps {
   onCopy?: (artifact: Artifact) => void;
 }
 
+/**
+ * getArtifactImageUrl constructs the image URL for an artifact.
+ * Priority: base64 data > asset API with projectId > asset API without projectId
+ */
+export function getArtifactImageUrl(artifact: Artifact): string | null {
+  if (artifact.data) {
+    return `data:${artifact.mimeType};base64,${artifact.data}`;
+  }
+  if (artifact.assetId) {
+    if (artifact.projectId) {
+      return `/api/v1/assets/${artifact.projectId}/${artifact.assetId}/download`;
+    }
+    // Fallback: use assetId as-is (deprecated, won't work without projectId)
+    return `/api/v1/assets/${artifact.assetId}`;
+  }
+  return null;
+}
+
 export function ArtifactPreview({ artifact, onExport, onCopy }: ArtifactPreviewProps) {
   const { t } = useLanguage();
 
   const isImage = artifact.mimeType.startsWith('image/');
-  const imageUrl = artifact.data
-    ? `data:${artifact.mimeType};base64,${artifact.data}`
-    : artifact.assetId
-    ? `/api/v1/assets/${artifact.assetId}`
-    : null;
+  const imageUrl = getArtifactImageUrl(artifact);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-background">

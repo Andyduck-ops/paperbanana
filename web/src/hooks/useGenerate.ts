@@ -26,6 +26,7 @@ export interface GenerateResult {
     summary: string;
     data?: string;
     assetId?: string;
+    projectId?: string;
   }>;
 }
 

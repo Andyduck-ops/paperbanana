@@ -267,6 +267,70 @@ func buildGenerateResponse(result orchestrator.RunResult, projectID string) Gene
 	}
 }
 
+func buildGenerateResponseWithArtifacts(result orchestrator.RunResult, projectID string, artifacts []domainagent.Artifact) GenerateResponse {
+	return GenerateResponse{
+		SessionID:          result.Session.SessionID,
+		RequestID:          result.Session.RequestID,
+		ProjectID:          projectID,
+		Content:            result.Session.FinalOutput.Content,
+		GeneratedArtifacts: cloneArtifactsWithProjectID(artifacts, projectID),
+		TokensUsed:         0,
+		FinishReason:       string(result.Session.Status),
+	}
+}
+
+// persistArtifacts stores artifacts via AssetService and updates them with asset IDs.
+func (h *Handler) persistArtifacts(ctx context.Context, req GenerateRequest, artifacts []domainagent.Artifact) []domainagent.Artifact {
+	if h.assetService == nil || req.ProjectID == "" || len(artifacts) == 0 {
+		return artifacts
+	}
+
+	// Get visualization ID from request or use session ID as fallback
+	visualizationID := req.SessionID
+	if req.VisualizationID != nil && *req.VisualizationID != "" {
+		visualizationID = *req.VisualizationID
+	}
+
+	// Register artifacts as retained assets
+	assets, err := h.assetService.RegisterRetainedAssets(ctx, req.ProjectID, visualizationID, nil, artifacts)
+	if err != nil {
+		h.logger.Warn("failed to persist artifacts", zap.Error(err), zap.String("session_id", req.SessionID))
+		return artifacts
+	}
+
+	// Build a map from artifact kind to asset ID for updating
+	assetMap := make(map[domainagent.ArtifactKind]string)
+	for _, asset := range assets {
+		// Find matching artifact by mime type and kind
+		for _, artifact := range artifacts {
+			if artifact.MIMEType == asset.MIMEType {
+				assetMap[artifact.Kind] = asset.ID
+				break
+			}
+		}
+	}
+
+	// Update artifacts with asset IDs
+	updated := make([]domainagent.Artifact, len(artifacts))
+	for i, artifact := range artifacts {
+		updated[i] = artifact
+		if assetID, ok := assetMap[artifact.Kind]; ok {
+			updated[i].AssetID = assetID
+		}
+		if len(artifact.Bytes) > 0 {
+			updated[i].Bytes = append([]byte(nil), artifact.Bytes...)
+		}
+		if len(artifact.Metadata) > 0 {
+			updated[i].Metadata = make(map[string]string, len(artifact.Metadata))
+			for key, value := range artifact.Metadata {
+				updated[i].Metadata[key] = value
+			}
+		}
+	}
+
+	return updated
+}
+
 func cloneArtifactsWithProjectID(artifacts []domainagent.Artifact, projectID string) []domainagent.Artifact {
 	if len(artifacts) == 0 {
 		return nil

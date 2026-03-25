@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 
+	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	"github.com/paperbanana/paperbanana/internal/domain/workspace"
 )
 
@@ -16,6 +17,7 @@ type AssetPersistenceService interface {
 	ListAssets(ctx context.Context, projectID, visualizationID string) ([]*workspace.Asset, error)
 	GetAsset(ctx context.Context, projectID, assetID string) (*workspace.Asset, []byte, error)
 	ListAssetsByVersion(ctx context.Context, projectID, versionID string) ([]*workspace.Asset, error)
+	RegisterRetainedAssets(ctx context.Context, projectID, visualizationID string, versionID *string, artifacts []domainagent.Artifact) ([]*workspace.Asset, error)
 }
 
 // NewAssetServiceAdapter creates a new AssetServiceAdapter.
@@ -58,6 +60,11 @@ func (a *AssetServiceAdapter) ListAssetsByVersion(ctx context.Context, projectID
 		result[i] = assetToAssetInfo(asset)
 	}
 	return result, nil
+}
+
+// RegisterRetainedAssets persists artifacts as assets and returns the created asset records.
+func (a *AssetServiceAdapter) RegisterRetainedAssets(ctx context.Context, projectID, visualizationID string, versionID *string, artifacts []domainagent.Artifact) ([]*workspace.Asset, error) {
+	return a.svc.RegisterRetainedAssets(ctx, projectID, visualizationID, versionID, artifacts)
 }
 
 // assetToAssetInfo converts workspace.Asset to handlers.AssetInfo.

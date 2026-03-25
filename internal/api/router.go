@@ -145,8 +145,11 @@ func SetupRouterWithPersistenceWithRegistry(runner *orchestrator.Runner, service
 		c.JSON(200, gin.H{"status": "ready"})
 	})
 
-	// Generate endpoints with session registry for cancellation
-	generateHandler := handlers.NewHandlerWithRegistry(handlers.NewRunnerAdapter(runner), registry, logger)
+	// Create asset adapter for both generate handler and asset handler
+	assetAdapter := handlers.NewAssetServiceAdapter(services.AssetService)
+
+	// Generate endpoints with session registry for cancellation and asset persistence
+	generateHandler := handlers.NewHandlerWithAssetService(handlers.NewRunnerAdapter(runner), registry, assetAdapter, logger)
 
 	v1 := router.Group("/api/v1")
 	v1.POST("/generate", generateHandler.Generate)
@@ -172,8 +175,7 @@ func SetupRouterWithPersistenceWithRegistry(runner *orchestrator.Runner, service
 	v1.GET("/session/latest", historyHandler.GetLatestSession)
 	v1.GET("/session/:session_id", historyHandler.GetSession)
 
-	// Asset endpoints - adapt persistence.AssetService to handlers.AssetService
-	assetAdapter := handlers.NewAssetServiceAdapter(services.AssetService)
+	// Asset endpoints
 	assetHandler := handlers.NewAssetHandler(assetAdapter, logger)
 	v1.GET("/assets", assetHandler.ListAssets)
 	v1.GET("/assets/:project_id/:asset_id", assetHandler.GetAsset)
