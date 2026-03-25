@@ -137,7 +137,7 @@ func main() {
 		apiKeyRepo,
 	)
 
-	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot, cfg.StageTimeout)
+	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot, cfg.StageTimeout, cfg.Plot.Enabled)
 	if err != nil {
 		logger.Fatal("failed to build runner", zap.Error(err))
 	}
@@ -150,6 +150,7 @@ func main() {
 		providerConfig: providerConfig,
 		nodeCatalog:    nodeCatalog,
 		snapshotStore:  snapshotStore,
+		plotEnabled:    cfg.Plot.Enabled,
 	}
 
 	// Wire up the full router with persistence and config endpoints
@@ -162,7 +163,10 @@ func main() {
 	}, &api.BatchServices{
 		BatchRunner:  orchestrator.NewBatchRunner(agentFactory),
 		AgentFactory: agentFactory,
-	}, nil, logger)
+	}, &api.RefineServices{
+		Generator:    genClient,
+		SessionSaver: historyService,
+	}, logger)
 
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
@@ -176,9 +180,9 @@ func main() {
 
 	// Create HTTP server with graceful shutdown support
 	srv := &http.Server{
-		Addr:         address,
-		Handler:      router,
-		ReadTimeout:  30 * time.Second,
+		Addr:        address,
+		Handler:     router,
+		ReadTimeout: 30 * time.Second,
 		// Streaming and long-running generation can legitimately exceed several minutes.
 		// Leave write timeout disabled so SSE and synchronous generation are not cut off mid-pipeline.
 		WriteTimeout: 0,
@@ -223,11 +227,13 @@ func buildRunner(
 	nodeCatalog *config.NodeCatalog,
 	benchRoot string,
 	stageTimeouts config.StageTimeoutConfig,
+	plotEnabled bool,
 ) (*orchestrator.Runner, error) {
 	visualizerAgent := visualizeragent.NewAgent(genClient, visualizeragent.Config{
-		Model:       providerConfig.Model,
-		NodeCatalog: nodeCatalog,
-		NodeAdapter: httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", providerConfig.Timeout)),
+		Model:        providerConfig.Model,
+		NodeCatalog:  nodeCatalog,
+		NodeAdapter:  httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", providerConfig.Timeout)),
+		PlotEnabled:  plotEnabled,
 	})
 	criticAgent := criticagent.NewAgent(queryClient, criticagent.Config{
 		Model:         providerConfig.Model,
@@ -296,6 +302,11 @@ type agentFactory struct {
 	providerConfig config.ProviderConfig
 	nodeCatalog    *config.NodeCatalog
 	snapshotStore  orchestrator.SnapshotStore
+	plotEnabled    bool
+}
+
+func (f *agentFactory) SnapshotStore() orchestrator.SnapshotStore {
+	return f.snapshotStore
 }
 
 func (f *agentFactory) CreateRetriever() domainagent.BaseAgent {
@@ -319,9 +330,10 @@ func (f *agentFactory) CreateStylist() domainagent.BaseAgent {
 
 func (f *agentFactory) CreateVisualizer() domainagent.BaseAgent {
 	return visualizeragent.NewAgent(f.genClient, visualizeragent.Config{
-		Model:       f.providerConfig.Model,
-		NodeCatalog: f.nodeCatalog,
-		NodeAdapter: httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", f.providerConfig.Timeout)),
+		Model:        f.providerConfig.Model,
+		NodeCatalog:  f.nodeCatalog,
+		NodeAdapter:  httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", f.providerConfig.Timeout)),
+		PlotEnabled:  f.plotEnabled,
 	})
 }
 

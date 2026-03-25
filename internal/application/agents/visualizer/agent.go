@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/paperbanana/paperbanana/internal/application/agents/modelselection"
 	pbconfig "github.com/paperbanana/paperbanana/internal/config"
@@ -15,6 +17,7 @@ import (
 const (
 	defaultMaxOutputTokens = 50000
 	PromptVersion          = "visualizer-v1"
+	maxDiagramAttempts     = 3
 )
 
 type Config struct {
@@ -24,6 +27,9 @@ type Config struct {
 	PlotExecutor    PlotExecutor
 	NodeCatalog     *pbconfig.NodeCatalog
 	NodeAdapter     nodeExecutor
+	// PlotEnabled controls whether plot mode execution is allowed.
+	// SECURITY: This should be false by default to prevent arbitrary code execution.
+	PlotEnabled bool
 }
 
 type Agent struct {
@@ -121,7 +127,7 @@ func (a *Agent) executeDiagram(ctx context.Context, input domainagent.AgentInput
 		return domainagent.AgentOutput{}, err
 	}
 
-	resp, err := a.client.Generate(ctx, domainllm.GenerateRequest{
+	imageReq := domainllm.GenerateRequest{
 		SystemInstruction: prompt.SystemInstruction,
 		Messages: []domainllm.Message{{
 			Role:  domainllm.RoleUser,
@@ -131,7 +137,10 @@ func (a *Agent) executeDiagram(ctx context.Context, input domainagent.AgentInput
 		Temperature:   a.cfg.Temperature,
 		MaxTokens:     a.cfg.MaxOutputTokens,
 		PromptVersion: prompt.Version,
-	})
+	}
+
+	var resp *domainllm.GenerateResponse
+	resp, attempts, err := a.generateDiagramResponse(ctx, imageReq)
 	if err != nil {
 		return domainagent.AgentOutput{}, err
 	}
@@ -146,11 +155,83 @@ func (a *Agent) executeDiagram(ctx context.Context, input domainagent.AgentInput
 	output.Metadata = map[string]string{
 		"execution_path": "llm-image",
 		"summary":        fmt.Sprintf("generated %s figure artifact via llm image path", input.VisualIntent.Mode),
+		"attempt_count":  strconv.Itoa(attempts),
+		"retry_used":     strconv.FormatBool(attempts > 1),
 	}
 	return output, nil
 }
 
+func (a *Agent) generateDiagramResponse(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, int, error) {
+	var lastErr error
+
+	for attempt := 1; attempt <= maxDiagramAttempts; attempt++ {
+		resp, err := a.invokeDiagramGenerator(ctx, req)
+		if err == nil {
+			return resp, attempt, nil
+		}
+
+		lastErr = err
+		if attempt >= maxDiagramAttempts || !shouldRetryDiagramError(err) {
+			break
+		}
+		if err := waitForRetry(ctx, diagramRetryDelay(attempt)); err != nil {
+			return nil, attempt, err
+		}
+	}
+
+	if lastErr == nil {
+		lastErr = errors.New("diagram generation failed without an upstream error")
+	}
+	return nil, maxDiagramAttempts, fmt.Errorf("visualizer image generation failed after %d attempts: %w", maxDiagramAttempts, lastErr)
+}
+
+func (a *Agent) invokeDiagramGenerator(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	imageClient, ok := a.client.(domainllm.ImageGenerator)
+	if ok {
+		return imageClient.GenerateImage(ctx, req)
+	}
+	return a.client.Generate(ctx, req)
+}
+
+func shouldRetryDiagramError(err error) bool {
+	switch domainagent.ClassifyError(err) {
+	case domainagent.ErrCodeLLMTimeout, domainagent.ErrCodeRateLimit, domainagent.ErrCodeServiceUnavailable, domainagent.ErrCodeNetworkError:
+		return true
+	default:
+		return false
+	}
+}
+
+func diagramRetryDelay(attempt int) time.Duration {
+	switch attempt {
+	case 1:
+		return 1500 * time.Millisecond
+	case 2:
+		return 3 * time.Second
+	default:
+		return 4500 * time.Millisecond
+	}
+}
+
+func waitForRetry(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 func (a *Agent) executePlot(ctx context.Context, input domainagent.AgentInput, prompt domainagent.PromptMetadata) (domainagent.AgentOutput, error) {
+	// SECURITY: Check if plot mode is enabled before allowing execution.
+	// Plot mode uses exec() to run arbitrary Python code, which is a security risk.
+	if !a.cfg.PlotEnabled {
+		return domainagent.AgentOutput{}, errors.New("plot mode is disabled for security reasons; set plot.enabled=true in config to enable (WARNING: this allows arbitrary code execution)")
+	}
+
 	if a.client == nil {
 		return domainagent.AgentOutput{}, errors.New("visualizer plot mode requires an llm client")
 	}

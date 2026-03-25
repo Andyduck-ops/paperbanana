@@ -21,6 +21,21 @@ type Config struct {
 	Assets       AssetsConfig       `mapstructure:"assets"`
 	StageTimeout StageTimeoutConfig `mapstructure:"stage_timeout"`
 	Security     SecurityConfig     `mapstructure:"security"`
+	Plot         PlotConfig         `mapstructure:"plot"`
+}
+
+// PlotConfig defines settings for the plot execution feature.
+// WARNING: Plot mode executes Python code via exec(), which is a security risk.
+// This feature is disabled by default and must be explicitly enabled.
+type PlotConfig struct {
+	// Enabled controls whether plot mode is allowed.
+	// Default: false (security-safe default)
+	Enabled bool `mapstructure:"enabled"`
+
+	// SandboxMode specifies the execution sandbox strategy.
+	// Options: "none" (dangerous), "docker" (future), "restricted" (future)
+	// Currently only "none" is implemented, so enabling is still risky.
+	SandboxMode string `mapstructure:"sandbox_mode"`
 }
 
 // StageTimeoutConfig defines timeout durations for each pipeline stage.
@@ -174,6 +189,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("security.rate_limit.burst", 10)
 	v.SetDefault("security.cors.allowed_origins", []string{"*"})
 	v.SetDefault("security.cors.allow_credentials", false)
+	// Plot defaults - SECURITY: disabled by default
+	v.SetDefault("plot.enabled", false)
+	v.SetDefault("plot.sandbox_mode", "none")
 }
 
 func readConfigFile(v *viper.Viper) error {
