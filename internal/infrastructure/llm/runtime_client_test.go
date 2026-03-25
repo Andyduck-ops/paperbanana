@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -114,13 +115,13 @@ func TestRuntimeClientResolveClient_UsesRequestModelOverrideForDefaultProvider(t
 	t.Parallel()
 
 	provider := &domainconfig.Provider{
-		ID:         "provider-1",
-		Type:       domainconfig.ProviderTypeGrok,
-		Name:       "grok",
+		ID:          "provider-1",
+		Type:        domainconfig.ProviderTypeGrok,
+		Name:        "grok",
 		DisplayName: "xAI Grok",
-		APIHost:    "https://lx.lxsummer.cloud/v1",
-		QueryModel: "grok-4.1-fast",
-		GenModel:   "grok-imagine-1.0",
+		APIHost:     "https://lx.lxsummer.cloud/v1",
+		QueryModel:  "grok-4.1-fast",
+		GenModel:    "grok-imagine-1.0",
 	}
 
 	client := NewRuntimeClient(
@@ -148,13 +149,13 @@ func TestRuntimeClientResolveClient_UsesDefaultProviderModelWhenNoOverrideProvid
 	t.Parallel()
 
 	provider := &domainconfig.Provider{
-		ID:         "provider-1",
-		Type:       domainconfig.ProviderTypeGrok,
-		Name:       "grok",
+		ID:          "provider-1",
+		Type:        domainconfig.ProviderTypeGrok,
+		Name:        "grok",
 		DisplayName: "xAI Grok",
-		APIHost:    "https://lx.lxsummer.cloud/v1",
-		QueryModel: "grok-4.1-thinking",
-		GenModel:   "grok-imagine-1.0",
+		APIHost:     "https://lx.lxsummer.cloud/v1",
+		QueryModel:  "grok-4.1-thinking",
+		GenModel:    "grok-imagine-1.0",
 	}
 
 	client := NewRuntimeClient(
@@ -207,12 +208,12 @@ func TestRuntimeClientGenerate_UsesProviderScopedHTTPClient(t *testing.T) {
 	}
 
 	provider := &domainconfig.Provider{
-		ID:         "provider-1",
-		Type:       domainconfig.ProviderTypeOpenAICompatible,
-		Name:       "tencent-coding",
+		ID:          "provider-1",
+		Type:        domainconfig.ProviderTypeOpenAICompatible,
+		Name:        "tencent-coding",
 		DisplayName: "Tencent Coding",
-		APIHost:    server.URL,
-		QueryModel: "kimi-k2.5",
+		APIHost:     server.URL,
+		QueryModel:  "kimi-k2.5",
 	}
 
 	client := NewRuntimeClient(
@@ -238,4 +239,66 @@ func TestRuntimeClientGenerate_UsesProviderScopedHTTPClient(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, "ok", resp.Content)
+}
+
+func TestRuntimeClientGenerate_RetriesTransientProviderFailures(t *testing.T) {
+	t.Parallel()
+
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/chat/completions", r.URL.Path)
+		attempt := attempts.Add(1)
+		if attempt < 3 {
+			http.Error(w, "model engine error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(openaisdk.ChatCompletionResponse{
+			Choices: []openaisdk.ChatCompletionChoice{{
+				FinishReason: openaisdk.FinishReasonStop,
+				Message: openaisdk.ChatCompletionMessage{
+					Role:    openaisdk.ChatMessageRoleAssistant,
+					Content: "retried-ok",
+				},
+			}},
+			Usage: openaisdk.Usage{TotalTokens: 18},
+		}))
+	}))
+	defer server.Close()
+
+	provider := &domainconfig.Provider{
+		ID:          "provider-1",
+		Type:        domainconfig.ProviderTypeOpenAICompatible,
+		Name:        "tencent-coding",
+		DisplayName: "Tencent Coding",
+		APIHost:     server.URL,
+		QueryModel:  "minimax-m2.5",
+		TimeoutMs:   1000,
+	}
+
+	client := NewRuntimeClient(
+		RuntimePurposeQuery,
+		"grok",
+		pbconfig.ProviderConfig{
+			APIKey:  "startup-key",
+			BaseURL: "https://lx.lxsummer.cloud/v1",
+			Model:   "grok-4.1-fast",
+			Timeout: time.Second,
+		},
+		ClientOptions{},
+		runtimeTestProviderRepo{provider: provider},
+		runtimeTestAPIKeyRepo{},
+	)
+
+	resp, err := client.Generate(context.Background(), domainllm.GenerateRequest{
+		Model: "tencent-coding:minimax-m2.5",
+		Messages: []domainllm.Message{
+			{Role: domainllm.RoleUser, Parts: []domainllm.Part{domainllm.TextPart("hello")}},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, "retried-ok", resp.Content)
+	require.EqualValues(t, 3, attempts.Load())
 }

@@ -3,6 +3,7 @@ package llm
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	pbconfig "github.com/paperbanana/paperbanana/internal/config"
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
@@ -10,6 +11,7 @@ import (
 	"github.com/paperbanana/paperbanana/internal/infrastructure/llm/gemini"
 	openaiclient "github.com/paperbanana/paperbanana/internal/infrastructure/llm/openai"
 	"github.com/paperbanana/paperbanana/internal/infrastructure/llm/openrouter"
+	"github.com/paperbanana/paperbanana/internal/infrastructure/resilience"
 )
 
 var openAICompatibleProviders = map[string]bool{
@@ -51,7 +53,12 @@ func NewLLMClientWithHTTPClient(provider string, cfg pbconfig.ProviderConfig, ht
 }
 
 func NewLLMClientWithOptions(provider string, cfg pbconfig.ProviderConfig, options ClientOptions) (domainllm.LLMClient, error) {
-	client, err := newRawLLMClient(provider, cfg, options.HTTPClient)
+	httpClient := options.HTTPClient
+	if httpClient == nil {
+		httpClient = resilience.NewResilientClient(resilientClientName(provider, cfg), cfg.Timeout).HTTPClient()
+	}
+
+	client, err := newRawLLMClient(provider, cfg, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +68,20 @@ func NewLLMClientWithOptions(provider string, cfg pbconfig.ProviderConfig, optio
 	}
 
 	return client, nil
+}
+
+func resilientClientName(provider string, cfg pbconfig.ProviderConfig) string {
+	parts := []string{"llm"}
+	if value := strings.TrimSpace(provider); value != "" {
+		parts = append(parts, value)
+	}
+	if value := strings.TrimSpace(cfg.Model); value != "" {
+		parts = append(parts, value)
+	}
+	if value := strings.TrimSpace(cfg.BaseURL); value != "" {
+		parts = append(parts, value)
+	}
+	return strings.Join(parts, ":")
 }
 
 func newRawLLMClient(provider string, cfg pbconfig.ProviderConfig, httpClient *http.Client) (domainllm.LLMClient, error) {
