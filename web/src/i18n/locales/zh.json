@@ -310,6 +310,45 @@
     "github": "GitHub",
     "docs": "文档"
   },
+  "emptyState": {
+    "generateTitle": "创建科学可视化",
+    "generateDescription": "将您的研究转化为可发表的配图。描述您的方法，让 AI 生成精确、学术质量的可视化图形。",
+    "refineTitle": "精修您的图像",
+    "refineDescription": "上传图像并提供精修说明，以增强分辨率、调整样式或修改特定元素。",
+    "tryExample": "尝试示例以开始使用",
+    "generateHint": "或在下方输入您的描述以开始",
+    "refineHint": "在下方上传图像以开始精修",
+    "examples": {
+      "architecture": {
+        "title": "神经网络架构",
+        "description": "可视化 Transformer 注意力模式"
+      },
+      "experiment": {
+        "title": "实验结果",
+        "description": "绘制对比性能指标"
+      },
+      "pipeline": {
+        "title": "数据流水线",
+        "description": "展示处理工作流程"
+      },
+      "math": {
+        "title": "数学概念",
+        "description": "可视化方程和关系"
+      }
+    }
+  },
+  "errorBoundary": {
+    "title": "出现错误",
+    "reload": "重新加载页面"
+  },
+  "accessibility": {
+    "switchTheme": "切换到{{theme}}主题",
+    "switchLanguage": "切换到{{language}}",
+    "uploadedPreview": "已上传预览",
+    "generatedResult": "生成结果",
+    "refinedImage": "精修图像",
+    "artifact": "产物 {{number}}"
+  },
   "modelConfig": {
     "title": "模型配置",
     "channels": "通道",

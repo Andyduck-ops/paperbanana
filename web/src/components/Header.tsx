@@ -35,7 +35,7 @@ export function Header() {
                     : 'bg-muted text-foreground hover:bg-muted/80'
                   }
                 `}
-                aria-label={`Switch to ${themeItem.name} theme`}
+                aria-label={t('accessibility.switchTheme', { theme: themeItem.name })}
                 aria-pressed={theme === themeItem.id}
               >
                 {themeItem.id === 'pop-art' && 'P'}
@@ -63,7 +63,7 @@ export function Header() {
                     : 'bg-muted text-foreground hover:bg-muted/80'
                   }
                 `}
-                aria-label={`Switch to ${lang.nativeName}`}
+                aria-label={t('accessibility.switchLanguage', { language: lang.nativeName })}
                 aria-pressed={language === lang.code}
               >
                 {lang.code.toUpperCase()}

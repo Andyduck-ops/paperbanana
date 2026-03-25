@@ -126,7 +126,7 @@ export function ResultArea({
             {selectedArtifact?.data ? (
               <img
                 src={selectedArtifact.data}
-                alt={selectedArtifact.summary || 'Generated result'}
+                alt={selectedArtifact.summary || t('accessibility.generatedResult')}
                 className="w-full h-auto max-h-[60vh] object-contain mx-auto"
               />
             ) : (
@@ -137,7 +137,7 @@ export function ResultArea({
                   <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p>{mode === 'refine' ? 'Refined image' : 'Generated result'}</p>
+                  <p>{mode === 'refine' ? t('accessibility.refinedImage') : t('accessibility.generatedResult')}</p>
                 </div>
               </div>
             )}
@@ -177,7 +177,7 @@ export function ResultArea({
                     {artifact.data ? (
                       <img
                         src={artifact.data}
-                        alt={`Artifact ${index + 1}`}
+                        alt={t('accessibility.artifact', { number: index + 1 })}
                         className="w-full h-full object-cover"
                       />
                     ) : (

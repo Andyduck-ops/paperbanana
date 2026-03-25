@@ -310,6 +310,45 @@
     "github": "GitHub",
     "docs": "Docs"
   },
+  "emptyState": {
+    "generateTitle": "Create Scientific Visualizations",
+    "generateDescription": "Transform your research into publication-ready figures. Describe your method, and let AI generate precise, academic-quality visualizations.",
+    "refineTitle": "Refine Your Images",
+    "refineDescription": "Upload an image and provide refinement instructions to enhance resolution, adjust styling, or modify specific elements.",
+    "tryExample": "Try an example to get started",
+    "generateHint": "Or type your own description below to begin",
+    "refineHint": "Upload an image below to start refining",
+    "examples": {
+      "architecture": {
+        "title": "Neural Network Architecture",
+        "description": "Visualize transformer attention patterns"
+      },
+      "experiment": {
+        "title": "Experimental Results",
+        "description": "Plot comparative performance metrics"
+      },
+      "pipeline": {
+        "title": "Data Pipeline",
+        "description": "Illustrate processing workflow"
+      },
+      "math": {
+        "title": "Mathematical Concept",
+        "description": "Visualize equations and relationships"
+      }
+    }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "reload": "Reload Page"
+  },
+  "accessibility": {
+    "switchTheme": "Switch to {{theme}} theme",
+    "switchLanguage": "Switch to {{language}}",
+    "uploadedPreview": "Uploaded preview",
+    "generatedResult": "Generated result",
+    "refinedImage": "Refined image",
+    "artifact": "Artifact {{number}}"
+  },
   "modelConfig": {
     "title": "Model Configuration",
     "channels": "Channels",

@@ -17,9 +17,11 @@ import (
 type RunnerOption func(*Runner)
 
 var (
-	ErrResumeRequiresSession = errors.New("orchestrator: resume requires session id")
-	ErrResumeSnapshotMissing = errors.New("orchestrator: resume snapshot not found")
-	ErrResumeStoreMissing    = errors.New("orchestrator: resume requires snapshot store")
+	ErrResumeRequiresSession  = errors.New("orchestrator: resume requires session id")
+	ErrResumeSnapshotMissing  = errors.New("orchestrator: resume snapshot not found")
+	ErrResumeStoreMissing     = errors.New("orchestrator: resume requires snapshot store")
+	ErrResumeSessionNotValid  = errors.New("orchestrator: resume session state is not valid for resumption")
+	ErrResumePipelineEmpty    = errors.New("orchestrator: resume session has empty pipeline")
 )
 
 type SnapshotStore interface {
@@ -53,11 +55,9 @@ func NewCanonicalRunner(retriever, planner, stylist, visualizer, critic domainag
 	agents := map[domainagent.StageName]domainagent.BaseAgent{
 		domainagent.StageRetriever:  retriever,
 		domainagent.StagePlanner:    planner,
+		domainagent.StageStylist:    stylist,
 		domainagent.StageVisualizer: visualizer,
 		domainagent.StageCritic:     critic,
-	}
-	if stylist != nil {
-		agents[domainagent.StageStylist] = stylist
 	}
 	return NewRunner(agents, opts...)
 }
@@ -194,7 +194,13 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 		}
 
 		startedAt := time.Now().UTC()
-		publisher.emit(domainagent.EventStageStarted, stage, domainagent.StatusRunning, domainagent.Timing{StartedAt: startedAt}, nil, stageInput.Metadata)
+		// Add agent name to metadata for stage_started event
+		stageMetadata := cloneStringMap(stageInput.Metadata)
+		if stageMetadata == nil {
+			stageMetadata = map[string]string{}
+		}
+		stageMetadata["agent"] = stageAgentName(stage)
+		publisher.emit(domainagent.EventStageStarted, stage, domainagent.StatusRunning, domainagent.Timing{StartedAt: startedAt}, nil, stageMetadata)
 
 		// Get stage timeout
 		stageTimeout := r.stageTimeouts[stage]
@@ -583,7 +589,10 @@ func orderedPipeline(agents map[domainagent.StageName]domainagent.BaseAgent) []d
 	pipeline := make([]domainagent.StageName, 0, len(agents))
 	for _, stage := range domainagent.CanonicalPipeline() {
 		agent, ok := agents[stage]
-		if !ok || agent == nil {
+		if !ok {
+			continue
+		}
+		if agent == nil {
 			continue
 		}
 		pipeline = append(pipeline, stage)
@@ -613,14 +622,20 @@ func (r *Runner) filterPipeline(metadata map[string]string, base []domainagent.S
 		return append([]domainagent.StageName(nil), base...)
 	}
 
+	// Validate pipeline mode - fall back to full pipeline for invalid modes
+	// while preserving metadata for observability
+	if !domainagent.IsValidPipelineMode(mode) {
+		return append([]domainagent.StageName(nil), base...)
+	}
+
 	allowed := map[domainagent.StageName]bool{}
 	switch mode {
-	case "full":
+	case domainagent.PipelineModeFull:
 		return append([]domainagent.StageName(nil), base...)
-	case "planner-critic":
+	case domainagent.PipelineModePlannerCritic:
 		allowed[domainagent.StagePlanner] = true
 		allowed[domainagent.StageCritic] = true
-	case "vanilla":
+	case domainagent.PipelineModeVanilla:
 		allowed[domainagent.StageVisualizer] = true
 	default:
 		return append([]domainagent.StageName(nil), base...)
@@ -688,6 +703,15 @@ func artifactKinds(artifacts []domainagent.Artifact) string {
 		kinds = append(kinds, string(artifact.Kind))
 	}
 	return strings.Join(kinds, ",")
+}
+
+// stageAgentName returns the human-readable agent name for a stage.
+// e.g., "retriever" -> "Retriever"
+func stageAgentName(stage domainagent.StageName) string {
+	if len(stage) == 0 {
+		return ""
+	}
+	return strings.ToUpper(string(stage[:1])) + string(stage[1:])
 }
 
 type eventPublisher struct {

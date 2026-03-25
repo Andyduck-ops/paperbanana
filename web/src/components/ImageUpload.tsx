@@ -84,7 +84,7 @@ export function ImageUpload({
         >
           <img
             src={preview}
-            alt="Uploaded preview"
+            alt={t('accessibility.uploadedPreview')}
             className="w-full h-auto max-h-64 object-contain"
           />
           <button

@@ -1,10 +1,81 @@
 package agent
 
 import (
+	"sync/atomic"
 	"time"
 
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 )
+
+// SharedBytes provides reference-counted byte slices for efficient sharing
+// of large binary data (e.g., image artifacts) without deep copying.
+// This is thread-safe for concurrent read access.
+type SharedBytes struct {
+	data []byte
+	ref  *int32 // reference count, accessed atomically
+}
+
+// NewSharedBytes creates a new SharedBytes with initial reference count of 1.
+func NewSharedBytes(data []byte) *SharedBytes {
+	if len(data) == 0 {
+		return nil
+	}
+	ref := int32(1)
+	return &SharedBytes{data: data, ref: &ref}
+}
+
+// Data returns the underlying byte slice. Callers MUST NOT modify the returned slice.
+func (sb *SharedBytes) Data() []byte {
+	if sb == nil {
+		return nil
+	}
+	return sb.data
+}
+
+// Retain increments the reference count and returns the same SharedBytes pointer.
+// Returns nil if sb is nil.
+func (sb *SharedBytes) Retain() *SharedBytes {
+	if sb == nil {
+		return nil
+	}
+	atomic.AddInt32(sb.ref, 1)
+	return sb
+}
+
+// Release decrements the reference count. When count reaches zero, data is cleared.
+// Returns true if the data was released (count reached zero).
+func (sb *SharedBytes) Release() bool {
+	if sb == nil {
+		return false
+	}
+	if atomic.AddInt32(sb.ref, -1) == 0 {
+		sb.data = nil
+		return true
+	}
+	return false
+}
+
+// RefCount returns the current reference count (for testing/debugging).
+func (sb *SharedBytes) RefCount() int32 {
+	if sb == nil || sb.ref == nil {
+		return 0
+	}
+	return atomic.LoadInt32(sb.ref)
+}
+
+// Clone returns a shallow copy that shares the same underlying data.
+// This is an alias for Retain() to match common naming conventions.
+func (sb *SharedBytes) Clone() *SharedBytes {
+	return sb.Retain()
+}
+
+// Len returns the length of the underlying data.
+func (sb *SharedBytes) Len() int {
+	if sb == nil {
+		return 0
+	}
+	return len(sb.data)
+}
 
 type StageName string
 
@@ -27,6 +98,28 @@ var pipelineOrder = []StageName{
 
 func CanonicalPipeline() []StageName {
 	return append([]StageName(nil), pipelineOrder...)
+}
+
+// PipelineMode constants define the valid pipeline execution modes.
+const (
+	PipelineModeFull          = "full"
+	PipelineModePlannerCritic = "planner-critic"
+	PipelineModeVanilla       = "vanilla"
+)
+
+// ValidPipelineModes returns the list of valid pipeline mode values.
+func ValidPipelineModes() []string {
+	return []string{PipelineModeFull, PipelineModePlannerCritic, PipelineModeVanilla}
+}
+
+// IsValidPipelineMode checks if the given mode is a valid pipeline mode.
+func IsValidPipelineMode(mode string) bool {
+	for _, valid := range ValidPipelineModes() {
+		if mode == valid {
+			return true
+		}
+	}
+	return false
 }
 
 type RunStatus string
@@ -90,9 +183,49 @@ type Artifact struct {
 	MIMEType string            `json:"mime_type"`
 	URI      string            `json:"uri"`
 	Content  string            `json:"content,omitempty"`
-	Bytes    []byte            `json:"data,omitempty"`
+	Bytes    []byte            `json:"data,omitempty"`               // Deprecated: Use SharedBytes for new code
+	Shared   *SharedBytes      `json:"-"`                            // Reference-counted bytes, not serialized
 	AssetID  string            `json:"asset_id,omitempty"`
 	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+// GetBytes returns the artifact's binary data, preferring SharedBytes if available.
+// This provides a unified access method for backwards compatibility.
+func (a *Artifact) GetBytes() []byte {
+	if a.Shared != nil {
+		return a.Shared.Data()
+	}
+	return a.Bytes
+}
+
+// SetBytes sets the artifact's binary data using SharedBytes for efficient sharing.
+// This also updates the legacy Bytes field for JSON serialization compatibility.
+func (a *Artifact) SetBytes(data []byte) {
+	a.Shared = NewSharedBytes(data)
+	a.Bytes = data // Keep in sync for JSON serialization
+}
+
+// Clone creates a shallow copy of the Artifact that shares the same SharedBytes.
+// This avoids deep copying large binary data.
+func (a Artifact) Clone() Artifact {
+	cloned := a
+	if a.Shared != nil {
+		cloned.Shared = a.Shared.Retain()
+	}
+	cloned.Metadata = cloneStringMap(a.Metadata)
+	return cloned
+}
+
+// cloneStringMap is a helper for Clone (defined here to avoid import cycles).
+func cloneStringMap(m map[string]string) map[string]string {
+	if len(m) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(m))
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
 }
 
 type CritiqueRound struct {
