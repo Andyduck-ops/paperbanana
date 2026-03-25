@@ -27,3 +27,30 @@ export interface BatchProgress {
   startedAt: string;
   completedAt?: string;
 }
+
+// UIArtifact is the frontend UI representation of an artifact with camelCase fields.
+// Used by components like ArtifactPreview for display purposes.
+export interface UIArtifact {
+  id: string;
+  kind: string;
+  mimeType: string;
+  summary?: string;
+  data?: string;
+  assetId?: string;
+  projectId?: string;
+  uri?: string;
+}
+
+// toUIArtifact converts a BatchArtifact (snake_case from backend) to UIArtifact (camelCase for UI).
+export function toUIArtifact(artifact: BatchArtifact): UIArtifact {
+  return {
+    id: artifact.id,
+    kind: artifact.kind,
+    mimeType: artifact.mime_type,
+    summary: artifact.kind, // Default summary to kind if not provided
+    data: artifact.data || artifact.content,
+    assetId: artifact.asset_id,
+    projectId: artifact.metadata?.project_id,
+    uri: artifact.uri,
+  };
+}

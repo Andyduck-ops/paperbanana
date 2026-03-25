@@ -256,6 +256,18 @@ func fileExists(path string) bool {
 	return !info.IsDir()
 }
 
+// defaultProviderConfigs defines base URLs and models for known providers.
+var defaultProviderConfigs = map[string]struct {
+	baseURL string
+	model   string
+}{
+	"gemini":     {"https://generativelanguage.googleapis.com", "gemini-2.0-flash-exp"},
+	"openai":     {"https://api.openai.com/v1", "gpt-4o"},
+	"anthropic":  {"https://api.anthropic.com/v1", "claude-sonnet-4-20250514"},
+	"openrouter": {"https://openrouter.ai/api/v1", "anthropic/claude-sonnet-4"},
+	"grok":       {"https://api.x.ai/v1", "grok-2-image-1212"},
+}
+
 func applyProviderEnvFallbacks(cfg *Config) {
 	if cfg.LLM.Providers == nil {
 		cfg.LLM.Providers = map[string]ProviderConfig{}
@@ -272,8 +284,23 @@ func applyProviderEnvFallbacks(cfg *Config) {
 	for provider, apiKey := range fallbacks {
 		entry, ok := cfg.LLM.Providers[provider]
 		if !ok {
+			// Provider not in config, create from environment if API key exists
+			if apiKey != "" {
+				defaults, hasDefaults := defaultProviderConfigs[provider]
+				entry = ProviderConfig{
+					APIKey:  apiKey,
+					BaseURL: defaults.baseURL,
+					Model:   defaults.model,
+					Timeout: 60 * time.Second,
+				}
+				if !hasDefaults {
+					entry = ProviderConfig{APIKey: apiKey, Timeout: 60 * time.Second}
+				}
+				cfg.LLM.Providers[provider] = entry
+			}
 			continue
 		}
+		// Provider exists, fill empty API key from environment
 		if entry.APIKey == "" && apiKey != "" {
 			entry.APIKey = apiKey
 			cfg.LLM.Providers[provider] = entry
@@ -310,6 +337,9 @@ func validate(cfg *Config) error {
 	}
 
 	for name, provider := range cfg.LLM.Providers {
+		if provider.APIKey == "" {
+			return fmt.Errorf("provider %s missing api_key", name)
+		}
 		if provider.Model == "" {
 			return fmt.Errorf("provider %s missing model", name)
 		}

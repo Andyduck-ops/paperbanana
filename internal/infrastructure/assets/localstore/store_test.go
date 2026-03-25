@@ -443,10 +443,25 @@ func TestStore_MultipleAssetsSameVisualization(t *testing.T) {
 }
 
 func TestStore_InvalidRoot(t *testing.T) {
-	// Test that NewStore validates the root directory
-	_, err := NewStore("/nonexistent/path/that/does/not/exist")
-	if err == nil {
-		t.Error("expected error for non-existent root")
+	// Test that NewStore creates the root directory if it doesn't exist
+	tmpDir, err := os.MkdirTemp("", "localstore-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	nonexistentRoot := filepath.Join(tmpDir, "nonexistent", "nested", "root")
+	store, err := NewStore(nonexistentRoot)
+	if err != nil {
+		t.Errorf("unexpected error for non-existent root: %v", err)
+	}
+	if store == nil {
+		t.Error("expected non-nil store")
+	}
+
+	// Verify the directory was created
+	if _, err := os.Stat(nonexistentRoot); os.IsNotExist(err) {
+		t.Error("expected root directory to be created")
 	}
 
 	// Create a file where we expect a directory

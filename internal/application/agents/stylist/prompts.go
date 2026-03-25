@@ -2,6 +2,7 @@ package stylist
 
 import (
 	"fmt"
+	"strings"
 
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 )
@@ -214,7 +215,26 @@ Add specific style recommendations (colors, fonts, layout) to make the plan acti
 }
 
 func buildMessageContent(input domainagent.AgentInput) string {
-	return fmt.Sprintf(`## Visual Mode: %s
+	contextParts := make([]string, 0, 4)
+	if input.VisualIntent.Goal != "" {
+		contextParts = append(contextParts, fmt.Sprintf("- Goal: %s", input.VisualIntent.Goal))
+	}
+	if input.VisualIntent.Audience != "" {
+		contextParts = append(contextParts, fmt.Sprintf("- Audience: %s", input.VisualIntent.Audience))
+	}
+	if input.VisualIntent.Style != "" {
+		contextParts = append(contextParts, fmt.Sprintf("- Style: %s", input.VisualIntent.Style))
+	}
+	if len(input.VisualIntent.Constraints) > 0 {
+		contextParts = append(contextParts, fmt.Sprintf("- Constraints: %s", strings.Join(input.VisualIntent.Constraints, ", ")))
+	}
+
+	contextSection := ""
+	if len(contextParts) > 0 {
+		contextSection = fmt.Sprintf("\n## Visual Context:\n%s\n", strings.Join(contextParts, "\n"))
+	}
+
+	return fmt.Sprintf(`## Visual Mode: %s%s
 
 ## Original Plan:
 %s
@@ -227,5 +247,5 @@ func buildMessageContent(input domainagent.AgentInput) string {
 5. Avoid repeating the same requirement in multiple ways
 6. Do not exceed roughly 500 words unless the source plan is unusually complex
 
-Output the enhanced visualization plan:`, input.VisualIntent.Mode, input.Content)
+Output the enhanced visualization plan:`, input.VisualIntent.Mode, contextSection, input.Content)
 }

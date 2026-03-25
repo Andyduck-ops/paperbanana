@@ -129,7 +129,12 @@ func (a *Agent) Execute(ctx context.Context, input domainagent.AgentInput) (doma
 		currentArtifacts = append(currentArtifacts, critiqueArtifact(input.VisualIntent.Mode, roundState.Round, critique, evaluatedAt))
 
 		if critique.noChanges() {
-			reusedArtifact = hasRenderedArtifact(currentArtifacts)
+			// If we've already done a revision, reusedArtifact should remain false
+			// because a new artifact was generated. Only set reusedArtifact=true
+			// if we accepted without any revision (round 0 acceptance).
+			if round == 0 {
+				reusedArtifact = hasRenderedArtifact(currentArtifacts)
+			}
 			if latestArtifact.Kind == domainagent.ArtifactKindRenderedFigure && len(latestArtifact.Bytes) > 0 {
 				currentArtifacts = append(currentArtifacts, latestArtifact)
 			}

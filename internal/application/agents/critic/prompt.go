@@ -132,12 +132,7 @@ Your Description should primarily be modifications based on the original descrip
 ## OUTPUT
 Provide your response strictly in the following JSON format.
 
-` + "```json\n" + `
-{
-    "critic_suggestions": "Insert your detailed critique and specific suggestions for improvement here. If the diagram is perfect, write 'No changes needed.'",
-    "revised_description": "Insert the fully revised detailed description here, incorporating all your suggestions. If no changes are needed, write 'No changes needed.'",
-}
-` + "```" + `
+` + "```json\n{\n    \"critic_suggestions\": \"Insert your detailed critique and specific suggestions for improvement here. If the diagram is perfect, write 'No changes needed.'\",\n    \"revised_description\": \"Insert the fully revised detailed description here, incorporating all your suggestions. If no changes are needed, write 'No changes needed.'\",\n}\n```" + `
 `
 
 const plotSystemPrompt = `
@@ -176,10 +171,5 @@ You are also provided with the 'Detailed Description' corresponding to the curre
 ## OUTPUT
 Provide your response strictly in the following JSON format.
 
-` + "```json\n" + `
-{
-    "critic_suggestions": "Insert your detailed critique and specific suggestions for improvement here. If the plot is perfect, write 'No changes needed.'",
-    "revised_description": "Insert the fully revised detailed description here, incorporating all your suggestions. If no changes are needed, write 'No changes needed.'",
-}
-` + "```" + `
+` + "```json\n{\n    \"critic_suggestions\": \"Insert your detailed critique and specific suggestions for improvement here. If the plot is perfect, write 'No changes needed.'\",\n    \"revised_description\": \"Insert the fully revised detailed description here, incorporating all your suggestions. If no changes are needed, write 'No changes needed.'\",\n}\n```" + `
 `

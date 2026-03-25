@@ -35,6 +35,15 @@ func TestEnvOverride(t *testing.T) {
 }
 
 func TestAPIKeyValidation(t *testing.T) {
+	// Clear all API key environment variables to ensure validation fails
+	// when the config has an empty api_key
+	t.Setenv("GEMINI_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	t.Setenv("OPENROUTER_API_KEY", "")
+	t.Setenv("GROK_API_KEY", "")
+	t.Setenv("XAI_API_KEY", "")
+
 	configPath := filepath.Join(t.TempDir(), "config.yaml")
 	content := []byte(`
 server:
@@ -183,7 +192,7 @@ output:
 	assert.Equal(t, ".paperbanana/paperbanana.db", cfg.Persistence.DatabasePath)
 	assert.True(t, cfg.Persistence.EnableForeignKeys)
 	assert.Equal(t, 5000, cfg.Persistence.BusyTimeoutMs)
-	assert.False(t, cfg.Persistence.EnableWAL)
+	assert.True(t, cfg.Persistence.EnableWAL) // WAL mode for better concurrency
 }
 
 func TestAssetsDefaults(t *testing.T) {

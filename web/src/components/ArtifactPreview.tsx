@@ -7,6 +7,7 @@ export interface Artifact {
   data?: string;
   assetId?: string;
   projectId?: string;
+  uri?: string;
 }
 
 export interface ArtifactPreviewProps {
