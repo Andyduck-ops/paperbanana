@@ -149,6 +149,30 @@ func (AssetModel) TableName() string {
 	return "assets"
 }
 
+// BatchResultModel is the GORM model for batch execution results.
+// It enables persistence of batch results across server restarts.
+type BatchResultModel struct {
+	ID          string                `gorm:"primaryKey;type:varchar(36)"`
+	Status      string                `gorm:"type:varchar(50);not null;index"`
+	Successful  int                   `gorm:"not null"`
+	Failed      int                   `gorm:"not null"`
+	StartedAt   time.Time             `gorm:"not null;index"`
+	CompletedAt time.Time             `gorm:"not null"`
+	DurationMs  int64                 `gorm:"not null"`
+	ResultsJSON BatchResultsPayload   `gorm:"type:json;serializer:json;not null"`
+	CreatedAt   time.Time             `gorm:"not null"`
+}
+
+// TableName returns the table name for BatchResultModel.
+func (BatchResultModel) TableName() string {
+	return "batch_results"
+}
+
+// BatchResultsPayload wraps the candidate results for JSON serialization.
+type BatchResultsPayload struct {
+	Results []domainagent.CandidateResult `json:"results"`
+}
+
 // AllModels returns all GORM models for AutoMigrate.
 func AllModels() []interface{} {
 	return []interface{}{
@@ -161,5 +185,6 @@ func AllModels() []interface{} {
 		&AssetModel{},
 		&ProviderModel{},
 		&APIKeyModel{},
+		&BatchResultModel{},
 	}
 }

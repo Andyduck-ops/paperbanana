@@ -21,12 +21,23 @@ type AgentFactory interface {
 	CreateCritic() domainagent.BaseAgent
 }
 
+type snapshotStoreProvider interface {
+	SnapshotStore() SnapshotStore
+}
+
+// BatchResultStore persists batch results for recovery across restarts.
+type BatchResultStore interface {
+	Save(result *domainagent.BatchResult) error
+	Get(batchID string) (*domainagent.BatchResult, error)
+}
+
 // BatchRunner executes multiple candidates in parallel with shared retriever.
 type BatchRunner struct {
 	agentFactory  AgentFactory
 	maxConcurrent int
 	eventBuffer   int
 	results       map[string]*domainagent.BatchResult
+	resultStore   BatchResultStore
 	mu            sync.RWMutex
 }
 
@@ -65,24 +76,48 @@ func WithBatchEventBuffer(size int) BatchOption {
 	}
 }
 
+// WithBatchResultStore sets the persistent result store.
+func WithBatchResultStore(store BatchResultStore) BatchOption {
+	return func(r *BatchRunner) {
+		r.resultStore = store
+	}
+}
+
 // GetBatchResult retrieves a stored batch result by ID.
 // Results are kept in memory for a limited time after completion.
+// Falls back to persistent store if not found in memory.
 func (r *BatchRunner) GetBatchResult(batchID string) (*domainagent.BatchResult, error) {
+	// First check in-memory cache
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	result, ok := r.results[batchID]
-	if !ok {
-		return nil, fmt.Errorf("batch result not found: %s", batchID)
+	r.mu.RUnlock()
+
+	if ok {
+		return result, nil
 	}
-	return result, nil
+
+	// Fall back to persistent store
+	if r.resultStore != nil {
+		return r.resultStore.Get(batchID)
+	}
+
+	return nil, fmt.Errorf("batch result not found: %s", batchID)
 }
 
 // storeResult saves a batch result for later retrieval.
+// Persists to the database if a result store is configured.
 func (r *BatchRunner) storeResult(batchID string, result *domainagent.BatchResult) {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	r.results[batchID] = result
+	r.mu.Unlock()
+
+	// Persist to database if store is configured
+	if r.resultStore != nil {
+		if err := r.resultStore.Save(result); err != nil {
+			// Log but don't fail - memory storage is still available
+			// In production, this should use proper logging
+		}
+	}
 }
 
 // BatchHandle provides access to batch execution results.
@@ -196,7 +231,13 @@ func (r *BatchRunner) executeBatch(
 			if stylist := r.agentFactory.CreateStylist(); stylist != nil {
 				agents[domainagent.StageStylist] = stylist
 			}
-			runner := NewRunner(agents)
+			runnerOptions := make([]RunnerOption, 0, 1)
+			if provider, ok := r.agentFactory.(snapshotStoreProvider); ok {
+				if snapshotStore := provider.SnapshotStore(); snapshotStore != nil {
+					runnerOptions = append(runnerOptions, WithSnapshotStore(snapshotStore))
+				}
+			}
+			runner := NewRunner(agents, runnerOptions...)
 
 			runHandle, err := runner.Start(gctx, input)
 			if err != nil {
