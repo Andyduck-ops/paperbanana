@@ -1,12 +1,14 @@
+// BatchArtifact mirrors the backend Artifact struct (internal/domain/agent/types.go)
+// for consistent type alignment between frontend and backend.
 export interface BatchArtifact {
   id: string;
   kind: string;
-  mimeType: string;
-  data?: string;
-  assetId?: string;
-  projectId?: string;
-  summary?: string;
-  uri?: string;
+  mime_type: string;
+  uri: string;
+  content?: string;
+  data?: string; // Base64-encoded binary data (deprecated in backend, kept for compatibility)
+  asset_id?: string;
+  metadata?: Record<string, string>;
 }
 
 export interface BatchCandidate {

@@ -162,6 +162,14 @@ func TestCanonicalPipelineIncludesStylist(t *testing.T) {
 func TestInvalidPipelineModeFallback(t *testing.T) {
 	t.Parallel()
 
+	// Note: newStubRegistry does not include stylist, so full pipeline has 4 stages
+	fullPipelineFromStub := []domainagent.StageName{
+		domainagent.StageRetriever,
+		domainagent.StagePlanner,
+		domainagent.StageVisualizer,
+		domainagent.StageCritic,
+	}
+
 	tests := []struct {
 		name         string
 		pipelineMode string
@@ -205,16 +213,9 @@ func TestInvalidPipelineModeFallback(t *testing.T) {
 			result, err := handle.Wait()
 			require.NoError(t, err)
 
-			// Invalid modes should fall back to the full pipeline
-			fullPipeline := []domainagent.StageName{
-				domainagent.StageRetriever,
-				domainagent.StagePlanner,
-				domainagent.StageStylist,
-				domainagent.StageVisualizer,
-				domainagent.StageCritic,
-			}
-			assert.Equal(t, fullPipeline, callOrder, "invalid mode should execute full pipeline")
-			assert.Equal(t, fullPipeline, result.Session.Pipeline, "session should reflect full pipeline")
+			// Invalid modes should fall back to the full pipeline (as defined by stub registry)
+			assert.Equal(t, fullPipelineFromStub, callOrder, "invalid mode should execute full pipeline")
+			assert.Equal(t, fullPipelineFromStub, result.Session.Pipeline, "session should reflect full pipeline")
 		})
 	}
 }

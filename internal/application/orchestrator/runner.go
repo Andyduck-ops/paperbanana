@@ -179,6 +179,7 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 	var (
 		lastCompletedState domainagent.AgentState
 		hasCompletedStage  bool
+		degradedStages     []string
 	)
 
 	// GD-UI-004: Emit resume_start event if this is a restored session
@@ -224,6 +225,12 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 
 		if err := stageAgent.Initialize(stageCtx); err != nil {
 			cancel()
+			// Check if graceful degradation is enabled and stage is non-critical
+			if r.gracefulDegrade && !isCriticalStage(stage) {
+				_ = r.handleStageDegradation(stage, stageInput, err, startedAt, tracker, publisher)
+				degradedStages = append(degradedStages, string(stage))
+				continue
+			}
 			return r.finishStageError(stageCtx, tracker, publisher, stage, stageInput, startedAt, err, stageAgent)
 		}
 
@@ -236,6 +243,12 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 			// Check if it was a timeout
 			if errors.Is(stageCtx.Err(), context.DeadlineExceeded) {
 				err = fmt.Errorf("stage %s timed out after %s: %w", stage, stageTimeout, err)
+			}
+			// Check if graceful degradation is enabled and stage is non-critical
+			if r.gracefulDegrade && !isCriticalStage(stage) {
+				_ = r.handleStageDegradation(stage, stageInput, err, startedAt, tracker, publisher)
+				degradedStages = append(degradedStages, string(stage))
+				continue
 			}
 			return r.finishStageError(ctx, tracker, publisher, stage, stageInput, startedAt, err, stageAgent)
 		}
@@ -280,9 +293,61 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 			}, err
 		}
 	}
+	// Add degraded stages info to final metadata if any
+	if len(degradedStages) > 0 {
+		finalMetadata := cloneStringMap(tracker.state.Metadata)
+		if finalMetadata == nil {
+			finalMetadata = map[string]string{}
+		}
+		finalMetadata["degraded_stages"] = strings.Join(degradedStages, ",")
+		tracker.state.Metadata = finalMetadata
+	}
 	publisher.emit(domainagent.EventRunCompleted, tracker.state.CurrentStage, domainagent.StatusCompleted, domainagent.Timing{CompletedAt: completedAt}, nil, tracker.state.Metadata)
 
 	return RunResult{Session: tracker.snapshot()}, nil
+}
+
+// handleStageDegradation handles a failed non-critical stage with graceful degradation.
+func (r *Runner) handleStageDegradation(stage domainagent.StageName, input domainagent.AgentInput, originalErr error, startedAt time.Time, tracker *sessionTracker, publisher eventPublisher) domainagent.AgentOutput {
+	completedAt := time.Now().UTC()
+	timing := domainagent.Timing{
+		StartedAt:   startedAt,
+		CompletedAt: completedAt,
+		Duration:    completedAt.Sub(startedAt),
+	}
+
+	// Create fallback output
+	output := fallbackOutputForStage(stage, input)
+
+	// Create degraded stage state
+	stageState := domainagent.AgentState{
+		Stage:   stage,
+		Status:  domainagent.StatusCompleted,
+		Timing:  timing,
+		Input:   cloneAgentInput(input),
+		Output:  cloneAgentOutput(output),
+		Restore: input.Restore,
+		Error: &domainagent.ErrorDetail{
+			Message:    originalErr.Error(),
+			Code:       string(domainagent.ClassifyError(originalErr)),
+			Stage:      stage,
+			Retryable:  true,
+			Suggestion: fmt.Sprintf("Stage %s failed but pipeline continued with degraded mode", stage),
+		},
+	}
+
+	tracker.completeStage(stageState, output)
+
+	// Emit degraded completion event
+	degradedMetadata := cloneStringMap(output.Metadata)
+	if degradedMetadata == nil {
+		degradedMetadata = map[string]string{}
+	}
+	degradedMetadata["degraded"] = "true"
+	degradedMetadata["original_error"] = originalErr.Error()
+	publisher.emit(domainagent.EventStageCompleted, stage, domainagent.StatusCompleted, timing, stageState.Error, degradedMetadata)
+
+	return output
 }
 
 func (r *Runner) finishStageError(ctx context.Context, tracker *sessionTracker, publisher eventPublisher, stage domainagent.StageName, input domainagent.AgentInput, startedAt time.Time, err error, stageAgent domainagent.BaseAgent) (RunResult, error) {
