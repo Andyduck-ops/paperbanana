@@ -93,4 +93,152 @@ export const apiClient = {
   async getAssetUrl(assetId: string): Promise<string> {
     return `${API_BASE}/assets/${assetId}`;
   },
+
+  // Session restore
+  async getSession(sessionId: string) {
+    const response = await fetch(`${API_BASE}/session/${sessionId}`);
+    return handleResponse<{
+      id: string;
+      project_id: string;
+      visualization_id?: string;
+      status: string;
+      current_stage: string;
+      schema_version: string;
+      created_at: string;
+      updated_at: string;
+      completed_at?: string;
+      snapshot?: {
+        schema_version: string;
+        session_id: string;
+        request_id: string;
+        status: string;
+        current_stage: string;
+        failed_stage?: string;
+        pipeline: string[];
+        initial_input: {
+          session_id: string;
+          request_id: string;
+          stage: string;
+          content: string;
+          messages?: unknown[];
+          visual_intent: {
+            mode: string;
+            goal: string;
+            audience: string;
+            style: string;
+            constraints?: string[];
+            preferred_outputs?: string[];
+          };
+          retrieved_references?: unknown[];
+          prompt: {
+            system_instruction: string;
+            version: string;
+            template: string;
+            variables?: Record<string, string>;
+          };
+          generated_artifacts?: Array<{
+            id: string;
+            kind: string;
+            mime_type: string;
+            uri: string;
+            content?: string;
+            bytes?: string;
+            metadata?: Record<string, string>;
+          }>;
+          critique_rounds?: unknown[];
+          restore: {
+            snapshot_version: string;
+            restored_from: string;
+            restored_at: string;
+            resume_token: string;
+          };
+          metadata?: Record<string, string>;
+        };
+        stage_states?: Array<{
+          stage: string;
+          status: string;
+          timing: {
+            started_at: string;
+            completed_at: string;
+            duration: number;
+          };
+          input: unknown;
+          output: {
+            stage: string;
+            content?: string;
+            messages?: unknown[];
+            visual_intent: unknown;
+            retrieved_references?: unknown[];
+            prompt: unknown;
+            generated_artifacts?: Array<{
+              id: string;
+              kind: string;
+              mime_type: string;
+              uri: string;
+              content?: string;
+              bytes?: string;
+              metadata?: Record<string, string>;
+            }>;
+            critique_rounds?: unknown[];
+            error?: {
+              message: string;
+              code?: string;
+              category?: string;
+              retryable: boolean;
+              suggestion?: string;
+              stage?: string;
+            };
+            metadata?: Record<string, string>;
+          };
+          error?: {
+            message: string;
+            code?: string;
+            category?: string;
+            retryable: boolean;
+            suggestion?: string;
+            stage?: string;
+          };
+          restore: unknown;
+        }>;
+        final_output: {
+          stage: string;
+          content?: string;
+          messages?: unknown[];
+          visual_intent: unknown;
+          retrieved_references?: unknown[];
+          prompt: unknown;
+          generated_artifacts?: Array<{
+            id: string;
+            kind: string;
+            mime_type: string;
+            uri: string;
+            content?: string;
+            bytes?: string;
+            metadata?: Record<string, string>;
+          }>;
+          critique_rounds?: unknown[];
+          error?: unknown;
+          metadata?: Record<string, string>;
+        };
+        error?: {
+          message: string;
+          code?: string;
+          category?: string;
+          retryable: boolean;
+          suggestion?: string;
+          stage?: string;
+        };
+        restore: {
+          snapshot_version: string;
+          restored_from: string;
+          restored_at: string;
+          resume_token: string;
+        };
+        metadata?: Record<string, string>;
+        started_at: string;
+        updated_at: string;
+        completed_at: string;
+      };
+    }>(response);
+  },
 };

@@ -83,6 +83,7 @@ function toArtifactPreview(artifact: {
   summary?: string;
   data?: string;
   assetId?: string;
+  projectId?: string;
   uri?: string;
 }) {
   return {
@@ -91,6 +92,7 @@ function toArtifactPreview(artifact: {
     summary: artifact.summary || artifact.kind,
     data: artifact.data,
     assetId: artifact.assetId,
+    projectId: artifact.projectId,
     uri: artifact.uri,
   } satisfies Artifact;
 }
@@ -275,7 +277,7 @@ export function App() {
 
     setPendingHistoryContext(null);
 
-    if (restored.mode === "batch") {
+    if (restored.mode === "batch" && restored.candidates) {
       reset();
       resetRefine();
       setRefineSeedImageData(null);
@@ -291,7 +293,7 @@ export function App() {
             id: artifact.assetId || `${candidate.sessionId}-${artifact.kind}`,
             kind: artifact.kind,
             mimeType: artifact.mimeType,
-            summary: artifact.summary,
+            summary: artifact.summary || artifact.kind,
             data: artifact.data,
             assetId: artifact.assetId,
           })),
@@ -337,7 +339,7 @@ export function App() {
     restoreGenerate({
       sessionId: restored.id,
       artifacts: restored.artifacts.map(toArtifactPreview),
-      stages: restored.stages,
+      stages: restored.stages || [],
       error: restored.error,
       resumeMetadata: restored.resumeMetadata,
     });
