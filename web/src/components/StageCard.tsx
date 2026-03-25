@@ -1,6 +1,6 @@
 import { useLanguage } from '../hooks';
 
-export type StageStatus = 'pending' | 'running' | 'complete' | 'error';
+export type StageStatus = 'pending' | 'running' | 'complete' | 'error' | 'not_run';
 
 export interface StageCardProps {
   stage: string;
@@ -26,6 +26,7 @@ export function StageCard({
     running: 'bg-primary/20 text-primary animate-pulse',
     complete: 'bg-green-500/20 text-green-600',
     error: 'bg-red-500/20 text-red-600',
+    not_run: 'bg-gray-300/20 text-gray-500',
   };
 
   const statusIcons = {
@@ -33,6 +34,7 @@ export function StageCard({
     running: '◆',
     complete: '✓',
     error: '✗',
+    not_run: '—',
   };
 
   return (

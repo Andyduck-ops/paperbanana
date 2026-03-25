@@ -107,6 +107,8 @@ export function useHistory(projectId?: string) {
         return 'error';
       case 'running':
         return 'running';
+      case 'not_run':
+        return 'not_run';
       default:
         return 'pending';
     }
@@ -147,7 +149,8 @@ export function useHistory(projectId?: string) {
                 kind: artifact.kind,
                 mimeType: artifact.mime_type,
                 data: artifact.data || artifact.content,
-                assetId: artifact.id,
+                assetId: artifact.asset_id,
+                projectId: artifact.metadata?.project_id,
                 uri: artifact.uri,
               });
             }
@@ -159,12 +162,13 @@ export function useHistory(projectId?: string) {
       if (snapshot.final_output?.generated_artifacts) {
         for (const artifact of snapshot.final_output.generated_artifacts) {
           // Avoid duplicates
-          if (!artifacts.find((a) => a.assetId === artifact.id)) {
+          if (!artifacts.find((a) => a.assetId === artifact.asset_id)) {
             artifacts.push({
               kind: artifact.kind,
               mimeType: artifact.mime_type,
               data: artifact.data || artifact.content,
-              assetId: artifact.id,
+              assetId: artifact.asset_id,
+              projectId: artifact.metadata?.project_id,
               uri: artifact.uri,
             });
           }

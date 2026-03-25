@@ -3,7 +3,7 @@ import { useLanguage } from '../hooks';
 
 export interface EvolutionStage {
   name: string;
-  status: 'pending' | 'running' | 'complete' | 'error';
+  status: 'pending' | 'running' | 'complete' | 'error' | 'not_run';
   description?: string;
   image?: string;
   suggestions?: string;
@@ -31,6 +31,7 @@ export function EvolutionTimeline({
       case 'complete': return '✅';
       case 'running': return '🔄';
       case 'error': return '❌';
+      case 'not_run': return '—';
       default: return '○';
     }
   };
