@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	domainagent "github.com/paperbanana/paperbanana/internal/domain/workspace"
 	"github.com/google/uuid"
+	domainagent "github.com/paperbanana/paperbanana/internal/domain/workspace"
 )
 
 // HistoryService provides transactional operations for session persistence
@@ -125,6 +125,25 @@ func (s *HistoryService) ListHistory(ctx context.Context, projectID, visualizati
 	})
 
 	return versions, err
+}
+
+// ListRecentSessions returns the most recent persisted sessions.
+// If projectID is provided, the results are scoped to that project.
+func (s *HistoryService) ListRecentSessions(ctx context.Context, projectID string, limit int) ([]*domainagent.SessionRecord, error) {
+	var sessions []*domainagent.SessionRecord
+
+	err := s.txManager.ReadOnlyTx(ctx, func(repos Repositories) error {
+		var err error
+		if projectID != "" {
+			sessions, err = repos.Sessions().GetByProject(ctx, projectID, limit)
+			return err
+		}
+
+		sessions, err = repos.Sessions().ListRecent(ctx, limit)
+		return err
+	})
+
+	return sessions, err
 }
 
 // GetVersion retrieves a specific version by ID.

@@ -154,7 +154,7 @@ func main() {
 	}
 
 	// Wire up the full router with persistence and config endpoints
-	router := api.SetupRouterWithConfigAndBatch(runner, api.PersistenceServices{
+	router := api.SetupRouterWithConfigAndBatchAndDB(runner, api.PersistenceServices{
 		WorkspaceService: workspaceService,
 		HistoryService:   historyService,
 		AssetService:     assetService,
@@ -166,7 +166,7 @@ func main() {
 	}, &api.RefineServices{
 		Generator:    genClient,
 		SessionSaver: historyService,
-	}, logger)
+	}, db, logger)
 
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 

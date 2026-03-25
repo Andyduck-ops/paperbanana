@@ -1,0 +1,54 @@
+id: GD-001-M-intent-06
+priority: P1
+layer: orchestration
+title: Ambiguous Pronoun Reference Must Be Resolved
+source: mutation
+operator: intent-pronoun-ambiguity
+parent: GD-001
+intent: When a prompt contains ambiguous pronoun references like "it", "this", or "that", the system must resolve the reference to a specific entity rather than guessing randomly or failing.
+
+input:
+  mode: diagram
+  prompt: "Create a class diagram for User and Order classes. It should show the relationships."
+  retrieval_mode: auto
+
+expected:
+  one_of:
+    - final_status: completed
+      pronoun_resolution_must_be_logged: true
+      artifact_must_contain:
+        - "User"
+        - "Order"
+      artifact_must_contain_relationship_keyword:
+        - "relationship"
+        - "associat"
+        - "connect"
+        - "link"
+        - "reference"
+    - final_status: failed
+      error_must_identify_ambiguous_reference: true
+      error_must_offer_clarification_options: true
+  must_resolve_or_flag_pronoun_reference: true
+  must_not_produce_artifact_with_random_interpretation: true
+
+anti_patterns:
+  - system fails with generic error without identifying the pronoun ambiguity
+  - system guesses "It" refers to something unrelated (e.g., system, platform)
+  - artifact shows classes but no relationships because "It" was misinterpreted
+  - system asks for clarification for obvious cases (it clearly refers to the diagram)
+  - pronoun resolution is not documented in logs
+
+notes:
+  - "It" could refer to "diagram", "User class", "Order class", or "system".
+  - Most reasonable interpretation: "It" = "the diagram".
+  - A sophisticated system should resolve this from context.
+  - This tests natural language understanding in intent extraction.
+  - Verification: artifact contains class names "User" and "Order".
+  - Verification: artifact contains relationship-related keywords.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-pronoun-ambiguity
+  - natural-language-understanding
+  - reference-resolution

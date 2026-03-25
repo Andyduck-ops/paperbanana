@@ -1,0 +1,65 @@
+id: GD-UI-001-M-responsive-05
+priority: P1
+layer: ui
+title: Orientation Change Preserves State and Scroll
+source: mutation
+operator: responsive-orientation-change
+parent: GD-UI-001
+intent: Rotating the device between portrait and landscape must preserve task state, scroll position, and currently visible stage without data loss.
+
+input:
+  ui_scenario: user rotates device while viewing task progress
+  system_state:
+    session_status: running
+    current_stage: stylist
+    stages_completed:
+      - retriever
+      - planner
+    stages_remaining:
+      - visualizer
+      - critic
+    before_rotation:
+      viewport_width: 375px
+      viewport_height: 667px
+      scroll_position: 120
+      visible_stage: planner
+      orientation: portrait
+    after_rotation:
+      viewport_width: 667px
+      viewport_height: 375px
+      orientation: landscape
+
+expected:
+  ui_must_show:
+    - same task state after orientation change
+    - equivalent scroll position preserved
+    - same stage remains visible or scrolled into view
+    - layout adapts to new orientation without layout shift
+  ui_must_not_show:
+    - task state reset or lost
+    - scroll position jumping to top or bottom
+    - visible content completely different
+    - jarring layout shift during transition
+  interaction_contract:
+    - user can continue monitoring progress seamlessly
+    - no need to re-scroll to find their position
+    - orientation change feels instant and smooth
+
+anti_patterns:
+  - Scroll position resets to 0 after rotation
+  - Current stage scrolls out of view after rotation
+  - Task appears to restart due to state loss
+  - Layout jumps or flashes during orientation change
+  - Progress percentage changes after rotation
+
+notes:
+  - Tests viewport resize/orientation change handling.
+  - State preservation is critical for user trust.
+  - Smooth transitions prevent user confusion.
+
+tags:
+  - mutation
+  - responsive-design
+  - orientation-change
+  - state-preservation
+  - scroll-position

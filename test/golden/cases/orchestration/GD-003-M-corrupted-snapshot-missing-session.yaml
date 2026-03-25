@@ -1,0 +1,50 @@
+id: GD-003-M-corrupted-snapshot-missing-session
+priority: P1
+layer: orchestration
+title: Corrupted Snapshot Missing Session Data
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-003
+intent: When a snapshot is corrupted with missing session data, the resume operation must fail gracefully with a descriptive error rather than proceeding with partial state.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a variational autoencoder architecture."
+  retrieval_mode: auto
+  corrupted_snapshot:
+    type: missing_session_data
+    description: "Snapshot file exists but session field is null or missing required fields"
+    session_id_present: true
+    session_field: null
+    stage_field: present
+
+expected:
+  stages_rerun: []
+  stages_continued: []
+  final_status: failed
+  must_have_final_artifact: false
+  error_must_include:
+    - ErrInvalidSnapshot
+    - session
+  error_must_not_rerun_any_stages: true
+  session_state_must_record_error: true
+
+anti_patterns:
+  - system attempts to run stages with empty session state
+  - error swallowed silently and session shows completed
+  - generic error message without corruption context
+  - system creates new session instead of failing resume
+  - corrupted snapshot causes panic or unhandled exception
+
+notes:
+  - Tests resilience to incomplete snapshot persistence.
+  - The validateSnapshot function should catch missing session data.
+  - Error must be recoverable and logged with session ID for debugging.
+  - No stages should execute when snapshot validation fails.
+
+tags:
+  - mutation
+  - resume-boundary
+  - corrupted-snapshot
+  - error-handling
+  - validation

@@ -1,0 +1,45 @@
+id: GD-004-M-empty-prompt
+priority: P1
+layer: orchestration
+title: Empty Prompt With Manual References Must Still Fail Explicitly
+source: mutation
+operator: empty-prompt
+parent: GD-004
+intent: When an empty prompt is provided with injected references, the system must not assume references compensate for prompt absence. The empty prompt must still trigger explicit rejection.
+
+input:
+  mode: diagram
+  prompt: ""
+  retrieval_mode: manual
+  injected_references:
+    - id: ref_transformer_attention
+      summary: "Transformer attention mechanism with multi-head structure"
+      content: "Detailed description of query, key, value attention computation."
+      path_to_gt_image: "ref_transformer_attention.png"
+
+expected:
+  final_status: failed
+  must_fail_before_pipeline_start: true
+  error_must_indicate_empty_prompt: true
+  must_not_use_references_to_compensate: false
+  injected_references_must_not_trigger_pipeline: true
+
+anti_patterns:
+  - pipeline starts using only the injected references as input
+  - retriever runs successfully and planner proceeds with reference-only context
+  - final_status is completed with an artifact derived solely from references
+  - error message is generic with no mention that prompt is required
+  - system assumes references are sufficient input without prompt
+
+notes:
+  - This tests whether injected references bypass prompt validation.
+  - Even with rich references, an empty prompt should be rejected.
+  - References are meant to augment, not replace, user intent.
+  - This protects against systems that shortcut input validation.
+
+tags:
+  - mutation
+  - input-ambiguity
+  - empty-prompt
+  - manual-retrieval
+  - input-validation

@@ -1,0 +1,53 @@
+id: GD-UI-004-M-cognitive-old-results-cached
+priority: P1
+layer: ui
+title: Cached Results From Previous Task Appear As New Output
+source: mutation
+operator: cognitive-old-results-cached
+parent: GD-UI-004
+intent: When a new task starts, any cached artifacts from previous tasks must be cleared. Showing old cached results as if they are from the new task misleads users about what the current prompt produced.
+
+input:
+  ui_scenario: user runs new task after previous completion
+  system_state:
+    previous_task_artifact: "diagram_v1.png"
+    new_task_status: running
+    ui_shows_artifact_preview: "diagram_v1.png"
+    actual_new_artifact: not_yet_generated
+
+expected:
+  must_clear_artifact_preview_on_new_task: true
+  artifact_preview_must_be_empty_or_placeholder: true
+  ui_state_must_show:
+    - key: artifact_preview
+      value: "null or 'generating'"
+    - key: session_id
+      value_type: string
+  must_not_show_previous_artifact_as_current: true
+  must_update_preview_only_on_new_artifact: true
+
+anti_patterns:
+  - new task starts but UI still shows artifact from previous task
+  - preview panel displays cached result with no indication it is stale
+  - new_session_id != previous_session_id but artifact_preview shows previous_artifact_id with no stale warning
+  - no visual distinction between "previous result" and "current result"
+  - artifact preview is not cleared when session_id changes
+  - user downloads old artifact thinking it is from new task
+  - browser cache causes stale artifact preview
+
+notes:
+  - This is a common cause of user confusion and incorrect conclusions.
+  - Users trust the preview to reflect current task output.
+  - Must clear preview state when new task starts.
+  - Consider showing "generating new result..." placeholder.
+  - Label previous artifact as "Previous result" if visible.
+  - Verification: artifact_preview is null or shows placeholder during running state.
+  - Verification: session_id in UI state matches current session, not previous.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - stale-cache
+  - artifact-confusion
+  - preview-mismatch
+  - session-confusion

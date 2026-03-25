@@ -1,0 +1,44 @@
+id: GD-001-M-ambiguous-prompt+fail-at-visualizer
+priority: P2
+layer: orchestration
+title: Underspecified Input Leads to Visualizer Failure
+source: mutation
+operators:
+  - ambiguous-prompt
+  - fail-at-visualizer
+parent: GD-001
+intent: An underspecified prompt should surface failure at the visualizer stage rather than silently producing incorrect output.
+
+input:
+  mode: diagram
+  prompt: "Make something about science."
+  retrieval_mode: auto
+  inject_failure_at: visualizer
+
+expected:
+  final_status: failed
+  failed_stage: visualizer
+  must_expose_progress: true
+  earlier_stages_completed:
+    - retriever
+    - planner
+    - stylist
+  failure_reason_related_to_input_quality: true
+
+anti_patterns:
+  - visualizer produces garbage output silently with completed status
+  - failure blamed on earlier stage like planner when visualizer is the actual failure point
+  - error message does not indicate that input was underspecified
+  - system retries indefinitely without surfacing failure
+
+notes:
+  - Tests that ambiguous input flows through stages and surfaces failure appropriately.
+  - The visualizer is the likely failure point because plan and style may be too vague.
+  - Catches regressions where vague input causes silent incorrect output.
+
+tags:
+  - mutation
+  - combined
+  - ambiguous-prompt
+  - fail-at-visualizer
+  - input-quality

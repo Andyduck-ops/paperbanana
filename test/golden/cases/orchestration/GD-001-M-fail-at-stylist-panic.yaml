@@ -1,0 +1,48 @@
+id: GD-001-M-fail-at-stylist-panic
+priority: P1
+layer: orchestration
+title: Stylist Panic Recovery
+source: mutation
+operator: fail-at-stylist
+parent: GD-001
+intent: When the stylist stage panics or crashes unexpectedly, the system must catch the panic, record stylist as the failure point, and not corrupt session state.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a recursive algorithm flow."
+  retrieval_mode: auto
+  inject_failure_at: stylist
+  failure_type: panic
+
+expected:
+  final_status: failed
+  failed_stage: stylist
+  must_expose_progress: true
+  must_have_final_artifact: false
+  stages_completed_before_failure:
+    - retriever
+    - planner
+  error_must_indicate: panic_or_crash
+  downstream_stages_must_not_run:
+    - visualizer
+    - critic
+  session_state_must_remain_valid: true
+
+anti_patterns:
+  - panic propagates and crashes the entire orchestrator
+  - session state becomes corrupted or unreadable
+  - failed_stage recorded as "unknown" due to panic
+  - completed stages not recorded due to missing flush
+  - UI receives no failure event and shows perpetual loading
+
+notes:
+  - Panics test the robustness of error boundaries.
+  - The orchestrator must survive individual stage failures.
+  - Session state must be written before each stage transition.
+
+tags:
+  - mutation
+  - failure-location
+  - stylist
+  - panic
+  - crash-recovery

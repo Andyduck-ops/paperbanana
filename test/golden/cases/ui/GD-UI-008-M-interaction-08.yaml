@@ -1,0 +1,52 @@
+id: GD-UI-008-M-interaction-08
+priority: P1
+layer: ui
+title: Button Shows Focus Ring When Navigated By Keyboard
+source: mutation
+operator: interaction-focus-ring-keyboard
+parent: GD-UI-001
+intent: Buttons must show a visible focus ring when navigated via keyboard, but may show different styling when clicked by mouse. This distinction helps keyboard users track their position.
+
+input:
+  ui_scenario: user navigates to Generate button using Tab key
+  system_state:
+    session_status: idle
+    focus_method: keyboard_tab
+    focused_element: generate_button
+
+expected:
+  ui_must_show:
+    - visible focus ring around button (outline or border)
+    - focus ring color with sufficient contrast (3:1 minimum)
+    - focus ring offset from button bounds (not overlapping content)
+  ui_must_not_show:
+    - no visible focus indicator
+    - focus ring that is too thin or low contrast
+    - focus ring that obscures button text
+  interaction_contract:
+    - focus_visible_on_keyboard_nav: true
+    - focus_ring_contrast_ratio: >=3:1
+    - focus_ring_thickness_px: >=2
+  accessibility_criterion: WCAG 2.1 2.4.7 Focus Visible (Level AA)
+
+anti_patterns:
+  - Tab focuses button but no visible focus ring appears
+  - focus ring is 1px thin and barely visible
+  - focus ring color is same as button color, invisible
+  - focus ring overlaps button text making it hard to read
+  - :focus-visible not used, focus ring shows on mouse click too
+  - custom focus ring disabled with outline: none
+
+notes:
+  - Use :focus-visible pseudo-class to show focus only on keyboard navigation.
+  - Focus ring must have 3:1 contrast ratio against adjacent colors.
+  - Never use outline: none without alternative focus styling.
+  - Test with keyboard navigation, not just mouse.
+
+tags:
+  - mutation
+  - interaction-design
+  - focus-indicator
+  - keyboard-navigation
+  - accessibility
+  - wcag-2.4.7

@@ -1,0 +1,26 @@
+{
+  "granularity": "medium",
+  "default_tool": "claude",
+  "fallback_tools": ["gemini", "qwen"],
+  "quality_gates": {
+    "test_coverage_minimum": 80,
+    "golden_data_p0_required": true,
+    "multi_agent_review": true
+  },
+  "parallel_execution": {
+    "enabled": true,
+    "max_concurrent": 5
+  },
+  "workflow_agents": {
+    "planning": "claude",
+    "execution": "claude",
+    "verification": "gemini",
+    "review": "team-review"
+  },
+  "delivery_checklist": [
+    "All P0 Golden Data cases pass",
+    "No regressions on existing tests",
+    "Multi-round agent review completed",
+    "Delivery validation passed"
+  ]
+}

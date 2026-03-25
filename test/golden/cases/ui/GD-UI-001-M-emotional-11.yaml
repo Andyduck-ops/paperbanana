@@ -1,0 +1,55 @@
+id: GD-UI-001-M-emotional-11
+priority: P1
+layer: ui
+title: First-Time User Must Feel Welcomed Not Overwhelmed
+source: mutation
+operator: emotional-first-time-welcome
+parent: GD-UI-001
+intent: When a first-time user arrives, the UI must provide a welcoming experience that builds confidence without overwhelming. New users should feel guided, not intimidated by complexity.
+
+input:
+  ui_scenario: new user opens application for the first time
+  system_state:
+    user_state: first_time_user
+    onboarding_completed: false
+    has_previous_sessions: false
+    feature_set: full
+
+expected:
+  ui_must_show:
+    - welcoming message that acknowledges new user status
+    - clear starting point or first action
+    - optional: brief guided introduction or example
+    - progressive disclosure of complexity
+  ui_must_not_show:
+    - overwhelming interface with all features exposed
+    - assuming user knows what to do
+    - cold, professional-only interface with no warmth
+    - feature dump that intimidates new users
+  interaction_contract:
+    - user feels welcomed and capable
+    - user knows exactly where to start
+    - complexity is introduced progressively, not all at once
+
+anti_patterns:
+  - dashboard with 20 options and no clear starting point
+    - "Welcome" banner with no actionable guidance
+    - all features visible with no prioritization
+    - tutorial that is too long or mandatory
+    - professional UI with no personality
+    - assuming user understands terminology
+    - no example or template to start from
+
+notes:
+  - First impressions are emotional and lasting.
+  - Consider: "Welcome! Let's create your first diagram together."
+  - Progressive disclosure: show basics first, advanced later.
+  - Example prompts or templates reduce intimidation.
+
+tags:
+  - mutation
+  - emotional-design
+  - first-time-user
+  - onboarding
+  - welcome
+  - progressive-disclosure

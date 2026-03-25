@@ -1,0 +1,62 @@
+id: GD-UI-008
+priority: P2
+layer: ui
+title: Batch Variant Display
+source: requirement
+intent: 批量精修必须生成多种风格变体，以网格形式展示，支持选择和下载。
+
+input:
+  ui_scenario: batch refinement completed
+  system_state:
+    session_status: completed
+    batch_mode: true
+    variants_total: 4
+    variants:
+      - id: 1
+        image: "memory://variant-1"
+        style: "高对比度"
+        selected: false
+      - id: 2
+        image: "memory://variant-2"
+        style: "柔和配色"
+        selected: true
+      - id: 3
+        image: "memory://variant-3"
+        style: "深色主题"
+        selected: false
+      - id: 4
+        image: "memory://variant-4"
+        style: "极简风格"
+        selected: false
+
+expected:
+  ui_must_show:
+    - 变体网格 (2x2 或 3x3)
+    - 每个变体的风格描述
+    - 选择/取消选择按钮
+    - 下载全部按钮
+    - 选择下载按钮
+    - 继续迭代按钮 (对选中变体)
+  ui_must_not_show:
+    - 变体列表占用全屏
+    - 无法同时查看多个变体
+  interaction_contract:
+    - 用户可以选中一个或多个变体
+    - 用户可以下载选中的变体
+    - 用户可以对选中变体继续精修
+
+anti_patterns:
+  - 变体只显示缩略图无法放大
+  - 无法批量下载
+  - 选择后无法继续迭代
+  - 变体风格描述缺失
+
+notes:
+  - 网格布局响应式适配
+  - 支持点击放大预览
+
+tags:
+  - ui
+  - batch
+  - variants
+  - grid-display

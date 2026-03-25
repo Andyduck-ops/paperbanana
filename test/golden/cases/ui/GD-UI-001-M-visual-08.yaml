@@ -1,0 +1,59 @@
+id: GD-UI-001-M-visual-08
+priority: P1
+layer: ui
+title: Border Radius Consistency
+source: mutation
+operator: visual-radius-inconsistency
+parent: GD-UI-001
+intent: Users notice when one card has noticeably sharper corners than another card right next to it and think "These don't look like they belong together. Is one of them from a different part of the app?"
+
+input:
+  ui_scenario: cards and containers use different border radius values across components
+  system_state:
+    expected_radius:
+      card: 'rounded-lg (0.5rem / 8px)'
+      button: 'rounded-lg (0.5rem / 8px)'
+      badge: 'rounded-full (9999px) for pill shape'
+      input: 'rounded-lg (0.5rem / 8px)'
+      panel: 'rounded-lg (0.5rem / 8px)'
+    components:
+      - StageCard: 'rounded-lg'
+      - BatchProgressPanel candidate card: 'rounded-lg'
+      - Toast: 'rounded-lg'
+      - ConfigPanel: 'rounded-lg'
+      - Buttons: 'rounded-lg'
+
+expected:
+  ui_must_show:
+    - all card-type containers use rounded-lg
+    - all buttons use rounded-lg
+    - pill-shaped badges use rounded-full
+    - consistent radius across similar elements
+  ui_must_not_show:
+    - StageCard using rounded-lg while BatchProgressPanel uses rounded-md
+    - One button using rounded-lg, another using rounded-xl
+    - Input fields with different radius than containers
+    - Mixed radius values for same component type
+  interaction_contract:
+    - visual language is cohesive and intentional
+    - radius patterns communicate element type
+    - design system consistency maintained
+
+anti_patterns:
+  - StageCard uses rounded-lg, BatchProgressPanel candidate uses rounded-md
+  - Submit button uses rounded-lg, secondary button uses rounded-md
+  - Toast uses rounded-lg, ErrorBoundary uses rounded-xl
+  - ConfigPanel inputs have rounded-lg but selects have rounded
+  - Inconsistent radius between components of same type
+
+notes:
+  - Tests border radius consistency across all card-like components.
+  - Design system should define radius tokens.
+  - All containers should use same radius scale.
+
+tags:
+  - mutation
+  - visual-design
+  - border-radius
+  - design-system
+  - visual-cohesion

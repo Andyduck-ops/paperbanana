@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -257,7 +258,7 @@ func loadFixture(t *testing.T, name string) string {
 	path := filepath.Join("..", "..", "..", "..", "testdata", "legacy_prompts", "retriever", name)
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
-	return string(data)
+	return strings.TrimSpace(string(data))
 }
 
 func referenceIDs(references []domainagent.RetrievedReference) []string {

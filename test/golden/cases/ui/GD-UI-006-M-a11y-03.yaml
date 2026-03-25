@@ -1,0 +1,53 @@
+id: GD-UI-006-M-a11y-03
+priority: P1
+layer: ui
+title: Status Not Conveyed by Color Alone
+source: mutation
+operator: a11y-color-independent-status
+parent: GD-UI-001
+intent: Task status (running, completed, failed) must not be conveyed by color alone. Users with color blindness must be able to distinguish status states through additional visual indicators such as icons, text labels, or patterns.
+wcag_criterion: WCAG 2.1 1.4.1 Use of Color (Level A)
+
+input:
+  ui_scenario: user with deuteranopia (red-green color blindness) viewing task status
+  system_state:
+    session_status: failed
+    stage_failed: stylist
+    color_scheme: standard
+
+expected:
+  status_indicators_must_have:
+    - status: failed
+      must_include: icon_or_text
+      icon_must_have_aria_label: true
+    - status: running
+      must_include: icon_or_text
+      icon_must_have_aria_label: true
+    - status: completed
+      must_include: icon_or_text
+      icon_must_have_aria_label: true
+
+anti_patterns:
+  - failed status shown only with red color, no icon or text
+  - running status shown only with green/yellow color
+  - completed status shown only with green checkmark in green
+  - status legend relies on color swatches without text
+  - progress bar changes color without shape or text change
+  - deuteranopia users cannot distinguish failed from running
+  - no tooltip or aria-label on status indicators
+
+notes:
+  - Use icons with text labels: error icon + "Failed", spinner + "Running".
+  - Test with color blindness simulation tools.
+  - Ensure 4.5:1 contrast ratio for status text.
+  - Common color blindness types: deuteranopia, protanopia, tritanopia.
+  - Verification: each status has icon or text label in addition to color.
+  - Verification: icon elements have aria-label attributes.
+
+tags:
+  - mutation
+  - accessibility
+  - color-blindness
+  - wcag-1.4.1
+  - status-visibility
+  - visual-design

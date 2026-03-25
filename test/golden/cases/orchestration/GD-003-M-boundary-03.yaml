@@ -1,0 +1,69 @@
+id: GD-003-M-boundary-03
+priority: P1
+layer: orchestration
+title: Multiple Resume Boundaries With Snapshot Integrity Degradation
+source: mutation
+operators:
+  - resume-multiple-boundaries
+  - snapshot-integrity-degradation
+parent: GD-003
+intent: When multiple resume attempts occur and snapshot integrity degrades over time, the system must detect the degradation and either repair or fail gracefully.
+
+input:
+  mode: diagram
+  prompt: "Create a component diagram of microservices architecture."
+  retrieval_mode: auto
+  multi_resume_scenario:
+    - run_1:
+        completed_stages: [retriever, planner]
+        snapshot_after: planner
+        stop_reason: system_timeout
+        snapshot_integrity: perfect
+    - run_2_resume_from: stylist:
+        completed_stages: [stylist, visualizer]
+        snapshot_after: visualizer
+        stop_reason: user_cancel
+        snapshot_integrity: minor_corruption
+    - run_3_resume_from: critic
+        expected_integrity_check: detect_degradation
+        detected_issues:
+          - checksum_mismatch_on_planner_artifact
+          - timestamp_inconsistency
+
+expected:
+  final_status: completed
+  integrity_detection_must_occur: true
+  integrity_recovery_must_succeed: true
+  recovery_behavior:
+    - detected_checksum_mismatch: true
+    - recovered_from_redundant_storage: true
+    - or_reran_planner_if_recovery_failed: false
+  stages_must_not_rerun:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+  must_have_final_artifact: true
+  session_metadata_must_include:
+    - integrity_violation_detected: true
+    - recovery_method: redundant_storage
+
+anti_patterns:
+  - integrity degradation not detected
+  - corrupted artifact propagates to final output
+  - entire session fails due to integrity issues
+  - all stages rerun despite only minor corruption
+  - integrity check not performed on resume
+
+notes:
+  - Tests the intersection of persistence and data integrity over multiple sessions.
+  - Snapshot integrity can degrade due to storage issues or version changes.
+  - Redundant storage enables recovery without full reruns.
+
+tags:
+  - mutation
+  - boundary-combination
+  - resume-multiple-boundaries
+  - snapshot-integrity-degradation
+  - data-integrity
+  - redundant-storage-recovery

@@ -1,0 +1,57 @@
+id: GD-UI-005-M-retrieval-random
+priority: P1
+layer: ui
+title: Batch Per-Task Status Visible With Random Retrieval
+source: mutation
+operator: retrieval-random
+parent: GD-UI-005
+intent: Batch UI must show per-task status correctly when tasks use random retrieval mode, proving batch visibility is independent of retrieval configuration.
+
+input:
+  ui_scenario: batch of three tasks in mixed states with random retrieval
+  system_state:
+    batch_tasks:
+      - id: task-001
+        session_status: completed
+        retrieval_mode: random
+        must_have_final_artifact: true
+      - id: task-002
+        session_status: running
+        retrieval_mode: random
+        current_stage: visualizer
+      - id: task-003
+        session_status: failed
+        retrieval_mode: random
+        failed_stage: planner
+
+expected:
+  ui_must_show:
+    - task-001 as completed with artifact available
+    - task-002 as running with current stage visible
+    - task-003 as failed with failed stage visible
+    - batch-level summary showing mixed states
+  ui_must_not_show:
+    - single unified spinner for the entire batch
+    - all tasks shown as the same status
+    - failed task hidden behind a generic batch error
+  interaction_contract:
+    - user can distinguish each task's individual status
+    - user can act on completed tasks while others are still running
+    - batch summary reflects actual task state distribution
+
+anti_patterns:
+  - random retrieval mode causes per-task status to be incorrect
+  - batch shows overall progress only with no per-task breakdown
+  - one failed task collapses entire batch view
+  - completed tasks not accessible until entire batch finishes
+
+notes:
+  - Tests batch visibility robustness with varying retrieval modes.
+  - Each task may have different random references but status must be accurate.
+  - Wire against batch runner state consumer with mixed retrieval modes.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-random
+  - batch-visibility

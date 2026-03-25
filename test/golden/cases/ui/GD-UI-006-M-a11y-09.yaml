@@ -1,0 +1,51 @@
+id: GD-UI-006-M-a11y-09
+priority: P1
+layer: ui
+title: Stage Pipeline Has Logical Reading Order
+source: mutation
+operator: a11y-reading-order
+parent: GD-UI-001
+intent: The stage pipeline must have a logical reading order in the DOM. Screen reader users must encounter stage information in a meaningful sequence: overall status, then stage list in execution order, then current progress details.
+wcag_criterion: WCAG 2.1 1.3.2 Meaningful Sequence (Level A)
+
+input:
+  ui_scenario: screen reader user navigating the running task view
+  system_state:
+    session_status: running
+    current_stage: stylist
+    stages_completed:
+      - retriever
+      - planner
+    stages_remaining:
+      - visualizer
+      - critic
+
+expected:
+  dom_order_must_match_visual_order: true
+  overall_status_must_come_before_stage_details: true
+  stages_must_be_announced_in_execution_sequence: true
+  current_stage_must_be_highlighted_semantically: true
+  screen_reader_navigation_must_be_intuitive: true
+
+anti_patterns:
+  - DOM order does not match visual order (CSS grid reordering)
+  - screen reader encounters stage list before knowing task status
+  - stages are announced in random order
+  - visual order uses flexbox order but DOM is wrong
+  - user must navigate back and forth to understand context
+  - current stage is only indicated by visual styling
+  - aria-flowto would help but is not implemented
+
+notes:
+  - Use semantic HTML with natural reading order.
+  - Avoid CSS order property that conflicts with DOM.
+  - Consider using aria-flowto for complex navigation.
+  - Test with screen reader linear navigation (down arrow).
+
+tags:
+  - mutation
+  - accessibility
+  - reading-order
+  - wcag-1.3.2
+  - screen-reader
+  - semantic-structure

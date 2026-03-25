@@ -1,0 +1,65 @@
+id: GD-UI-M-motion-15
+priority: P1
+title: Animation Performance Under Load
+layer: ui
+source: motion-design
+operator: motion-performance-load
+parent: GD-UI-001
+intent: Animations must maintain 60fps performance even during high-frequency state updates, never causing UI jank or blocking user interaction.
+
+input:
+  ui_scenario: rapid state updates occur during task execution
+  system_state:
+    session_status: running
+    high_frequency_updates:
+      - type: progress_update
+        frequency_hz: 10
+      - type: log_stream
+        frequency_hz: 20
+      - type: stage_transition
+        count: 5
+        timing: rapid
+    animation_performance:
+      target_fps: 60
+      frame_budget_ms: 16.67
+      gpu_acceleration: expected
+
+expected:
+  ui_must_show:
+    - animations maintain smooth 60fps during updates
+    - no dropped frames or stuttering visible
+    - animations use CSS transforms (GPU accelerated)
+    - animation does not block main thread interaction
+  ui_must_not_show:
+    - stuttering or janking animations
+    - animations that cause main thread blocking
+    - layout thrashing during animations
+    - animations using properties that cause reflow (width, height, top, left)
+  interaction_contract:
+    - user can interact with UI while animations run
+    - animations do not cause input lag
+    - scrolling remains smooth during animations
+  motion_contract:
+    - target_fps: 60
+    - frame_budget_ms: <=16.67
+    - animation_properties: transform, opacity_only
+    - gpu_acceleration: transform_3d_or_will_change
+
+anti_patterns:
+  - animations stutter during rapid state updates
+  - animation uses margin or padding changes
+  - animation causes scroll jank
+  - animation blocks button clicks
+  - CPU-based animations that drop frames
+
+notes:
+  - Tests animation performance under realistic load.
+  - Must use GPU-accelerated properties only (transform, opacity).
+  - Animation must not interfere with user interaction.
+
+tags:
+  - motion-design
+  - animation-performance
+  - 60fps
+  - gpu-acceleration
+  - performance-under-load

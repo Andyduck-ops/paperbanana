@@ -1,0 +1,56 @@
+id: GD-UI-008-M-interaction-07
+priority: P1
+layer: ui
+title: Escape Key Closes Modal And Returns Focus
+source: mutation
+operator: interaction-escape-key-modal
+parent: GD-UI-002
+intent: When a modal dialog is open, pressing Escape key must close the modal and return focus to the element that triggered it. This is essential keyboard accessibility.
+
+input:
+  ui_scenario: user has opened confirmation modal by clicking Cancel
+  system_state:
+    session_status: running
+    modal_open: true
+    modal_type: cancel_confirmation
+    trigger_element: cancel_button
+    focus_currently_on: dialog_primary_button
+
+expected:
+  ui_must_show:
+    - modal closes when Escape key is pressed
+    - focus returns to the element that opened the modal (Cancel button)
+    - modal closes when clicking outside (optional, but recommended)
+  ui_must_not_show:
+    - modal that cannot be dismissed with Escape
+    - focus lost or moved to page root after closing
+    - modal that traps user without keyboard exit
+  interaction_contract:
+    - escape_closes_modal: true
+    - focus_returns_to_trigger: true
+    - focus_trap_inside_modal: true
+  accessibility_criterion: WCAG 2.1 2.1.2 No Keyboard Trap (Level A)
+
+anti_patterns:
+  - pressing Escape does nothing, modal remains open
+  - modal closes but focus goes to page root instead of trigger button
+  - focus is lost after closing modal
+  - no way to close modal with keyboard
+  - Escape closes modal but doesn't restore focus anywhere
+  - user must click outside or find close button with mouse
+  - focus trap inside modal is not implemented
+
+notes:
+  - Escape key is the standard keyboard shortcut to close modals.
+  - Focus management is critical for keyboard and screen reader users.
+  - Implement focus trap to prevent tab escaping modal while open.
+  - Test with keyboard only, no mouse.
+
+tags:
+  - mutation
+  - interaction-design
+  - keyboard-navigation
+  - modal-interaction
+  - focus-management
+  - escape-key
+  - accessibility

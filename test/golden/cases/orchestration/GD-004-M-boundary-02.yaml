@@ -1,0 +1,58 @@
+id: GD-004-M-boundary-02
+priority: P1
+layer: orchestration
+title: Manual Retrieval With No Artifact And Planner Panic Recovery
+source: mutation
+operators:
+  - retrieval-manual
+  - no-artifact-from-retriever
+  - planner-panic-recovery
+parent: GD-004
+intent: When manual retrieval produces no artifact and planner panics due to missing input, the system must recover gracefully and guide user to provide valid retrieval results.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram based on the provided research paper structure."
+  retrieval_mode: manual
+  manual_retrieval_provided: false
+  retriever_behavior:
+    returns_no_artifact: true
+    reason: "no_manual_input_provided"
+  inject_failure_at: planner
+  failure_type: panic
+  panic_reason: "missing_required_retrieval_artifact"
+
+expected:
+  final_status: failed
+  failed_stage: retriever
+  failure_reason: no_manual_input_provided
+  planner_panic_must_be_caught: true
+  panic_must_not_crash_system: true
+  root_cause_must_be_attributed_to: retriever
+  ui_must_show:
+    - clear message that manual retrieval is required
+    - instructions for providing manual input
+    - no system crash or unhandled error
+  error_must_include:
+    - expected_input_format
+    - retry_options
+
+anti_patterns:
+  - system crashes with unhandled planner panic
+  - planner panic attributed as root cause
+  - no guidance on how to provide manual retrieval
+  - error message indicates internal error instead of user action needed
+  - retry attempts proceed without valid retrieval
+
+notes:
+  - Tests the cascade from missing manual input to downstream failure.
+  - Panic recovery must identify the root cause, not just the symptom.
+  - Manual retrieval requires user action, not system retry.
+
+tags:
+  - mutation
+  - boundary-combination
+  - retrieval-manual
+  - no-artifact-from-retriever
+  - planner-panic-recovery
+  - user-action-required

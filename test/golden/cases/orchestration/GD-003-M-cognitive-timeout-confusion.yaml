@@ -1,0 +1,49 @@
+id: GD-003-M-cognitive-timeout-confusion
+priority: P1
+layer: orchestration
+title: Timeout Confuses Slow Progress With Failure
+source: mutation
+operator: cognitive-timeout-confusion
+parent: GD-003
+intent: When a task times out after making progress, the user must understand that partial work exists. Marking it simply as "failed" discards valuable partial results and confuses users who saw progress indicators.
+
+input:
+  mode: diagram
+  prompt: "Create a detailed diagram of a complex distributed system with 20 components"
+  retrieval_mode: auto
+  inject_slowdown:
+    stage: visualizer
+    duration_ms: 120000
+  timeout_ms: 60000
+
+expected:
+  final_status: timeout
+  must_preserve_partial_artifacts: true
+  must_explain_what_was_completed: true
+  must_offer_resume_or_extend_timeout: true
+  must_show_progress_at_timeout: true
+  must_not_show_as_simple_failure: true
+
+anti_patterns:
+  - timeout shows same error as crash with no distinction
+  - partial artifacts from completed stages are discarded
+  - user sees "failed" with no mention of timeout or partial results
+  - no option to extend timeout for slow tasks
+  - no option to resume from last completed stage
+  - progress indicator vanishes on timeout with no explanation
+  - user cannot tell if task failed or just ran too long
+
+notes:
+  - Timeout is different from failure: progress was being made.
+  - Users get frustrated when partial work is discarded.
+  - Timeout should show "timed out after X, completed: [stages]".
+  - Offering resume allows users to continue slow but valid tasks.
+  - Extend timeout option useful for legitimately complex prompts.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - timeout-confusion
+  - partial-preservation
+  - progress-visibility
+  - resume-option

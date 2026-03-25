@@ -1,0 +1,50 @@
+id: GD-001-M-intent-14
+priority: P1
+layer: orchestration
+title: Intent Preservation Across Multiple Resume Cycles
+source: mutation
+operator: intent-multi-resume-preservation
+parent: GD-001
+intent: When a session is resumed multiple times, the system must preserve the core intent throughout all resume cycles, accumulating refinements without losing the original purpose.
+
+input:
+  mode: diagram
+  original_prompt: "Create a sequence diagram for the payment processing flow."
+  retrieval_mode: auto
+  resume_cycles:
+    - resume_from: planner
+      refinement: "Add error handling branches."
+    - resume_from: stylist
+      refinement: "Use pastel colors."
+    - resume_from: critic
+      refinement: "Add timeout annotations."
+
+expected:
+  final_status: completed
+  core_intent_must_be_preserved: true
+  all_refinements_must_be_applied: true
+  artifact_must_be_sequence_diagram: true
+  artifact_must_have_error_handling: true
+  artifact_must_use_pastel_colors: true
+  artifact_must_have_timeout_annotations: true
+  intent_accumulation_must_be_logged: true
+
+anti_patterns:
+  - original "payment processing" intent is lost after first resume
+  - refinements from earlier resume cycles are forgotten in later cycles
+  - artifact type changes from sequence diagram to something else
+  - only the latest refinement is applied, earlier ones ignored
+  - no tracking of intent evolution through resume cycles
+
+notes:
+  - Tests intent preservation across multiple refinement cycles.
+  - Each resume adds a refinement, not a replacement.
+  - The core intent (sequence diagram, payment flow) must remain intact.
+  - This tests long-running session intent coherence.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-multi-resume-preservation
+  - refinement-accumulation
+  - session-coherence

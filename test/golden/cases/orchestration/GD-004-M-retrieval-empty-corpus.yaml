@@ -1,0 +1,39 @@
+id: GD-004-M-retrieval-empty-corpus
+priority: P1
+layer: orchestration
+title: Retrieval Constrains Planning With Empty Corpus
+source: mutation
+operator: retrieval-empty-corpus
+parent: GD-004
+intent: Planner must still function correctly when retrieval returns empty due to empty bench, ensuring planner robustness to missing references.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing how attention heads work in a transformer."
+  retrieval_mode: auto
+  bench_state: empty
+
+expected:
+  final_status: completed
+  retriever_must_produce_empty_bundle: true
+  planner_must_receive_empty_references: true
+  plan_must_still_be_valid: true
+  artifact_flow_must_preserve_bundle: true
+
+anti_patterns:
+  - retriever hangs or times out waiting for references
+  - planner fails when receiving empty bundle from auto retrieval
+  - plan is malformed due to missing references
+  - pipeline stalls at retriever stage
+
+notes:
+  - Tests the specific interaction between auto retrieval and empty bench.
+  - The planner must produce a valid plan using only the prompt.
+  - This is a real-world scenario for fresh installations.
+  - Distinguished from retrieval-none by testing auto mode with no data.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-empty-corpus
+  - planner-resilience

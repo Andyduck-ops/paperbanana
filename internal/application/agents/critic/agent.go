@@ -446,9 +446,14 @@ func cloneArtifacts(artifacts []domainagent.Artifact) []domainagent.Artifact {
 }
 
 func cloneArtifact(artifact domainagent.Artifact) domainagent.Artifact {
-	cloned := artifact
-	cloned.Bytes = append([]byte(nil), artifact.Bytes...)
-	cloned.Metadata = cloneStringMap(artifact.Metadata)
+	// Use Artifact.Clone() which shares SharedBytes instead of deep copying
+	cloned := artifact.Clone()
+	// Keep legacy Bytes field in sync for JSON serialization
+	if artifact.Shared != nil {
+		cloned.Bytes = artifact.Bytes
+	} else {
+		cloned.Bytes = append([]byte(nil), artifact.Bytes...)
+	}
 	return cloned
 }
 

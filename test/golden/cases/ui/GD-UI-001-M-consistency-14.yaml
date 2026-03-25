@@ -1,0 +1,57 @@
+id: GD-UI-001-M-consistency-14
+priority: P1
+layer: ui
+title: Heartbeat Missing During Active Connection
+source: mutation
+operator: consistency-heartbeat-missing
+parent: GD-UI-001
+intent: When backend heartbeats stop while connection appears active, UI must detect and trigger reconnection or state fetch.
+
+input:
+  ui_scenario: SSE connection shows connected but no heartbeats received for 60 seconds
+  system_state:
+    session_id: session-heartbeat-001
+    sse_connection_state: connected
+    last_heartbeat_received: 60_seconds_ago
+    last_any_event_received: 60_seconds_ago
+    expected_heartbeat_interval_ms: 10000
+    missed_heartbeat_count: 6
+    backend_actual_status: unknown
+    possible_backend_states:
+      - crashed
+      - hung
+      - network partition
+
+expected:
+  ui_must_show:
+    - connection warning after missed heartbeats
+    - automatic reconnection attempt
+    - state fetch after reconnect
+  ui_must_not_show:
+    - connected state with no activity detection
+    - UI shows status=running despite missed_heartbeat_count >= 6 with no warning
+    - no automatic recovery attempt
+  interaction_contract:
+    - user sees warning about connection issue
+    - automatic recovery is attempted
+    - user can manually refresh if auto-recovery fails
+
+anti_patterns:
+  - Connection shows "connected" despite no heartbeats
+  - No heartbeat monitoring mechanism
+  - UI shows status=running for >300s after last_heartbeat
+  - No automatic reconnection on heartbeat timeout
+  - Stale "running" state for hours
+
+notes:
+  - Tests liveness detection.
+  - Heartbeats confirm both connection and backend health.
+  - Missed heartbeats indicate serious issues.
+  - Auto-recovery prevents user frustration.
+
+tags:
+  - mutation
+  - state-consistency
+  - heartbeat
+  - liveness-detection
+  - connection-health

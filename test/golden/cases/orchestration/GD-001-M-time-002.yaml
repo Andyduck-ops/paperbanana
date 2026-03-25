@@ -1,0 +1,79 @@
+id: GD-001-M-time-002
+priority: P1
+layer: orchestration
+title: User Cancels Then Regrets - Wants to Resume
+source: mutation
+operator: race-condition
+parent: GD-001
+intent: |
+  User clicks cancel because they think the task is taking too long, but immediately
+  regrets it and wants to continue. They expect to be able to undo the cancellation
+  or resume from where the system left off. However, the system has already processed
+  the cancel and discarded intermediate work. The gap between user intent (I want to
+  continue) and system behavior (everything is gone) creates frustration. User expected
+  an "undo" option or at least a way to reuse partial progress.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: auto
+  user_journey:
+    - step: 1
+      action: submit_task
+      user_thinking: "This will take a while"
+    - step: 2
+      action: wait_20_seconds
+      user_thinking: "This is taking too long, I'll cancel and try a simpler prompt"
+    - step: 3
+      action: click_cancel
+      user_thinking: "Wait, actually I should let it finish..."
+    - step: 4
+      action: click_undo_or_resume
+      user_thinking: "Let me continue where it left off"
+      expectation: "system should have saved progress for exactly this situation"
+  race_scenario:
+    event_a:
+      type: user_cancel
+      trigger_at: planner_complete_timestamp
+    event_b:
+      type: stage_complete
+      stage: planner
+    both_events_same_timestamp: true
+
+expected:
+  final_status: canceled
+  race_resolution: deterministic
+  planner_artifact_must_exist: true
+  subsequent_stages_must_not_run:
+    - stylist
+    - visualizer
+    - critic
+  cancel_timestamp_must_be_persisted: true
+  resume_possible: true
+  must_offer_undo_option: true
+  must_preserve_intermediate_state: true
+
+anti_patterns:
+  - cancel immediately deletes all progress - user's 20 seconds of work is gone
+  - no "undo cancel" option in the 5 seconds after clicking - user must start from scratch
+  - system says "canceled" but doesn't show what was completed before cancel
+  - resume requires user to re-enter the exact same prompt manually
+  - UI shows both "canceled" and partial results - confusing which is true
+  - user cannot tell if planner finished before cancel - no visibility
+  - next attempt starts from zero instead of reusing completed planner output
+  - cancel button has no confirmation - accidental clicks cannot be reversed
+
+notes:
+  - Real user pain point: accidental cancellation with no recovery path.
+  - Users expect "undo" for destructive actions, especially if work took time.
+  - Even 5-second "undo window" would prevent most frustration.
+  - Partial progress should be preserved and visible for resume scenarios.
+  - Cancel should honor user intent but allow for changing minds.
+
+tags:
+  - mutation
+  - time-sensitive
+  - race-condition
+  - cancellation
+  - user-experience
+  - undo-recovery

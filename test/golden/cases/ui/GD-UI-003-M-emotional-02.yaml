@@ -1,0 +1,57 @@
+id: GD-UI-003-M-emotional-02
+priority: P1
+layer: ui
+title: First Success Celebration Must Feel Special
+source: mutation
+operator: emotional-first-success-celebration
+parent: GD-UI-003
+intent: When a user completes their first successful generation, the UI must provide a celebratory moment that acknowledges the milestone. This builds emotional connection and encourages continued engagement.
+
+input:
+  ui_scenario: first-time user completes first generation successfully
+  system_state:
+    session_status: completed
+    user_generation_count: 1
+    is_first_generation: true
+    final_artifact:
+      kind: rendered_figure
+      mime_type: image/png
+      bytes_present: true
+
+expected:
+  ui_must_show:
+    - celebratory visual cue acknowledging first success (confetti, badge, highlight)
+    - encouraging message like "Your first diagram looks great!"
+    - subtle animation that creates delight without being overwhelming
+    - hint about what to try next
+  ui_must_not_show:
+    - generic completion message identical to all completions
+    - no differentiation between first and subsequent successes
+    - sterile "Task completed" message
+  interaction_contract:
+    - user feels a sense of accomplishment
+    - user is motivated to continue using the product
+    - first success creates positive memory anchor
+
+anti_patterns:
+  - first generation shows same completion UI as 100th generation
+  - no acknowledgment that this is a milestone
+  - message "Generation complete" with no warmth
+  - immediate focus on technical details without celebration
+  - no guidance on what to explore next
+  - celebration that is too aggressive (forced tutorial, long animation)
+  - missing the moment entirely by being purely functional
+
+notes:
+  - First success is a critical retention moment.
+  - Celebration should be brief but memorable.
+  - Consider: subtle confetti, "First diagram created!" toast, milestone badge.
+  - Balance delight with professionalism - not annoying popup.
+
+tags:
+  - mutation
+  - emotional-design
+  - celebration
+  - first-time-user
+  - delight
+  - retention

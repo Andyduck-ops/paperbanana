@@ -2,32 +2,33 @@ package persistence
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	"github.com/paperbanana/paperbanana/internal/domain/workspace"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // historyTestRepositories implements Repositories for testing history service.
 type historyTestRepositories struct {
-	sessions  *historyTestSessionRepository
-	versions  *historyTestVersionRepository
-	vizs      *historyTestVisualizationRepository
-	projects  *historyTestProjectRepository
-	folders   *historyTestFolderRepository
-	assets    *historyTestAssetRepository
+	sessions *historyTestSessionRepository
+	versions *historyTestVersionRepository
+	vizs     *historyTestVisualizationRepository
+	projects *historyTestProjectRepository
+	folders  *historyTestFolderRepository
+	assets   *historyTestAssetRepository
 }
 
-func (m *historyTestRepositories) Projects() workspace.ProjectRepository    { return m.projects }
-func (m *historyTestRepositories) Folders() workspace.FolderRepository      { return m.folders }
+func (m *historyTestRepositories) Projects() workspace.ProjectRepository             { return m.projects }
+func (m *historyTestRepositories) Folders() workspace.FolderRepository               { return m.folders }
 func (m *historyTestRepositories) Visualizations() workspace.VisualizationRepository { return m.vizs }
-func (m *historyTestRepositories) Versions() workspace.VersionRepository    { return m.versions }
-func (m *historyTestRepositories) Sessions() workspace.SessionRepository    { return m.sessions }
-func (m *historyTestRepositories) Assets() workspace.AssetRepository        { return m.assets }
+func (m *historyTestRepositories) Versions() workspace.VersionRepository             { return m.versions }
+func (m *historyTestRepositories) Sessions() workspace.SessionRepository             { return m.sessions }
+func (m *historyTestRepositories) Assets() workspace.AssetRepository                 { return m.assets }
 
 type historyTestSessionRepository struct {
 	sessions map[string]*workspace.SessionRecord
@@ -45,24 +46,39 @@ func (m *historyTestSessionRepository) GetByID(ctx context.Context, id string) (
 	return nil, assert.AnError
 }
 
-func (m *historyTestSessionRepository) GetByProject(ctx context.Context, projectID string, limit int) ([]*workspace.SessionRecord, error) {
+func (m *historyTestSessionRepository) list(limit int, predicate func(*workspace.SessionRecord) bool) ([]*workspace.SessionRecord, error) {
 	var result []*workspace.SessionRecord
 	for _, s := range m.sessions {
-		if s.ProjectID == projectID {
+		if predicate(s) {
 			result = append(result, s)
 		}
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
+	}
+
 	return result, nil
 }
 
+func (m *historyTestSessionRepository) ListRecent(ctx context.Context, limit int) ([]*workspace.SessionRecord, error) {
+	return m.list(limit, func(*workspace.SessionRecord) bool { return true })
+}
+
+func (m *historyTestSessionRepository) GetByProject(ctx context.Context, projectID string, limit int) ([]*workspace.SessionRecord, error) {
+	return m.list(limit, func(s *workspace.SessionRecord) bool {
+		return s.ProjectID == projectID
+	})
+}
+
 func (m *historyTestSessionRepository) GetByVisualization(ctx context.Context, projectID, visualizationID string, limit int) ([]*workspace.SessionRecord, error) {
-	var result []*workspace.SessionRecord
-	for _, s := range m.sessions {
-		if s.ProjectID == projectID && s.VisualizationID != nil && *s.VisualizationID == visualizationID {
-			result = append(result, s)
-		}
-	}
-	return result, nil
+	return m.list(limit, func(s *workspace.SessionRecord) bool {
+		return s.ProjectID == projectID && s.VisualizationID != nil && *s.VisualizationID == visualizationID
+	})
 }
 
 func (m *historyTestSessionRepository) Update(ctx context.Context, session *workspace.SessionRecord) error {
@@ -71,8 +87,8 @@ func (m *historyTestSessionRepository) Update(ctx context.Context, session *work
 }
 
 type historyTestVersionRepository struct {
-	versions         map[string]*workspace.VisualizationVersion
-	byVisualization  map[string][]*workspace.VisualizationVersion
+	versions        map[string]*workspace.VisualizationVersion
+	byVisualization map[string][]*workspace.VisualizationVersion
 }
 
 func (m *historyTestVersionRepository) Create(ctx context.Context, version *workspace.VisualizationVersion) error {
@@ -155,17 +171,25 @@ func (m *historyTestVisualizationRepository) Restore(ctx context.Context, projec
 
 type historyTestProjectRepository struct{}
 
-func (m *historyTestProjectRepository) Create(ctx context.Context, project *workspace.Project) error { return nil }
+func (m *historyTestProjectRepository) Create(ctx context.Context, project *workspace.Project) error {
+	return nil
+}
 func (m *historyTestProjectRepository) GetByID(ctx context.Context, id string) (*workspace.Project, error) {
 	return &workspace.Project{ID: id}, nil
 }
-func (m *historyTestProjectRepository) List(ctx context.Context) ([]*workspace.Project, error) { return nil, nil }
-func (m *historyTestProjectRepository) Update(ctx context.Context, project *workspace.Project) error { return nil }
-func (m *historyTestProjectRepository) Delete(ctx context.Context, id string) error            { return nil }
+func (m *historyTestProjectRepository) List(ctx context.Context) ([]*workspace.Project, error) {
+	return nil, nil
+}
+func (m *historyTestProjectRepository) Update(ctx context.Context, project *workspace.Project) error {
+	return nil
+}
+func (m *historyTestProjectRepository) Delete(ctx context.Context, id string) error { return nil }
 
 type historyTestFolderRepository struct{}
 
-func (m *historyTestFolderRepository) Create(ctx context.Context, folder *workspace.Folder) error { return nil }
+func (m *historyTestFolderRepository) Create(ctx context.Context, folder *workspace.Folder) error {
+	return nil
+}
 func (m *historyTestFolderRepository) GetByID(ctx context.Context, projectID, id string) (*workspace.Folder, error) {
 	return nil, nil
 }
@@ -175,16 +199,24 @@ func (m *historyTestFolderRepository) ListByParent(ctx context.Context, projectI
 func (m *historyTestFolderRepository) ListByProject(ctx context.Context, projectID string) ([]*workspace.Folder, error) {
 	return nil, nil
 }
-func (m *historyTestFolderRepository) Update(ctx context.Context, folder *workspace.Folder) error { return nil }
-func (m *historyTestFolderRepository) Delete(ctx context.Context, projectID, id string) error    { return nil }
+func (m *historyTestFolderRepository) Update(ctx context.Context, folder *workspace.Folder) error {
+	return nil
+}
+func (m *historyTestFolderRepository) Delete(ctx context.Context, projectID, id string) error {
+	return nil
+}
 func (m *historyTestFolderRepository) GetDescendantIDs(ctx context.Context, projectID, folderID string) ([]string, error) {
 	return nil, nil
 }
-func (m *historyTestFolderRepository) Restore(ctx context.Context, projectID, id string) error { return nil }
+func (m *historyTestFolderRepository) Restore(ctx context.Context, projectID, id string) error {
+	return nil
+}
 
 type historyTestAssetRepository struct{}
 
-func (m *historyTestAssetRepository) Create(ctx context.Context, asset *workspace.Asset) error { return nil }
+func (m *historyTestAssetRepository) Create(ctx context.Context, asset *workspace.Asset) error {
+	return nil
+}
 func (m *historyTestAssetRepository) GetByID(ctx context.Context, projectID, id string) (*workspace.Asset, error) {
 	return nil, nil
 }
@@ -197,7 +229,9 @@ func (m *historyTestAssetRepository) ListByVisualization(ctx context.Context, pr
 func (m *historyTestAssetRepository) ListByVersion(ctx context.Context, projectID, versionID string) ([]*workspace.Asset, error) {
 	return nil, nil
 }
-func (m *historyTestAssetRepository) Delete(ctx context.Context, projectID, id string) error { return nil }
+func (m *historyTestAssetRepository) Delete(ctx context.Context, projectID, id string) error {
+	return nil
+}
 
 // historyTestTxManager implements TxManager for testing.
 type historyTestTxManager struct {
@@ -363,6 +397,65 @@ func TestHistoryService_ListHistory(t *testing.T) {
 	assert.Equal(t, 3, versions[0].VersionNumber)
 	assert.Equal(t, 2, versions[1].VersionNumber)
 	assert.Equal(t, 1, versions[2].VersionNumber)
+}
+
+func TestHistoryService_ListRecentSessions(t *testing.T) {
+	ctx := context.Background()
+	service, repos := newTestHistoryService()
+
+	projectOneID := uuid.NewString()
+	projectTwoID := uuid.NewString()
+	now := time.Now().UTC()
+
+	records := []*workspace.SessionRecord{
+		{
+			ID:            uuid.NewString(),
+			ProjectID:     projectOneID,
+			Status:        string(domainagent.StatusCompleted),
+			CurrentStage:  string(domainagent.StageCritic),
+			SchemaVersion: "1.0.0",
+			CreatedAt:     now.Add(-2 * time.Hour),
+			UpdatedAt:     now.Add(-2 * time.Hour),
+		},
+		{
+			ID:            uuid.NewString(),
+			ProjectID:     projectTwoID,
+			Status:        string(domainagent.StatusRunning),
+			CurrentStage:  string(domainagent.StageVisualizer),
+			SchemaVersion: "1.0.0",
+			CreatedAt:     now.Add(-1 * time.Hour),
+			UpdatedAt:     now.Add(-1 * time.Hour),
+		},
+		{
+			ID:            uuid.NewString(),
+			ProjectID:     projectOneID,
+			Status:        string(domainagent.StatusCompleted),
+			CurrentStage:  string(domainagent.StageCritic),
+			SchemaVersion: "1.0.0",
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		},
+	}
+
+	for _, record := range records {
+		require.NoError(t, repos.sessions.Create(ctx, record))
+	}
+
+	t.Run("lists recent sessions globally", func(t *testing.T) {
+		sessions, err := service.ListRecentSessions(ctx, "", 2)
+		require.NoError(t, err)
+		require.Len(t, sessions, 2)
+		assert.Equal(t, records[2].ID, sessions[0].ID)
+		assert.Equal(t, records[1].ID, sessions[1].ID)
+	})
+
+	t.Run("lists recent sessions for a project", func(t *testing.T) {
+		sessions, err := service.ListRecentSessions(ctx, projectOneID, 10)
+		require.NoError(t, err)
+		require.Len(t, sessions, 2)
+		assert.Equal(t, records[2].ID, sessions[0].ID)
+		assert.Equal(t, records[0].ID, sessions[1].ID)
+	})
 }
 
 func TestHistoryService_LoadResumableSession(t *testing.T) {

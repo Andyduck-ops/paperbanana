@@ -1,0 +1,60 @@
+id: GD-UI-BATCH-001
+priority: P1
+layer: ui
+title: Batch Progress Panel Per-Candidate Visibility
+source: mutation
+operator: batch-all-succeed
+parent: GD-UI-001
+intent: While a batch is running, the UI must show per-candidate progress including current stage, not just a batch-level spinner.
+
+input:
+  ui_scenario: batch of 3 candidates running simultaneously
+  system_state:
+    batch_id: batch-abc123
+    batch_status: running
+    candidates:
+      - candidate_id: 0
+        status: running
+        current_stage: planner
+      - candidate_id: 1
+        status: running
+        current_stage: visualizer
+      - candidate_id: 2
+        status: running
+        current_stage: critic
+
+expected:
+  ui_must_show:
+    - batch-level progress indicator (x/3 completed)
+    - each candidate's individual status card
+    - current stage for each running candidate
+    - visual distinction between running/pending/completed states
+  ui_must_not_show:
+    - single spinner for entire batch
+    - batch status only (no per-candidate breakdown)
+    - candidate cards with no stage information
+  interaction_contract:
+    - user can see which candidates are at which stage
+    - user can estimate progress based on stage distribution
+    - completed candidates distinguishable from running ones
+
+anti_patterns:
+  - UI shows only "Generating 3 candidates..." with no breakdown
+  - all candidates show same stage due to stale updates
+  - progress bar percentage without candidate detail
+  - candidate cards missing current_stage field
+  - SSE events not reflected in UI state
+
+notes:
+  - Tests BatchProgressPanel component behavior
+  - Wire against useBatchSSE hook and SSE event handling
+  - Stage visibility is critical for user trust in batch execution
+  - Updates must be real-time, not batched
+
+tags:
+  - mutation
+  - batch
+  - batch-all-succeed
+  - ui
+  - progress-visibility
+  - per-candidate-status

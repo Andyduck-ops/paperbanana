@@ -1,0 +1,46 @@
+id: GD-001-M-intent-01
+priority: P1
+layer: orchestration
+title: Mode Keyword In Prompt Conflicts With Explicit Mode Parameter
+source: mutation
+operator: intent-mode-mismatch
+parent: GD-001
+intent: When the user prompt contains a mode-indicating keyword (e.g., "chart", "diagram", "plot") that conflicts with the explicitly specified mode parameter, the system must resolve the conflict explicitly rather than silently ignoring one of them.
+
+input:
+  mode: diagram
+  prompt: "Create a bar chart comparing quarterly revenue across three product lines."
+  retrieval_mode: auto
+
+expected:
+  one_of:
+    - final_status: completed
+      conflict_resolution_must_be_logged: true
+      artifact_type_must_match: explicit_mode
+      resolution_rationale_must_be_documented: true
+    - final_status: failed
+      error_must_indicate_mode_conflict: true
+      error_must_show_both_modes: true
+      error_must_offer_resolution_options: true
+  must_detect_intent_conflict: true
+  must_not_silently_switch_modes: true
+
+anti_patterns:
+  - system silently switches to plot mode because prompt says "chart"
+  - system produces a diagram but user actually wanted a plot and the conflict was ignored
+  - no conflict detection, arbitrary mode selection without user notification
+  - error message doesn't explain which mode was selected or why
+  - final artifact type doesn't match either the explicit mode or the prompt intent
+
+notes:
+  - The explicit mode parameter should generally take precedence over inferred intent.
+  - However, the system should acknowledge the conflict and explain the resolution.
+  - A sophisticated system might ask for clarification before proceeding.
+  - This protects against silent mode switching that contradicts user expectations.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-mode-mismatch
+  - explicit-vs-inferred
+  - conflict-resolution

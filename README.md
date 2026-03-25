@@ -1,6 +1,8 @@
 # PaperBanana
 
-PaperBanana is a full-stack image refinement workspace with a Go backend and a Vite + React frontend.
+PaperBanana is an AI tool for generating and refining academic paper figures, with a Go backend and a Vite + React frontend.
+
+This repository is a modified PaperBanana branch centered on academic illustration workflows. Database-backed retrieval, generation routing, and iterative refinement support the workflow, but the product remains focused on paper figures rather than a generic image workspace.
 
 ## Repository scope
 

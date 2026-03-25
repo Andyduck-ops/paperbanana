@@ -1,0 +1,70 @@
+id: GD-UI-001-M-consistency-01
+priority: P1
+layer: ui
+title: SSE Event Dropped During Stage Transition
+source: mutation
+operator: consistency-sse-drop
+parent: GD-UI-001
+intent: UI must detect and recover when SSE events are dropped between backend emission and frontend reception, preventing state divergence.
+
+input:
+  ui_scenario: backend completes planner stage but SSE event is dropped due to network interruption
+  system_state:
+    backend_status: completed
+    backend_current_stage: stylist
+    backend_stage_history:
+      - stage: retriever
+        status: completed
+        timestamp: t1
+      - stage: planner
+        status: completed
+        timestamp: t2
+    frontend_status: running
+    frontend_current_stage: planner
+    frontend_believed_backend_stage: planner
+    last_sse_event_received:
+      type: stage_start
+      stage: planner
+      timestamp: t2_minus_500ms
+    sse_connection_state: connected
+    dropped_events:
+      - type: stage_complete
+        stage: planner
+        timestamp: t2
+      - type: stage_start
+        stage: stylist
+        timestamp: t2_plus_100ms
+
+expected:
+  ui_must_show:
+    - running state with eventual consistency recovery
+    - current stage that eventually matches backend truth
+    - indication that state was reconciled if discrepancy detected
+  ui_must_not_show:
+    - permanently stale stage indicator showing planner while backend is at stylist
+    - running state with no recovery mechanism
+    - frontend_current_stage != backend_current_stage for >60s without reconciliation
+  interaction_contract:
+    - user sees accurate stage within reasonable reconciliation window
+    - state divergence is detected and corrected automatically
+    - user is not misled about actual progress
+
+anti_patterns:
+  - frontend_current_stage = planner for >60s while backend_current_stage = stylist
+  - no periodic state reconciliation mechanism
+  - SSE reconnection does not trigger state sync
+  - progress indicator stuck at 33% while backend is at 66%
+  - no detection of event sequence gap
+
+notes:
+  - Tests SSE reliability and state reconciliation.
+  - Frontend should request full state on SSE reconnection.
+  - Event sequence numbers enable gap detection.
+  - Recovery should be automatic without user action.
+
+tags:
+  - mutation
+  - state-consistency
+  - sse-events
+  - event-loss
+  - reconciliation

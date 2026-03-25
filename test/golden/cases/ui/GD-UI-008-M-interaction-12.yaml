@@ -1,0 +1,60 @@
+id: GD-UI-008-M-interaction-12
+priority: P1
+layer: ui
+title: Stage Cards Are Clickable To Show Stage Details
+source: mutation
+operator: interaction-stage-card-clickable
+parent: GD-UI-001
+intent: Stage cards in the progress panel should be clickable to reveal more details about that stage. This provides progressive disclosure and helps users understand what each stage does.
+
+input:
+  ui_scenario: user clicks on a completed stage card
+  system_state:
+    session_status: running
+    current_stage: visualizer
+    stages:
+      - stage: retriever
+        status: complete
+        has_details: true
+      - stage: planner
+        status: complete
+        has_details: true
+      - stage: stylist
+        status: running
+        has_details: true
+
+expected:
+  ui_must_show:
+    - visual indication that stage cards are clickable
+    - expandable details or panel showing stage information
+    - clear interaction feedback on hover and click
+  ui_must_not_show:
+    - stage cards that appear interactive but do nothing
+    - no visual affordance for clickability
+    - details available but no way to access them
+  interaction_contract:
+    - stage_cards_clickable: true
+    - hover_affordance_visible: true
+    - details_expandable_or_navigable: true
+
+anti_patterns:
+  - Stage cards look like they should be clickable but aren't
+  - no hover effect suggesting interactivity
+  - clicking does nothing, no error, no feedback
+  - stage details exist but no UI element reveals them
+  - entire card looks clickable but only small icon is
+  - cursor doesn't change to pointer on hover
+
+notes:
+  - Progressive disclosure helps users understand complex pipeline.
+  - Clickable elements must have visible affordance.
+  - Details can be inline expansion, side panel, or tooltip.
+  - Consider what information is most useful per stage.
+
+tags:
+  - mutation
+  - interaction-design
+  - clickable-element
+  - progressive-disclosure
+  - hover-affordance
+  - stage-details

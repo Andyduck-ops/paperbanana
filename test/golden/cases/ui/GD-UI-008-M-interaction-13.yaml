@@ -1,0 +1,57 @@
+id: GD-UI-008-M-interaction-13
+priority: P1
+layer: ui
+title: Long Press On Mobile Shows Context Menu
+source: mutation
+operator: interaction-long-press-context
+parent: GD-UI-002
+intent: On mobile devices, long-pressing on task history items should show a context menu with actions like "Retry", "Delete", "Copy prompt". This matches mobile platform conventions.
+
+input:
+  ui_scenario: user long-presses on a completed task in history
+  system_state:
+    device_type: touch_mobile
+    session_status: idle
+    history_items:
+      - id: task_123
+        status: completed
+        prompt: "Write about machine learning"
+    user_action: long_press_task_item
+
+expected:
+  ui_must_show:
+    - context menu appearing after long-press (500-800ms)
+    - relevant actions: Retry, Copy prompt, Delete, View details
+    - haptic feedback on menu appearance
+    - dismiss on tap outside or Escape
+  ui_must_not_show:
+    - no response to long-press
+    - context menu with unrelated or missing actions
+    - no way to perform these actions
+  interaction_contract:
+    - long_press_shows_context_menu: true
+    - long_press_duration_ms: 500-800
+    - haptic_feedback: true
+    - actions_contextually_relevant: true
+
+anti_patterns:
+  - Long-press does nothing on mobile
+  - context menu doesn't appear, user must find another way
+  - context menu has only "Delete" but no "Retry"
+  - no haptic feedback, user unsure if gesture registered
+  - menu appears instantly on touch instead of after long-press
+  - actions in menu don't work or go to wrong place
+
+notes:
+  - Long-press is standard mobile pattern for context menus.
+  - 500-800ms is typical duration for long-press detection.
+  - Haptic feedback confirms gesture recognition.
+  - Match platform conventions (iOS vs Android may differ).
+
+tags:
+  - mutation
+  - interaction-design
+  - mobile
+  - long-press
+  - context-menu
+  - touch-gesture

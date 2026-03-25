@@ -1,0 +1,54 @@
+id: GD-001-M-time-004
+priority: P1
+layer: orchestration
+title: Resume With Stale Timestamp
+source: mutation
+operator: resume-stale-timestamp
+parent: GD-001
+intent: When resuming a task with an old timestamp, the system must not treat it as expired if the pause was intentional.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: auto
+  pause_resume_scenario:
+    initial_start_time: T0
+    pause_time: T0_plus_600
+    pause_duration_seconds: 7200
+    resume_time: T0_plus_7800
+    session_ttl_at_pause: 3000
+    pause_preserves_ttl: true
+    snapshot_preserved_at_pause: planner
+
+expected:
+  final_status: completed
+  ttl_must_be_extended_on_resume: true
+  or_ttl_must_be_paused_during_pause: true
+  resume_must_succeed: true
+  stages_continued:
+    - stylist
+    - visualizer
+    - critic
+  stages_not_rerun:
+    - retriever
+    - planner
+
+anti_patterns:
+  - resume fails because timestamp is older than TTL
+  - system treats paused session as expired
+  - TTL countdown continues during intentional pause
+  - resume starts from beginning instead of paused stage
+  - session marked as expired during user-initiated pause
+
+notes:
+  - Tests TTL handling for intentionally paused sessions.
+  - Paused sessions should not count toward TTL expiration.
+  - Alternative: TTL clock should be paused during pause.
+  - Critical for users who need to pause work overnight.
+
+tags:
+  - mutation
+  - time-sensitive
+  - resume
+  - pause-ttl
+  - session-lifecycle

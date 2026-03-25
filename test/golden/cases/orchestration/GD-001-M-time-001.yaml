@@ -1,0 +1,62 @@
+id: GD-001-M-time-001
+priority: P1
+layer: orchestration
+title: Stage Timeout Without User Guidance
+source: mutation
+operator: fail-at-timeout
+parent: GD-001
+intent: |
+  User submits a complex visualization task and steps away expecting it to complete.
+  Upon return, they find the task failed due to timeout, but the error message is
+  unhelpful - it doesn't explain what timeout means, why it happened, or that they
+  could adjust the timeout threshold. The user's expectation was a completed chart;
+  the reality is a cryptic failure that leaves them frustrated and confused about
+  how to proceed.
+
+input:
+  mode: plot
+  prompt: "Create a detailed correlation matrix heatmap from the dataset with clustering."
+  retrieval_mode: auto
+  timing_scenario:
+    inject_delay_at: planner
+    delay_duration_ms: 30000
+    stage_timeout_ms: 30000
+    user_expectation: "task will complete while I grab coffee"
+    user_absence: true
+
+expected:
+  final_status: failed
+  failed_stage: planner
+  error_must_indicate: timeout
+  timeout_boundary_handled: exact_match
+  must_expose_progress: true
+  stages_completed_before_failure:
+    - retriever
+  error_message_must_explain:
+    - what_happened: "The planning stage took longer than the allowed time"
+    - why_it_matters: "This usually happens with complex or ambiguous requests"
+    - how_to_fix: "You can increase the timeout in settings or simplify your request"
+  must_not_report: success
+  must_not_report: generic_failure
+
+anti_patterns:
+  - error says "planner failed" without mentioning timeout - user thinks it's a bug
+  - timeout message is technical jargon like "exceeded 30000ms threshold"
+  - no indication that timeout is configurable - user retries same task expecting different result
+  - progress bar disappears on timeout - user has no idea how far it got
+  - retry button does a fresh start instead of resuming from where it stopped
+  - timeout occurs but UI still shows "processing" spinner forever
+  - user cannot find timeout settings because documentation doesn't mention it
+
+notes:
+  - Real user pain point: not knowing why task failed or how to fix it.
+  - Timeout itself is expected behavior; poor error handling is the anti-pattern.
+  - Users care about outcome and next steps, not millisecond precision.
+  - Good UX would suggest timeout adjustment or request simplification.
+
+tags:
+  - mutation
+  - time-sensitive
+  - timeout-boundary
+  - user-experience
+  - error-messaging

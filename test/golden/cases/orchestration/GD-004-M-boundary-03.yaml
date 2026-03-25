@@ -1,0 +1,58 @@
+id: GD-004-M-boundary-03
+priority: P1
+layer: orchestration
+title: Contradictory Input With Planner Invalid Output And UI Error Location
+source: mutation
+operators:
+  - contradictory-input
+  - fail-at-planner-invalid
+  - ui-failed-with-location
+parent: GD-004
+intent: When contradictory input leads to planner producing invalid output, UI must clearly show the failure location and the input contradiction that caused it.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing both a linear and circular process flow simultaneously."
+  retrieval_mode: auto
+  input_contradictions:
+    - "linear flow implies start and end points"
+    - "circular flow implies no start or end"
+  planner_behavior:
+    output_type: invalid
+    invalid_reason: "cannot_reconcile_contradictory_requirements"
+    produces_partial_output: true
+
+expected:
+  final_status: failed
+  failed_stage: planner
+  failure_reason: invalid_output_due_to_contradictory_input
+  ui_must_show:
+    - failed status with planner highlighted
+    - exact location of failure in pipeline
+    - contradiction detected in input
+    - suggestion to clarify requirements
+  partial_output_must_be_preserved: true
+  error_must_indicate:
+    - input_contradiction: true
+    - contradiction_details:
+        - linear_flow_conflicts_with_circular_flow
+
+anti_patterns:
+  - UI shows generic failure without location
+  - contradiction not surfaced to user
+  - planner proceeds with arbitrary choice
+  - partial output discarded
+  - error message does not mention input issues
+
+notes:
+  - Tests how contradictory requirements propagate and are surfaced.
+  - Planners may attempt to reconcile but should fail gracefully.
+  - Users need to know their input contains contradictions.
+
+tags:
+  - mutation
+  - boundary-combination
+  - contradictory-input
+  - fail-at-planner-invalid
+  - ui-failed-with-location
+  - input-validation

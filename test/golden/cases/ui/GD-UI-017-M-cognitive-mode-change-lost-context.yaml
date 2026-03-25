@@ -1,0 +1,53 @@
+id: GD-UI-017-M-cognitive-mode-change-lost-context
+priority: P1
+layer: ui
+title: Mode Switch Clears User Context Without Warning
+source: mutation
+operator: cognitive-mode-change-lost-context
+parent: GD-UI-002
+intent: Switching between modes (e.g., simple to advanced) must preserve user input or warn before clearing. Unexpected context loss when exploring options discourages experimentation.
+
+input:
+  ui_scenario: user switches from simple to advanced mode
+  system_state:
+    current_mode: simple
+    user_input:
+      prompt: "Analyze sales data for Q4"
+      files_selected: 3
+    user_action: switch_to_advanced_mode
+    result: all_inputs_cleared
+
+expected:
+  must_preserve_input_on_mode_switch: true
+  warning_dialog_must_appear_before_clear:
+    trigger: mode_switch_with_input
+    dialog_must_show:
+      - current_input_fields
+      - warning_text_contains: "will be cleared"
+  must_allow_mode_switch_anytime: true
+
+anti_patterns:
+  - switching to advanced mode clears prompt
+  - file selections lost when changing modes
+  - no warning that mode switch will clear inputs
+  - user cannot compare modes without re-entering data
+  - mode switch treated as full page reset
+  - no "are you sure?" prompt before clearing
+  - user afraid to explore other modes
+
+notes:
+  - Preserve prompt and files across mode switches.
+  - Show "Switching modes will reset [X]. Continue?"
+  - Allow toggling between modes to compare options.
+  - Consider mode preview without committing.
+  - "Simple mode: Quick results, Advanced: More control".
+  - Verification: mode switch with existing input triggers warning dialog.
+  - Verification: dialog shows which fields will be cleared.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - context-loss
+  - mode-switch
+  - exploration-penalty
+  - input-preservation

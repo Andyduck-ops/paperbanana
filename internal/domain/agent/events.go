@@ -13,6 +13,9 @@ const (
 	EventRunFailed      EventType = "run_failed"
 	EventRunCanceled    EventType = "run_canceled"
 
+	// GD-UI-004: Resume event for snapshot restoration
+	EventResumeStarted EventType = "resume_start"
+
 	// Batch event types for multi-candidate generation
 	EventBatchStarted     EventType = "batch_start"
 	EventCandidateStart   EventType = "candidate_start"

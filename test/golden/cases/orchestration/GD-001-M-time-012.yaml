@@ -1,0 +1,55 @@
+id: GD-001-M-time-012
+priority: P2
+layer: orchestration
+title: Progress Stuck at 99% With Timeout
+source: mutation
+operator: progress-stuck-timeout
+parent: GD-001
+intent: When progress shows 99% for an extended period, the system must eventually timeout and report failure.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: auto
+  progress_stuck_scenario:
+    progress_reaches_99_at: T0_plus_25000
+    progress_stays_at_99_for_ms: 60000
+    stuck_timeout_ms: 30000
+    backend_stage: critic
+    critic_actually_hung: true
+
+expected:
+  final_status: failed
+  error_message_must_contain:
+    - "progress"
+    - "stuck"
+    - "timeout"
+  session_metadata_must_include:
+    - key: stuck_stage
+      value: "critic"
+    - key: stuck_duration_ms
+      value: ">= 30000"
+  stuck_detection_must_trigger: true
+  must_differentiate_from: stage_timeout
+
+anti_patterns:
+  - progress stays at 99% forever with no timeout
+  - system reports success even though final 1% never completed
+  - no indication that progress was stuck
+  - timeout fires but says "stage timeout" not "progress stuck"
+  - user has no way to cancel after detecting stuck state
+
+notes:
+  - Tests detection of hung processes in final stages.
+  - Common user complaint: "stuck at 99%".
+  - System should detect when no progress is made.
+  - Stuck timeout should be separate from stage timeout.
+  - Verification: error message contains "progress", "stuck", and "timeout".
+  - Verification: session metadata includes stuck_stage and stuck_duration_ms.
+
+tags:
+  - mutation
+  - time-sensitive
+  - stuck-detection
+  - progress-monitoring
+  - hung-process

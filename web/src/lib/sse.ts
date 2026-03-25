@@ -5,30 +5,62 @@ const API_BASE = '/api/v1';
 // SSE event types from backend runner lifecycle
 // Must match internal/domain/agent/events.go EventType constants
 export type SSEEventType =
+  | 'run_started'
   | 'stage_started'
   | 'stage_completed'
   | 'stage_failed'
   | 'run_completed'
   | 'run_failed'
+  | 'run_canceled'
   | 'result'
   | 'error'
-  | 'resume_start';
+  | 'resume_start'
+  | 'batch_start'
+  | 'candidate_start'
+  | 'candidate_complete'
+  | 'batch_complete';
 
 export interface SSEEvent {
   type: SSEEventType;
   data: unknown;
 }
 
+// Backend Event structure from internal/domain/agent/events.go
+// Fields are sent as-is from backend, with metadata containing additional info
+export interface RunStartedEvent {
+  sequence: number;
+  session_id: string;
+  request_id: string;
+  type: 'run_started';
+  status: string;
+  occurred_at: string;
+  metadata?: Record<string, string>;
+}
+
 export interface StageStartEvent {
+  sequence: number;
+  session_id: string;
   stage: string;
-  agent: string;
+  type: 'stage_started';
+  status: string;
+  occurred_at: string;
+  timing?: { started_at?: string };
+  metadata?: Record<string, string> & { agent?: string };
 }
 
 export interface StageCompleteEvent {
+  sequence: number;
+  session_id: string;
   stage: string;
-  summary: string;
-  artifact_count: number;
-  artifact_kinds: string[];
+  type: 'stage_completed';
+  status: string;
+  occurred_at: string;
+  timing?: { started_at?: string; completed_at?: string };
+  metadata?: {
+    summary?: string;
+    artifact_count?: string;
+    artifact_kinds?: string;
+  };
 }
 
 export interface ResultEvent {
@@ -62,11 +94,13 @@ export interface ResumeStartEvent {
 
 export interface SSEOptions {
   signal?: AbortSignal;
+  onRunStarted?: (data: RunStartedEvent) => void;
   onStageStart?: (data: StageStartEvent) => void;
   onStageComplete?: (data: StageCompleteEvent) => void;
   onResult?: (data: ResultEvent) => void;
   onError?: (data: ErrorEvent) => void;
   onResumeStart?: (data: ResumeStartEvent) => void;
+  onRunCanceled?: (data: { session_id: string; stage?: string }) => void;
   onOpen?: () => void;
   onClose?: () => void;
 }
@@ -86,6 +120,9 @@ function dispatchEvent(
   options: SSEOptions
 ) {
   switch (eventType) {
+    case 'run_started':
+      options.onRunStarted?.(payload as RunStartedEvent);
+      break;
     case 'stage_started':
       options.onStageStart?.(payload as StageStartEvent);
       break;
@@ -116,8 +153,19 @@ function dispatchEvent(
       });
       break;
     }
+    case 'run_canceled':
+      options.onRunCanceled?.(payload as { session_id: string; stage?: string });
+      break;
     case 'resume_start':
       options.onResumeStart?.(payload as ResumeStartEvent);
+      break;
+    // Batch events - currently not handled with specific callbacks
+    // but recognized as valid event types
+    case 'batch_start':
+    case 'candidate_start':
+    case 'candidate_complete':
+    case 'batch_complete':
+      // These events are recognized but don't have specific handlers yet
       break;
   }
 }

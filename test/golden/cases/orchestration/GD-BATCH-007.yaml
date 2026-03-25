@@ -1,0 +1,67 @@
+id: GD-BATCH-007
+priority: P1
+layer: orchestration
+title: Batch Multiple Stage Failures
+source: mutation
+operator: batch-partial-failure
+parent: GD-002
+intent: When multiple candidates fail at different stages, each failure must be independently attributed and successful candidates must still complete.
+
+input:
+  mode: diagram
+  batch_size: 4
+  prompts:
+    - "Create a diagram of a GAN architecture"
+    - "Create a diagram of a VAE structure"
+    - "Create a diagram of a diffusion model"
+    - "Create a diagram of an autoregressive model"
+  retrieval_mode: shared
+  inject_failures:
+    - candidate_id: 0
+      stage: planner
+      error_message: "Planner timeout for candidate 0"
+    - candidate_id: 2
+      stage: visualizer
+      error_message: "Visualizer rendering failed for candidate 2"
+
+expected:
+  batch_final_status: completed
+  per_task_status:
+    - candidate_id: 0
+      status: failed
+      failed_stage: planner
+    - candidate_id: 1
+      status: completed
+      must_have_artifact: true
+    - candidate_id: 2
+      status: failed
+      failed_stage: visualizer
+    - candidate_id: 3
+      status: completed
+      must_have_artifact: true
+  shared_retriever_used: true
+  successful_count: 2
+  failed_count: 2
+  each_failure_independently_attributed: true
+  different_failure_stages_preserved: true
+
+anti_patterns:
+  - all failures reported at same stage
+  - successful candidates blocked by failed ones
+  - visualizer failure for candidate 2 affects candidate 1
+  - failure for candidate 0 causes retriever to skip for remaining
+  - batch shows failed instead of completed
+
+notes:
+  - Tests multiple simultaneous failures at different stages
+  - Verifies independent failure tracking per candidate
+  - Each candidate's failure path is isolated
+  - Batch aggregates failures without conflating them
+
+tags:
+  - mutation
+  - batch
+  - batch-partial-failure
+  - multiple-failures
+  - stage-attribution
+  - orchestration

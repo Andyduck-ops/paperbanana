@@ -1,0 +1,45 @@
+id: GD-API-010
+priority: P1
+layer: api
+title: Version Immutability After Creation
+source: mutation
+operator: version-linked-to-session
+parent: GD-001
+intent: Once created, a version record must be immutable and never modified.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram for version immutability test."
+  retrieval_mode: auto
+  attempt_version_modification: true
+
+expected:
+  version_created_on_completion: true
+  version_immutable: true
+  version_fields_frozen:
+    - id
+    - visualization_id
+    - session_id
+    - version_number
+    - summary
+    - created_at
+    - session_snapshot
+  modification_rejected: true
+
+anti_patterns:
+  - version summary can be changed after creation
+  - version session_snapshot can be modified
+  - version created_at timestamp can be updated
+  - version artifacts can be added after creation
+
+notes:
+  - Tests the immutability contract of VisualizationVersion.
+  - Versions serve as immutable audit records for history.
+  - Any modification attempt should be rejected or no-op.
+
+tags:
+  - mutation
+  - persistence
+  - api
+  - version
+  - immutability

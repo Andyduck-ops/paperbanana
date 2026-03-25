@@ -1,0 +1,52 @@
+id: GD-001-M-retrieval-none+ui-running-state
+priority: P1
+layer: orchestration
+title: Progress Visibility With Retrieval Disabled
+source: mutation
+operators:
+  - retrieval-none
+  - ui-running-state
+parent: GD-001
+intent: When retrieval is disabled, the UI must still show accurate stage-level progress during execution without hiding or skipping the retriever stage indicator.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining neural network architecture."
+  retrieval_mode: none
+
+expected:
+  final_status: completed
+  stage_order:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+    - critic
+  must_expose_progress: true
+  retriever_stage_must_be_visible: true
+  retriever_stage_status_must_be:
+    one_of:
+      - skipped
+      - completed_noop
+  ui_shows_running_state_with_all_stages: true
+  must_have_final_artifact: true
+
+anti_patterns:
+  - retriever stage disappears from UI when retrieval_mode is none
+  - UI shows generic loading with no stage breakdown
+  - progress jumps directly to planner with no retriever indication
+  - retriever shown as failed instead of skipped or completed
+
+notes:
+  - Tests that retrieval disabling affects data flow but not UI stage visibility.
+  - Users should still see the retriever stage in the pipeline even when it produces nothing.
+  - The combination catches regressions where optimization for retrieval:none hides stage information.
+  - Verification: retriever stage status is either "skipped" or "completed_noop".
+  - Verification: UI shows all 5 stages including retriever.
+
+tags:
+  - mutation
+  - combined
+  - retrieval-none
+  - ui-running-state
+  - progress-visibility

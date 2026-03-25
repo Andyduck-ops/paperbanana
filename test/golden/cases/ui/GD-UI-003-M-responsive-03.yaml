@@ -1,0 +1,59 @@
+id: GD-UI-003-M-responsive-03
+priority: P1
+layer: ui
+title: Tablet Artifact Panel Switching
+source: mutation
+operator: responsive-tablet-artifact-switch
+parent: GD-UI-003
+intent: At tablet viewports, when both code and image artifacts exist, provide intuitive tab or panel switching without overwhelming limited space.
+
+input:
+  ui_scenario: user views completed task with both artifacts on tablet device
+  system_state:
+    session_status: completed
+    artifacts:
+      - type: image
+        width: 1024
+        height: 1024
+      - type: code
+        language: typescript
+        lines: 250
+    viewport:
+      width: 768px
+      height: 1024px
+    breakpoint: tablet
+
+expected:
+  ui_must_show:
+    - tabbed interface for switching between artifacts
+    - active tab clearly indicated
+    - tab touch targets minimum 44x44px
+    - artifact fills available space when selected
+  ui_must_not_show:
+    - cramped side-by-side with panels under 350px each
+    - tabs smaller than 44px touch target
+    - no indication which artifact is currently active
+    - artifact truncated to fit smaller panel
+  interaction_contract:
+    - user can easily switch between artifact types
+    - current artifact uses full available space
+    - switching is instant without loading delay
+
+anti_patterns:
+  - Side-by-side panels each only 350px wide
+  - Tab buttons 32px height touch target
+  - No visual distinction between active and inactive tabs
+  - Tab labels truncated with ellipsis
+  - Switching requires full page reload
+
+notes:
+  - Tests tablet-specific artifact navigation pattern.
+  - Tab switching is optimal for 768px viewport.
+  - Each artifact type deserves full-width presentation.
+
+tags:
+  - mutation
+  - responsive-design
+  - artifact-display
+  - tablet-layout
+  - tab-navigation

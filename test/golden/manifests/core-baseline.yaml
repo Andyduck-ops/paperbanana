@@ -1,0 +1,178 @@
+version: 1
+
+baseline:
+  phase: "01.1-core-rules-and-golden-baseline"
+  canonical_product_statement: "PaperBanana is a focused academic paper figure workspace for generation, comparison, refinement, and restoration."
+  supported_journeys:
+    - J1 single-generate
+    - J2 batch-generate
+    - J3 refine
+    - J4 history-restore
+    - J5 provider-model-config
+
+cases:
+  - baseline_id: PB-CORE-001
+    journey: J1
+    title: Single generate happy path returns rendered figure and truthful completed state
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/orchestration/GD-001.yaml
+      - test/golden/cases/ui/GD-UI-001.yaml
+      - test/golden/cases/ui/GD-UI-003.yaml
+      - test/golden/cases/api/GD-API-001.yaml
+    notes:
+      - Existing golden coverage is strong enough to treat this as constitutional.
+
+  - baseline_id: PB-CORE-002
+    journey: J1
+    title: Planner fallback or empty planner output is explicit and not silently misleading
+    status: partial
+    priority: P0
+    primary_cases:
+      - test/golden/cases/orchestration/GD-002.yaml
+      - test/golden/cases/orchestration/GD-002-M-fail-at-planner.yaml
+      - test/golden/cases/orchestration/GD-001-M-partial-plan-from-planner.yaml
+      - test/golden/cases/ui/GD-UI-002.yaml
+    notes:
+      - Planner failure visibility exists.
+      - Silent synthetic fallback behavior is not directly guarded today.
+
+  - baseline_id: PB-CORE-003
+    journey: J1
+    title: Retrieval references remain attached and influence downstream planning/restoration
+    status: partial
+    priority: P1
+    primary_cases:
+      - test/golden/cases/orchestration/GD-004.yaml
+      - test/golden/cases/orchestration/GD-004-M-retrieval-manual-multi.yaml
+      - test/golden/cases/ui/GD-UI-003-M-retrieval-manual.yaml
+    notes:
+      - Retrieval-to-planning causality is covered.
+      - Restorable reference bundles and upstream semantic drift are not fully covered.
+
+  - baseline_id: PB-BATCH-001
+    journey: J2
+    title: Batch run keeps per-candidate progress and outcomes visible
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/orchestration/GD-BATCH-006.yaml
+      - test/golden/cases/orchestration/GD-BATCH-004.yaml
+      - test/golden/cases/ui/GD-UI-005.yaml
+      - test/golden/cases/ui/GD-UI-BATCH-001.yaml
+    notes:
+      - This is the current strongest batch baseline.
+
+  - baseline_id: PB-BATCH-002
+    journey: J2
+    title: Mixed success and failure in batch does not collapse into opaque batch-wide error
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/orchestration/GD-BATCH-007.yaml
+      - test/golden/cases/ui/GD-UI-005-M-ui-failed-with-location.yaml
+      - test/golden/cases/ui/GD-UI-005-M-batch-partial-failure+ui-failed-with-location.yaml
+    notes:
+      - Good coverage exists for truthful mixed-state visibility.
+
+  - baseline_id: PB-BATCH-003
+    journey: J2
+    title: One candidate can be promoted into the active working branch
+    status: missing
+    priority: P0
+    primary_cases: []
+    notes:
+      - Current golden set does not protect candidate promotion / continue-with-this semantics.
+
+  - baseline_id: PB-REFINE-001
+    journey: J3
+    title: Refine success returns refined image artifact
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/api/GD-API-016.yaml
+    notes:
+      - Backed by handler contract tests and persisted polish session coverage.
+
+  - baseline_id: PB-REFINE-002
+    journey: J3
+    title: Refine iteration flags are honored and observable
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/api/GD-API-017.yaml
+    notes:
+      - Backed by handler tests that assert multi-round execution and truthful metadata.
+
+  - baseline_id: PB-REFINE-003
+    journey: J3
+    title: Refine failure shape is actionable and typed
+    status: missing
+    priority: P1
+    primary_cases: []
+    notes:
+      - No golden contract currently protects refine failure semantics.
+
+  - baseline_id: PB-HIST-001
+    journey: J4
+    title: Restore generated session rebuilds usable state
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/orchestration/GD-003.yaml
+      - test/golden/cases/api/GD-API-005.yaml
+      - test/golden/cases/ui/GD-UI-004.yaml
+    notes:
+      - Core resume semantics are covered at orchestration, API, and UI levels.
+
+  - baseline_id: PB-HIST-002
+    journey: J4
+    title: Restore batch session rebuilds candidate state correctly
+    status: partial
+    priority: P0
+    primary_cases:
+      - test/golden/cases/orchestration/GD-BATCH-004.yaml
+      - test/golden/cases/ui/GD-UI-005.yaml
+    notes:
+      - Batch truthfulness is covered.
+      - Explicit batch restore semantics are not.
+
+  - baseline_id: PB-HIST-003
+    journey: J4
+    title: Restore refine session rebuilds refine mode and refined artifact correctly
+    status: covered
+    priority: P0
+    primary_cases:
+      - test/golden/cases/ui/GD-UI-021.yaml
+    notes:
+      - Backed by hook- and App-level restore tests over persisted polish sessions.
+
+  - baseline_id: PB-CONFIG-001
+    journey: J5
+    title: Provider key add/toggle/delete flow matches backend contract
+    status: missing
+    priority: P0
+    primary_cases: []
+    notes:
+      - UI visibility exists, but contract and persistence behavior are unguarded.
+
+  - baseline_id: PB-CONFIG-002
+    journey: J5
+    title: Query/gen role assignment changes runtime model selection
+    status: partial
+    priority: P1
+    primary_cases:
+      - test/golden/cases/ui/GD-UI-006.yaml
+    notes:
+      - Configuration visibility exists.
+      - Runtime role-selection correctness is not yet protected.
+
+  - baseline_id: PB-CONFIG-003
+    journey: J5
+    title: Config hot reload keeps frontend and backend in sync
+    status: missing
+    priority: P1
+    primary_cases: []
+    notes:
+      - No current golden case protects config SSE or refresh semantics.

@@ -1,0 +1,62 @@
+id: GD-001-M-time-006
+priority: P1
+layer: orchestration
+title: Long-Running Task Exceeding Overall Limit
+source: mutation
+operator: overall-timeout
+parent: GD-001
+intent: When a task exceeds the overall pipeline timeout (not individual stage timeout), the system must cancel and report appropriately.
+
+input:
+  mode: diagram
+  prompt: "Create a complex multi-layer neural network architecture diagram."
+  retrieval_mode: auto
+  overall_timeout_scenario:
+    stage_timeouts:
+      retriever: 10000
+      planner: 60000
+      stylist: 60000
+      visualizer: 60000
+      critic: 30000
+    overall_pipeline_timeout_ms: 120000
+    actual_execution_time_ms: 180000
+    slow_stages:
+      - planner: 50000
+      - stylist: 55000
+      - visualizer: 50000
+
+expected:
+  final_status: failed
+  error_message_must_contain:
+    - "overall timeout"
+    - "120"
+  session_metadata_must_include:
+    - key: elapsed_time_ms
+      value: ">= 120000"
+    - key: timeout_type
+      value: "overall"
+  individual_stage_timeouts_not_fired: true
+  partial_artifact_may_exist: true
+  progress_at_timeout: any
+
+anti_patterns:
+  - system reports generic failure without indicating overall timeout
+  - individual stage timeouts incorrectly fire when overall timeout should apply
+  - no indication of how long the task ran before timeout
+  - partial artifact deleted when overall timeout fires
+  - UI shows infinite progress bar after overall timeout
+
+notes:
+  - Tests hierarchy of timeout scopes (stage vs pipeline overall).
+  - Overall timeout protects against pathological cases.
+  - User needs to know if timeout was stage-specific or overall.
+  - System should suggest simplifying prompt for long-running tasks.
+  - Verification: error message contains "overall timeout" and duration value.
+  - Verification: session metadata includes elapsed_time_ms and timeout_type.
+
+tags:
+  - mutation
+  - time-sensitive
+  - overall-timeout
+  - pipeline-limits
+  - long-running-task

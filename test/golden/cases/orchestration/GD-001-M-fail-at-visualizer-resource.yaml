@@ -1,0 +1,48 @@
+id: GD-001-M-fail-at-visualizer-resource
+priority: P1
+layer: orchestration
+title: Visualizer Resource Exhaustion Failure
+source: mutation
+operator: fail-at-visualizer
+parent: GD-001
+intent: When the visualizer stage fails due to resource exhaustion (memory/CPU limits), the system must record visualizer as the failure point and clean up partial artifacts.
+
+input:
+  mode: diagram
+  prompt: "Create a complex diagram with 500+ nodes showing enterprise architecture."
+  retrieval_mode: auto
+  inject_failure_at: visualizer
+  failure_type: resource_exhaustion
+
+expected:
+  final_status: failed
+  failed_stage: visualizer
+  must_expose_progress: true
+  must_have_final_artifact: false
+  stages_completed_before_failure:
+    - retriever
+    - planner
+    - stylist
+  error_must_indicate: resource_exhaustion
+  downstream_stages_must_not_run:
+    - critic
+  partial_artifacts_must_be_cleaned: true
+
+anti_patterns:
+  - partial artifact left in storage after failure
+  - failure attributed to "system error" instead of visualizer
+  - stylist shown as failed when visualizer ran out of memory
+  - UI shows "processing" indefinitely
+  - storage quota consumed by orphaned partial artifacts
+
+notes:
+  - Resource exhaustion is a common production failure mode.
+  - The system must clean up partial artifacts on failure.
+  - This tests graceful degradation under resource pressure.
+
+tags:
+  - mutation
+  - failure-location
+  - visualizer
+  - resource-exhaustion
+  - cleanup

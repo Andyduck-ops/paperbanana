@@ -1,0 +1,50 @@
+id: GD-003-M-corrupted-snapshot-stage-mismatch
+priority: P1
+layer: orchestration
+title: Corrupted Snapshot Stage Field Mismatch
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-003
+intent: When a snapshot's stage field does not match the requested restore stage, the resume must fail with a validation error.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a diffusion model denoising process."
+  retrieval_mode: auto
+  resume_request_stage: planner
+  corrupted_snapshot:
+    type: stage_field_mismatch
+    description: "Snapshot file claims to be for planner but stage field says visualizer"
+    requested_stage: planner
+    actual_stage_in_file: visualizer
+    session_field: present
+
+expected:
+  stages_rerun: []
+  stages_continued: []
+  final_status: failed
+  must_have_final_artifact: false
+  error_must_include:
+    - ErrInvalidSnapshot
+    - stage mismatch
+  error_must_not_rerun_any_stages: true
+
+anti_patterns:
+  - system loads wrong stage state and proceeds
+  - stage mismatch ignored and visualizer state used for planner
+  - system searches for correct snapshot without reporting error
+  - session ends up with corrupted stage_states list
+  - downstream stage receives wrong input type
+
+notes:
+  - Tests the validateSnapshot stage verification logic.
+  - This could happen if snapshot files are manually copied/renamed incorrectly.
+  - The stage field must match the restore request exactly.
+  - Prevents subtle bugs where wrong agent state is restored.
+
+tags:
+  - mutation
+  - resume-boundary
+  - corrupted-snapshot
+  - stage-validation
+  - integrity-check

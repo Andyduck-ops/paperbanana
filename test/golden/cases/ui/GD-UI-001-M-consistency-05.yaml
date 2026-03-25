@@ -1,0 +1,61 @@
+id: GD-UI-001-M-consistency-05
+priority: P1
+layer: ui
+title: Optimistic UI Update Rejected By Backend
+source: mutation
+operator: consistency-optimistic-reject
+parent: GD-UI-001
+intent: When frontend optimistically updates state but backend rejects the action, the UI must roll back and show the correct state.
+
+input:
+  ui_scenario: user cancels task, UI shows cancelled immediately, but backend fails to cancel
+  system_state:
+    session_id: session-optimistic-001
+    user_action: cancel
+    frontend_optimistic_state:
+      status: cancelled
+      cancelled_at: t1
+    backend_actual_state:
+      status: running
+      current_stage: planner
+      cancel_requested: true
+      cancel_failed: true
+      cancel_failure_reason: "stage already committing"
+    backend_response:
+      success: false
+      error: "Cannot cancel: planner is committing results"
+      current_status: running
+
+expected:
+  ui_must_show:
+    - running state after rollback from optimistic cancel
+    - error message explaining why cancel failed
+    - current stage still showing planner
+  ui_must_not_show:
+    - cancelled state that contradicts backend reality
+    - no indication that optimistic update was rejected
+    - silent rollback with no user notification
+  interaction_contract:
+    - user understands cancel failed and why
+    - user can retry cancel or wait for completion
+    - state accurately reflects what backend reports
+
+anti_patterns:
+  - UI shows cancelled but task continues running
+  - No rollback mechanism for optimistic updates
+  - Error response ignored, optimistic state persists
+  - User believes task stopped when it did not
+  - No visual feedback about rollback
+
+notes:
+  - Tests optimistic update rollback.
+  - Common for cancel, retry, and priority change actions.
+  - Rollback must be immediate on backend rejection.
+  - Error message must explain the rejection.
+
+tags:
+  - mutation
+  - state-consistency
+  - optimistic-update
+  - rollback
+  - action-rejection

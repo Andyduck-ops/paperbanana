@@ -1,0 +1,45 @@
+id: GD-001-M-intent-02
+priority: P1
+layer: orchestration
+title: Conflicting Constraints Simple Vs Detailed Must Be Negotiated
+source: mutation
+operator: intent-constraint-conflict
+parent: GD-001
+intent: When a prompt contains conflicting qualitative constraints like "simple" and "detailed", the system must negotiate the tradeoff explicitly rather than arbitrarily choosing one interpretation.
+
+input:
+  mode: diagram
+  prompt: "Create a simple but detailed workflow diagram showing all microservices, their APIs, data flows, error handling paths, and retry logic."
+  retrieval_mode: auto
+
+expected:
+  one_of:
+    - final_status: completed
+      constraint_negotiation_must_be_logged: true
+      primary_constraint_must_be_honored: true
+      secondary_constraint_must_be_addressed: true
+    - final_status: failed
+      error_must_identify_conflict: true
+      error_must_list_conflicting_terms: true
+  must_detect_constraint_conflict: true
+  must_explain_tradeoff_decision: true
+
+anti_patterns:
+  - system produces overly complex diagram ignoring "simple" constraint
+  - system produces minimal diagram ignoring all the detailed requirements listed
+  - no acknowledgment that "simple" and "detailed all microservices with APIs..." are in tension
+  - constraint conflict is resolved silently without any logging
+  - error message doesn't explain which constraint was prioritized
+
+notes:
+  - "Simple" and "detailed" are inherently contradictory in this context.
+  - The system should recognize this and make an explicit tradeoff.
+  - A good resolution might be "comprehensive but visually organized".
+  - This tests whether the system can reason about qualitative constraint conflicts.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-constraint-conflict
+  - qualitative-tradeoff
+  - constraint-negotiation

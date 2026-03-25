@@ -1,0 +1,50 @@
+id: GD-002-M-cognitive-stale-progress
+priority: P1
+layer: orchestration
+title: Stale Progress State After Backend Crash
+source: mutation
+operator: cognitive-stale-progress
+parent: GD-002
+intent: When the backend crashes but the frontend progress indicator still shows "running", users are misled into thinking the task is still processing. The system must detect and report stale state to prevent user confusion and wasted wait time.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a distributed database system"
+  retrieval_mode: auto
+  inject_failure:
+    type: backend_crash
+    timing: mid_planner_stage
+    frontend_state: running
+
+expected:
+  must_detect_stale_state: true
+  stale_detection_timeout_ms: 30000
+  must_update_status_to_failed: true
+  must_emit_crash_detected_event: true
+  user_must_see_failure_message: true
+  must_offer_recovery_options: true
+  must_not_show_running_indefinitely: true
+
+anti_patterns:
+  - UI shows "running" indefinitely after backend process died
+  - no heartbeat or liveness check to detect zombie tasks
+  - user waits 5+ minutes with no feedback on dead task
+  - session status remains "running" in database after crash
+  - no automatic cleanup or notification of crashed sessions
+  - resume functionality broken because crash state not recorded
+  - progress animation continues despite no backend connection
+
+notes:
+  - This trap causes users to wait indefinitely for a task that will never complete.
+  - Users lose trust when they realize they wasted time waiting on a dead task.
+  - System must have heartbeat mechanism to detect backend unresponsiveness.
+  - Timeout threshold should be reasonable (30s default, configurable).
+  - Recovery should offer resume if checkpoint exists, or restart.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - stale-state
+  - crash-detection
+  - liveness-check
+  - zombie-task

@@ -1,0 +1,48 @@
+id: GD-004-M-retrieval-empty-corpus+ui-running-state
+priority: P1
+layer: orchestration
+title: Empty Corpus Shows Running State Without References
+source: mutation
+operators:
+  - retrieval-empty-corpus
+  - ui-running-state
+parent: GD-004
+intent: When retrieval_mode is auto but the bench is empty, the UI must still show accurate running state and the pipeline must complete gracefully.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing quantum computing concepts."
+  retrieval_mode: auto
+  bench_is_empty: true
+
+expected:
+  final_status: completed
+  stage_order:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+    - critic
+  must_expose_progress: true
+  retriever_returns_empty_bundle: true
+  planner_receives_empty_references: true
+  ui_shows_running_state_with_all_stages: true
+  must_have_final_artifact: true
+
+anti_patterns:
+  - pipeline hangs waiting for references that will never arrive
+  - retriever shown as failed instead of completed with empty result
+  - UI shows no progress indication during retriever stage
+  - planner crashes due to missing references instead of graceful degradation
+
+notes:
+  - Tests graceful degradation when retrieval produces nothing.
+  - The UI must show progress even when retriever returns empty results.
+  - Catches regressions where empty bench causes pipeline stall or crash.
+
+tags:
+  - mutation
+  - combined
+  - retrieval-empty-corpus
+  - ui-running-state
+  - graceful-degradation

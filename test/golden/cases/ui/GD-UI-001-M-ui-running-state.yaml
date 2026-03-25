@@ -1,0 +1,56 @@
+id: GD-UI-001-M-ui-running-state
+priority: P1
+layer: ui
+title: Running State With Stage Transitions
+source: mutation
+operator: ui-running-state
+parent: GD-UI-001
+intent: UI must accurately reflect running state through multiple stage transitions, ensuring progress updates are never stale or missing.
+
+input:
+  ui_scenario: task progresses through multiple stages rapidly
+  system_state:
+    session_status: running
+    stage_transitions:
+      - from: retriever
+        to: planner
+        timestamp: t1
+      - from: planner
+        to: stylist
+        timestamp: t2
+      - from: stylist
+        to: visualizer
+        timestamp: t3
+
+expected:
+  ui_must_show:
+    - current stage updates within reasonable latency
+    - each stage transition is visible, not skipped
+    - previous stages shown as completed
+    - overall progress reflects actual pipeline position
+  ui_must_not_show:
+    - stale stage indicator after transition
+    - all stages as pending despite progress
+    - all stages as completed while still running
+  interaction_contract:
+    - user can observe the pipeline advancing
+    - no perception of frozen or stuck state during transitions
+
+anti_patterns:
+  - UI shows retriever while system is already at visualizer
+  - stage transition events are dropped or delayed beyond 500ms
+  - progress indicator jumps from 0% to 100% with no intermediate states
+  - UI shows running but current_stage is empty or stale
+  - multiple rapid transitions collapse into single UI update
+
+notes:
+  - Tests UI responsiveness during active execution.
+  - Focus is on transition accuracy, not visual design.
+  - Wire against SSE or WebSocket event handlers for stage updates.
+
+tags:
+  - mutation
+  - ui-state
+  - running-state
+  - stage-transitions
+  - progress-visibility

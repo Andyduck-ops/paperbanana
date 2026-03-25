@@ -1,0 +1,54 @@
+id,priority,category,description,source,status,assignee,estimated_hours,file_location
+C1,Critical,Stop,"无 Cancel API 端点 - 用户无法停止运行中的任务",Round2,pending,,4,internal/api/router.go
+C2,Critical,Stop,"useGenerate 缺少 AbortController",Round2,pending,,2,web/src/hooks/useGenerate.ts
+C3,Critical,Prompt,"Style Guide 严重压缩 (~50词 vs ~2000词)",Round2,pending,,3,internal/application/agents/stylist/prompts.go
+CRITICAL-HOOK-001,Critical,History,"useHistory 与 App.tsx 不匹配",Round1,pending,,2,web/src/hooks/useHistory.ts
+CRITICAL-DATA-001,Critical,Data,"PaperBananaBench 数据缺失 (空 vs 4.5MB)",Round1,pending,,0.5,data/PaperBananaBench/
+CRITICAL-IMAGE-001,Critical,Image,"JSON 字段名不匹配 (bytes vs data)",Round1,pending,,2,internal/domain/agent/types.go
+CRITICAL-IMAGE-002,Critical,Image,"Asset ID 永远为空 (无持久化)",Round1,pending,,4,internal/application/agents/visualizer/agent.go
+CRITICAL-IMAGE-003,Critical,Image,"Asset URL 缺少 project_id",Round1,pending,,1,web/src/components/ArtifactPreview.tsx
+CRITICAL-BATCH-001,Critical,Data,"批处理结果仅内存存储，重启丢失",Round1,pending,,4,internal/application/orchestrator/batch_runner.go
+CRITICAL-SECURITY-001,Critical,Security,"Plot RCE 漏洞 (任意代码执行)",Round1,pending,,4,internal/application/agents/visualizer/plot_executor.go
+CRITICAL-PIPELINE-001,Critical,Pipeline,"Stylist 未集成到 canonical pipeline",Round1,pending,,3,internal/application/orchestrator/runner.go
+CRITICAL-PIPELINE-002,Critical,Pipeline,"无 Lite Retrieval Mode (25x token消耗)",Round1,pending,,4,internal/application/agents/retriever/
+CRITICAL-DEGRADE-001,Critical,Pipeline,"无优雅降级机制",Round1,pending,,6,internal/application/orchestrator/runner.go
+CRITICAL-STARTUP-001,Critical,Config,"无一键启动脚本",Round1,pending,,1,
+CRITICAL-EXPORT-001,Critical,Image,"Export 字段名不一致",Round1,pending,,2,web/src/components/ExportModal.tsx
+CRITICAL-HISTORY-001,Critical,History,"历史恢复功能断裂",Round1,pending,,3,web/src/hooks/useHistory.ts
+H1,High,Memory,"图像数据多次深拷贝 (500KB-2MB)",Round2,pending,,4,internal/domain/agent/types.go
+H2,High,i18n,"EmptyState 未使用 i18n",Round2,pending,,2,web/src/components/workspace/EmptyState.tsx
+H3,High,i18n,"ErrorBoundary 硬编码消息",Round2,pending,,1,web/src/components/ErrorBoundary.tsx
+H4,High,Stop,"Python 进程无优雅关闭 (SIGKILL)",Round2,pending,,3,internal/application/agents/visualizer/plot_executor.go
+DEFECT-SECURITY-002,High,Security,"开发环境加密密钥持久化风险",Round1,pending,,2,internal/infrastructure/crypto/aesgcm/service.go
+DEFECT-SECURITY-003,High,Security,"CORS 配置过于宽松 (*)",Round1,pending,,1,internal/api/middleware/cors.go
+DEFECT-IMAGE-004,High,Image,"BatchArtifact 类型不完整",Round1,pending,,2,internal/api/dto/batch.go
+DEFECT-PIPELINE-003,High,Pipeline,"Planner 图片限制 2 张",Round1,pending,,1,internal/application/agents/planner/prompt.go
+DEFECT-PIPELINE-004,High,Stop,"Context 取消时 Python 进程未清理",Round1,pending,,2,internal/application/agents/visualizer/plot_executor.go
+DEFECT-RESUME-001,High,History,"Session 恢复验证不完整",Round1,pending,,2,internal/application/orchestrator/runner.go
+DEFECT-STYLIST-001,High,Pipeline,"Stylist 上下文标签缺失",Round1,pending,,1,internal/application/agents/stylist/agent.go
+DEFECT-HEALTH-001,High,Config,"健康检查不检查依赖",Round1,pending,,2,internal/api/router.go
+DEFECT-STATE-001,High,Data,"Session 状态膨胀",Round1,pending,,3,internal/infrastructure/repository/session_repository.go
+DEFECT-VALIDATE-001,High,Config,"输入验证缺失",Round1,pending,,2,internal/api/handlers/generate.go
+DEFECT-LOG-001,High,Security,"敏感数据可能泄露到日志",Round1,pending,,2,multiple
+DEFECT-RETRY-001,High,Pipeline,"重试逻辑不一致",Round1,pending,,2,internal/application/agents/visualizer/agent.go
+DEFECT-UI-001,High,i18n,"Header 缺少按钮，错误提示不友好",Round1,pending,,3,web/src/components/Header.tsx
+M1,Medium,Flow,"SSE 事件字段结构不一致",Round2,pending,,2,internal/domain/agent/events.go
+M2,Medium,Data,"Snapshot 使用 JSON 文本格式",Round2,pending,,4,internal/infrastructure/agentstate/store.go
+M3,Medium,i18n,"Accessibility labels 未国际化",Round2,pending,,2,web/src/components/
+M4,Medium,i18n,"示例内容未本地化 (仅英文)",Round2,pending,,3,web/src/components/GeneratePanel.tsx
+M5,Medium,Stop,"Agent Cleanup 方法是空实现",Round2,pending,,3,internal/application/agents/*/agent.go
+M6,Medium,Stop,"无临时文件追踪",Round2,pending,,2,
+M7,Medium,Stop,"无显式 session 追踪",Round2,pending,,2,
+M8,Medium,Pipeline,"输出 key 命名不一致",Round2,pending,,1,
+DEFECT-COUPLING-001,Medium,Config,"main.go 375 行紧耦合",Round1,pending,,4,cmd/server/main.go
+DEFECT-SCHEMA-001,Medium,Config,"缺少 JSON Schema 验证",Round1,pending,,3,
+DEFECT-COST-001,Medium,UI,"UI 不显示 token 成本",Round1,pending,,2,web/src/components/
+DEFECT-OBS-001,Medium,Config,"Prometheus 端点未连接",Round1,pending,,3,
+L1,Low,Flow,"前端缺少 run_started 事件处理",Round2,pending,,1,web/src/lib/sse.ts
+L2,Low,i18n,"No content 文字未翻译",Round2,pending,,0.5,web/src/components/DualInputPanel.tsx
+L3,Low,i18n,"图片 alt 文字未翻译",Round2,pending,,0.5,web/src/components/ImageUpload.tsx
+L4,Low,Stop,"无取消确认",Round2,pending,,1,
+L5,Low,Stop,"无清理超时",Round2,pending,,1,
+L6,Low,Prompt,"Token 限制硬编码",Round2,pending,,1,
+DEFECT-VERSION-001,Low,Prompt,"Prompt 版本管理不一致",Round1,pending,,1,
+DEFECT-MODE-001,Low,Pipeline,"Pipeline mode 验证不完整",Round1,pending,,1,

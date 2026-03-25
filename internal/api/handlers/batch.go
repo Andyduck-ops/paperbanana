@@ -142,6 +142,7 @@ func buildBatchInputs(req dto.BatchGenerateRequest) ([]domainagent.AgentInput, e
 			"http.session_id":               candidateSessionID,
 			"http.project_id":               req.ProjectID,
 			"batch.candidate_id":            strconv.Itoa(i),
+			"batch.group_id":                sessionID,
 			"config.runtime_managed_models": "true",
 		}
 		if nodeName := strings.TrimSpace(req.VisualizerNode); nodeName != "" {

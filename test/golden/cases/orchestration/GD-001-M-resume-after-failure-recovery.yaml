@@ -1,0 +1,53 @@
+id: GD-001-M-resume-after-failure-recovery
+priority: P1
+layer: orchestration
+title: Resume After Previous Stage Failure
+source: mutation
+operator: resume-after-planner
+parent: GD-001
+intent: When a previous run failed at planner, resuming with corrected input must start from planner and use the retriever snapshot for reference data.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a ResNet skip connection architecture."
+  retrieval_mode: auto
+  previous_run:
+    status: failed
+    failed_stage: planner
+    snapshot_exists_for:
+      - retriever
+  resume_scenario:
+    input_modified: true
+    modification_type: prompt_refinement
+
+expected:
+  stages_rerun:
+    - planner
+  stages_continued:
+    - stylist
+    - visualizer
+    - critic
+  final_status: completed
+  must_have_final_artifact: true
+  retriever_must_not_rerun: true
+  planner_must_receive_retriever_output: true
+
+anti_patterns:
+  - retriever reruns even though its snapshot is valid
+  - planner receives no reference data from retriever
+  - previous failure state corrupts the resume attempt
+  - resume treats failed planner as resumable point
+  - reference bundle from retriever is lost
+
+notes:
+  - Tests resume from failure boundary, not completion boundary.
+  - The retriever completed successfully before planner failed.
+  - Resume should use retriever snapshot, not restart from beginning.
+  - Planner gets a fresh start but with retriever context intact.
+
+tags:
+  - mutation
+  - resume-boundary
+  - failure-recovery
+  - incremental-retry
+  - partial-rerun

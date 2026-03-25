@@ -1,0 +1,61 @@
+id: GD-UI-007-M-copy-04
+priority: P1
+layer: ui
+title: Loading States Must Describe What Is Happening
+source: mutation
+operator: copy-loading-not-specific
+parent: GD-UI-001
+intent: Loading indicators must tell users what is being loaded or processed, not just show "Loading...". Specific loading messages reduce perceived wait time and reassure users the system is working on their request.
+
+input:
+  ui_scenario: user is waiting for a process to complete
+  system_state:
+    loading_contexts:
+      - stage: retriever
+        action: fetching relevant documents
+      - stage: planner
+        action: generating plan
+      - stage: stylist
+        action: applying style rules
+      - stage: critic
+        action: validating output quality
+      - stage: visualizer
+        action: rendering final output
+
+expected:
+  ui_must_show:
+    - specific description of current operation
+    - stage name or action being performed
+    - optional: progress percentage or time estimate
+  ui_must_not_show:
+    - generic "Loading..." with no context
+    - "Please wait..." without explanation
+    - spinning icon alone with no text
+    - technical terms like "Processing async job 42"
+  interaction_contract:
+    - user understands what the system is doing
+    - message updates as stage changes
+    - wait feels purposeful, not like system freeze
+
+anti_patterns:
+  - Loading indicator showing only "Loading..." for 30+ seconds
+  - Spinner with no accompanying text at all
+  - "Please wait" without any progress indication
+  - Generic "Processing request" for multi-stage operations
+  - Loading text that never changes during long operations
+  - Technical message "Executing retriever stage 1 of 4"
+  - Spinning animation that makes wait feel longer than it is
+
+notes:
+  - Pattern: "[Action]..." where action is specific.
+  - Examples: "Fetching documents...", "Generating plan...", "Validating quality..."
+  - For long operations, show elapsed time or estimate.
+  - Skeleton screens better than spinners for content areas.
+
+tags:
+  - mutation
+  - ux-writing
+  - loading-states
+  - progress-communication
+  - perceived-performance
+  - wait-time

@@ -1,0 +1,63 @@
+id: GD-UI-001-M-visual-03
+priority: P1
+layer: ui
+title: Status Icon Semantic Consistency
+source: mutation
+operator: visual-icon-inconsistency
+parent: GD-UI-001
+intent: When the same 'error' status shows a checkmark icon in one place and an X icon in another, users hesitate and think "Which one is correct? Is this really an error or did I misunderstand?" before realizing the inconsistency.
+
+input:
+  ui_scenario: error status displays different icons across StageCard and EvolutionTimeline
+  system_state:
+    stage_card_icons:
+      pending: '○'
+      running: '◆'
+      complete: '✓'
+      error: '✗'
+      not_run: '—'
+    evolution_timeline_icons:
+      pending: '○'
+      running: '🔄'
+      complete: '✅'
+      error: '❌'
+      not_run: '—'
+    batch_progress_icons:
+      pending: '○'
+      running: '◆'
+      completed: '✓'
+      failed: '✗'
+
+expected:
+  ui_must_show:
+    - consistent icon for each status across all components
+    - error status showing identical icon in StageCard, EvolutionTimeline, BatchProgress
+    - running status using same icon (either ◆ or 🔄, but consistent)
+  ui_must_not_show:
+    - StageCard shows ✓ for complete while EvolutionTimeline shows ✅
+    - StageCard shows ✗ for error while EvolutionTimeline shows ❌
+    - BatchProgress uses different icon set than other components
+    - Icon meaning changes between components
+  interaction_contract:
+    - user can recognize status by icon regardless of component
+    - icon semantics remain stable across the application
+    - visual language is consistent and learnable
+
+anti_patterns:
+  - StageCard uses ✓ while EvolutionTimeline uses ✅ for complete
+  - StageCard uses ✗ while EvolutionTimeline uses ❌ for error
+  - BatchProgress uses ◆ while StageCard uses 🔄 for running
+  - Different icons appearing for same status in different views
+  - Icon style inconsistency (plain text vs emoji)
+
+notes:
+  - Tests icon consistency across StageCard, EvolutionTimeline, BatchProgressPanel.
+  - Should define single icon mapping in shared constants.
+  - Consider accessibility: icons should have aria-labels.
+
+tags:
+  - mutation
+  - visual-design
+  - icon-consistency
+  - semantic-ui
+  - accessibility

@@ -1,0 +1,41 @@
+id: GD-002-M-ambiguous-prompt
+priority: P1
+layer: orchestration
+title: Ambiguous Prompt During Failure Must Not Obscure Error Attribution
+source: mutation
+operator: ambiguous-prompt
+parent: GD-002
+intent: When a pipeline fails with an ambiguous prompt, the failure attribution must still be accurate. Prompt ambiguity must not be blamed for a stage failure that has a different root cause.
+
+input:
+  mode: diagram
+  prompt: "draw the thing"
+  retrieval_mode: auto
+  inject_failure_at: visualizer
+
+expected:
+  final_status: failed
+  failed_stage: visualizer
+  must_expose_progress: true
+  failure_attribution_must_be_accurate: true
+  must_not_blame_prompt_ambiguity_for_visualizer_failure: true
+
+anti_patterns:
+  - failed_stage is reported as planner or retriever when visualizer actually failed
+  - error message blames prompt quality when failure was injected at visualizer
+  - ambiguity of prompt masks the real failure location
+  - stage progresses past visualizer despite injected failure
+  - session state shows failed but failed_stage is empty or wrong
+
+notes:
+  - This tests whether prompt ambiguity confuses failure attribution.
+  - The injected failure at visualizer is deterministic.
+  - Even with "draw the thing", if visualizer fails, the attribution must be visualizer.
+  - This prevents systems from blaming input quality for internal failures.
+
+tags:
+  - mutation
+  - input-ambiguity
+  - ambiguous-prompt
+  - failure-attribution
+  - error-isolation

@@ -110,6 +110,37 @@ func TestBuildAgentInputPrefersSeparatedContentAndVisualIntent(t *testing.T) {
 	assert.Contains(t, input.Metadata["http.prompt"], "Paper Context & References:")
 }
 
+func TestBuildStreamErrorPayloadUsesStructuredSessionError(t *testing.T) {
+	input := domainagent.AgentInput{
+		SessionID: "session-1",
+		RequestID: "request-1",
+	}
+	result := orchestrator.RunResult{
+		FailedStage: domainagent.StageVisualizer,
+		Session: domainagent.SessionState{
+			Error: &domainagent.ErrorDetail{
+				Message:    "temporary upstream image failure",
+				Code:       string(domainagent.ErrCodeServiceUnavailable),
+				Category:   string(domainagent.ErrorCategoryTransient),
+				Retryable:  true,
+				Suggestion: "Please retry shortly.",
+				Stage:      domainagent.StageVisualizer,
+			},
+		},
+	}
+
+	payload := buildStreamErrorPayload(errors.New("raw error"), input, result)
+
+	assert.Equal(t, "temporary upstream image failure", payload["message"])
+	assert.Equal(t, "temporary upstream image failure", payload["error"])
+	assert.Equal(t, string(domainagent.ErrCodeServiceUnavailable), payload["code"])
+	assert.Equal(t, string(domainagent.ErrorCategoryTransient), payload["category"])
+	assert.Equal(t, true, payload["retryable"])
+	assert.Equal(t, "Please retry shortly.", payload["suggestion"])
+	assert.Equal(t, domainagent.StageVisualizer, payload["stage"])
+	assert.Equal(t, domainagent.StageVisualizer, payload["failed_stage"])
+}
+
 func TestGenerateHandlerReturnsFinalArtifacts(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	logger := zap.NewNop()

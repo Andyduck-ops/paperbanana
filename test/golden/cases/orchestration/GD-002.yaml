@@ -1,0 +1,41 @@
+id: GD-002
+priority: P0
+layer: orchestration
+title: Stage Failure Visibility
+source: seed
+intent: When any pipeline stage fails, the system must record the exact failure boundary and must not advance downstream stages or report a false success.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a transformer attention mechanism."
+  retrieval_mode: auto
+  inject_failure_at: planner
+
+expected:
+  final_status: failed
+  failed_stage: planner
+  must_expose_progress: true
+  must_have_final_artifact: false
+  stages_must_not_run_after_failure:
+    - stylist
+    - visualizer
+    - critic
+
+anti_patterns:
+  - failed_stage field is empty or generic
+  - pipeline advances to stylist or beyond after planner failure
+  - final_status reports completed despite stage error
+  - error is logged internally but session state shows no failure
+  - UI receives no structured failure information
+
+notes:
+  - This case uses planner as the example failure point.
+  - Mutation variants should cover each of the five stages independently.
+  - The key invariant is attribution accuracy, not just that something failed.
+
+tags:
+  - orchestration
+  - failure
+  - failure-visibility
+  - stage-boundary
+  - attribution

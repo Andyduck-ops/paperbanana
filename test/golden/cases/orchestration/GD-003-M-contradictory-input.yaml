@@ -1,0 +1,42 @@
+id: GD-003-M-contradictory-input
+priority: P1
+layer: orchestration
+title: Contradictory Resume State Must Be Detected and Reported
+source: mutation
+operator: contradictory-input
+parent: GD-003
+intent: When a resume request contradicts the snapshot state (e.g., resume_from stage is after snapshot_captured_after), the system must detect the logical impossibility and fail with a clear error.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a retrieval-augmented generation pipeline."
+  retrieval_mode: auto
+  snapshot_captured_after: planner
+  resume_from: retriever
+
+expected:
+  final_status: failed
+  error_must_indicate_resume_contradiction: true
+  error_must_explain_logical_impossibility: true
+  must_not_produce_artifact: true
+  must_not_rerun_any_stages: true
+
+anti_patterns:
+  - pipeline proceeds as if the contradiction did not exist
+  - retriever reruns despite snapshot being after planner
+  - error message is generic with no mention of resume boundary conflict
+  - system silently corrects the resume_from to planner without logging
+  - session state shows running indefinitely while attempting impossible resume
+
+notes:
+  - snapshot_captured_after: planner means we have state up to and including planner.
+  - resume_from: retriever is logically impossible since retriever runs before planner.
+  - The system should validate resume boundary consistency before starting.
+  - This protects against state corruption from impossible resume configurations.
+
+tags:
+  - mutation
+  - input-ambiguity
+  - contradictory-input
+  - resume-boundary
+  - state-validation

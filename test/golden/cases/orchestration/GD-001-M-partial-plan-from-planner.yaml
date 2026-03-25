@@ -1,0 +1,50 @@
+id: GD-001-M-partial-plan-from-planner
+priority: P1
+layer: orchestration
+title: Planner Returns Incomplete Plan
+source: mutation
+operator: partial-plan-from-planner
+parent: GD-001
+intent: System must handle a plan with missing fields gracefully and either reject with a clear error or fill defaults without crashing.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a neural network architecture."
+  retrieval_mode: auto
+  inject_planner_result:
+    type: partial
+    missing_fields:
+      - layout_spec
+      - style_hints
+
+expected:
+  must_handle_gracefully: true
+  behavior:
+    - option_a: reject_with_clear_error_message
+    - option_b: fill_defaults_and_proceed
+  must_expose_progress: true
+  must_persist_session: true
+  final_status: completed | failed
+  if_failed:
+    error_message_must_be_specific: true
+    failed_stage: planner
+
+anti_patterns:
+  - system crashes with undefined access error
+  - downstream stage receives malformed plan and fails silently
+  - generic error message like "something went wrong"
+  - plan fields are undefined causing type errors in stylist
+  - visualizer receives null layout and produces garbage output
+
+notes:
+  - Tests defensive handling of incomplete planner output.
+  - The planner is expected to produce a complete plan, but we must not crash if it does not.
+  - Either rejecting clearly or filling defaults are both acceptable behaviors.
+  - Key invariant: no undefined/null propagation to downstream stages.
+
+tags:
+  - mutation
+  - artifact-presence
+  - planner
+  - partial-plan
+  - defensive-handling

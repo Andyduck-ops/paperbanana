@@ -1,0 +1,53 @@
+id: GD-005-M-fail-at-planner
+priority: P1
+layer: ui
+title: UI State Visibility On Planner Failure
+source: mutation
+operator: fail-at-planner
+parent: GD-005
+intent: When planner fails, the UI must show retriever as completed, planner as failed, and must not indicate that stylist/visualizer/critic ran.
+
+input:
+  scenarios:
+    - name: failed_at_planner
+      description: task failed at the planner stage after successful retrieval
+      system_state:
+        session_status: failed
+        failed_stage: planner
+        stages_completed:
+          - retriever
+        stages_not_run:
+          - stylist
+          - visualizer
+          - critic
+
+expected:
+  failed_at_planner:
+    session_status: failed
+    failed_stage: planner
+    must_emit_failure_event: true
+    ui_must_show:
+      - failed status indicator
+      - planner as the failed stage name
+      - retriever shown as completed
+      - stylist, visualizer, critic shown as not run
+      - clear visual distinction between completed and failed stages
+
+anti_patterns:
+  - retriever not shown as completed
+  - failed_stage shown as "planning" instead of planner
+  - stylist shown as failed or running
+  - UI does not emit stage completion event for retriever
+  - generic "task failed" without stage breakdown
+
+notes:
+  - This tests partial completion visibility.
+  - The UI must show both what succeeded and what failed.
+  - User should have confidence that retriever completed successfully.
+
+tags:
+  - mutation
+  - failure-location
+  - planner
+  - ui-state
+  - partial-completion

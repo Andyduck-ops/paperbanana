@@ -67,6 +67,16 @@ func Bootstrap(ctx context.Context, cfg BootstrapConfig) (*BootstrapResult, erro
 		if _, err := sqlDB.ExecContext(ctx, "PRAGMA journal_mode = WAL;"); err != nil {
 			return nil, fmt.Errorf("enable WAL mode: %w", err)
 		}
+		// Additional WAL-optimized PRAGMAs
+		if _, err := sqlDB.ExecContext(ctx, "PRAGMA synchronous = NORMAL;"); err != nil {
+			return nil, fmt.Errorf("set synchronous pragma: %w", err)
+		}
+		if _, err := sqlDB.ExecContext(ctx, "PRAGMA cache_size = -64000;"); err != nil {
+			return nil, fmt.Errorf("set cache_size pragma: %w", err)
+		}
+		if _, err := sqlDB.ExecContext(ctx, "PRAGMA wal_autocheckpoint = 1000;"); err != nil {
+			return nil, fmt.Errorf("set wal_autocheckpoint pragma: %w", err)
+		}
 	}
 
 	// Run AutoMigrate for all Phase 3 models

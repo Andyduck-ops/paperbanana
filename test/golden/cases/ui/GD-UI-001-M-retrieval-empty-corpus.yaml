@@ -1,0 +1,53 @@
+id: GD-UI-001-M-retrieval-empty-corpus
+priority: P1
+layer: ui
+title: Stage Progress Visible With Empty Corpus
+source: mutation
+operator: retrieval-empty-corpus
+parent: GD-UI-001
+intent: UI must display accurate stage progress when bench corpus is empty, proving empty corpus does not affect progress reporting.
+
+input:
+  ui_scenario: task is mid-execution with empty bench corpus
+  system_state:
+    session_status: running
+    current_stage: planner
+    retrieval_mode: auto
+    bench_state: empty
+    stages_completed:
+      - retriever
+    stages_remaining:
+      - stylist
+      - visualizer
+      - critic
+
+expected:
+  ui_must_show:
+    - current active stage name
+    - stages already completed
+    - overall pipeline structure (not just a spinner)
+  ui_must_not_show:
+    - completed badge
+    - final artifact
+    - failure message
+    - warning about empty bench
+  interaction_contract:
+    - user can see the task is alive
+    - user can identify which agent is currently working
+
+anti_patterns:
+  - UI shows error or warning about empty bench
+  - stage progress stalls at retriever due to empty corpus
+  - current_stage shows incorrect value
+  - stages_completed list is empty despite retriever completing
+
+notes:
+  - Tests that empty bench corpus does not corrupt UI state.
+  - The empty corpus is an implementation detail not exposed to user.
+  - Retriever still completes, just with empty bundle.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-empty-corpus
+  - progress-visibility

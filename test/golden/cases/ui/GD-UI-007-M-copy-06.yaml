@@ -1,0 +1,63 @@
+id: GD-UI-007-M-copy-06
+priority: P1
+layer: ui
+title: Tooltips Must Provide Helpful Context Not Redundant Info
+source: mutation
+operator: copy-tooltip-not-helpful
+parent: GD-UI-001
+intent: Tooltips must add value beyond the visible label. They should explain consequences, provide examples, or clarify ambiguous terms. Redundant tooltips waste user attention and train users to ignore them.
+
+input:
+  ui_scenario: user hovers over UI elements with tooltips
+  system_state:
+    tooltip_contexts:
+      - element: stage_status_badge
+        visible_label: "Running"
+        purpose: explain what the stage does
+      - element: quality_score
+        visible_label: "87%"
+        purpose: explain scoring methodology
+      - element: export_format
+        visible_label: "PDF"
+        purpose: explain format options
+      - element: delete_button
+        visible_label: "Delete"
+        purpose: warn about consequences
+
+expected:
+  ui_must_show:
+    - additional context not visible in the label
+    - explanation of consequences for destructive actions
+    - examples or clarification for ambiguous terms
+  ui_must_not_show:
+    - tooltip that repeats the visible label exactly
+    - tooltip that adds no new information
+    - tooltip that appears on elements that need no explanation
+    - tooltip that is more confusing than the label
+  interaction_contract:
+    - tooltip appears within 500ms of hover
+    - tooltip content is distinct from visible label
+    - tooltip can be dismissed by moving mouse away
+
+anti_patterns:
+  - Button labeled "Delete" with tooltip "Delete" (redundant)
+  - Button labeled "Download" with tooltip "Click to download" (no value)
+  - Badge showing "Running" with tooltip "Currently running" (redundant)
+  - Quality score "87%" with tooltip "Score: 87%" (no explanation)
+  - Complex jargon in tooltip: "The retriever performs RAG-based..."
+  - Tooltip that doesn't appear for 2+ seconds
+  - Tooltip that blocks what user is trying to see
+
+notes:
+  - Good tooltip pattern: visible label + invisible explanation.
+  - Example: Badge "Running" -> tooltip "Generating your analysis plan."
+  - Example: Button "Delete" -> tooltip "Permanently removes this artifact."
+  - Consider: does this element need a tooltip at all?
+
+tags:
+  - mutation
+  - ux-writing
+  - tooltips
+  - contextual-help
+  - information-hierarchy
+  - progressive-disclosure

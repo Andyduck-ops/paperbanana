@@ -2,6 +2,8 @@ package polish
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
@@ -82,7 +84,15 @@ func (a *PolishAgent) Execute(ctx context.Context, input domainagent.AgentInput)
 		Model: a.config.Model,
 	}
 
-	response, err := a.llmClient.Generate(ctx, req)
+	response, err := a.generateResponse(ctx, req)
+	if err != nil {
+		a.mu.Lock()
+		a.state.Status = domainagent.StatusFailed
+		a.mu.Unlock()
+		return domainagent.AgentOutput{}, err
+	}
+
+	mimeType, imageBytes, err := firstImageArtifact(response)
 	if err != nil {
 		a.mu.Lock()
 		a.state.Status = domainagent.StatusFailed
@@ -93,6 +103,23 @@ func (a *PolishAgent) Execute(ctx context.Context, input domainagent.AgentInput)
 	output := domainagent.AgentOutput{
 		Stage:   domainagent.StagePolish,
 		Content: response.Content,
+		GeneratedArtifacts: []domainagent.Artifact{
+			{
+				ID:       "polish-refined-image",
+				Kind:     domainagent.ArtifactKindPolishedImage,
+				MIMEType: mimeType,
+				URI:      "memory://polish/refined-image",
+				Bytes:    imageBytes,
+				Metadata: map[string]string{
+					"summary":    fmt.Sprintf("refined image artifact at %s", a.config.Resolution),
+					"resolution": a.config.Resolution,
+				},
+			},
+		},
+		Metadata: map[string]string{
+			"summary":    fmt.Sprintf("refined image artifact at %s", a.config.Resolution),
+			"resolution": a.config.Resolution,
+		},
 	}
 
 	a.mu.Lock()
@@ -121,4 +148,31 @@ func (a *PolishAgent) RestoreState(state domainagent.AgentState) error {
 	defer a.mu.Unlock()
 	a.state = state
 	return nil
+}
+
+func (a *PolishAgent) generateResponse(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	if imageClient, ok := a.llmClient.(domainllm.ImageGenerator); ok {
+		return imageClient.GenerateImage(ctx, req)
+	}
+	return a.llmClient.Generate(ctx, req)
+}
+
+func firstImageArtifact(response *domainllm.GenerateResponse) (string, []byte, error) {
+	if response == nil {
+		return "", nil, errors.New("polish agent returned no response")
+	}
+
+	for _, part := range response.Parts {
+		if part.Type != domainllm.PartTypeImage || len(part.Data) == 0 {
+			continue
+		}
+
+		mimeType := part.MIMEType
+		if mimeType == "" {
+			mimeType = "image/png"
+		}
+		return mimeType, append([]byte(nil), part.Data...), nil
+	}
+
+	return "", nil, errors.New("polish agent returned no refined image artifact")
 }

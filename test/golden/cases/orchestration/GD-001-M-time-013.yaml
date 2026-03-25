@@ -1,0 +1,49 @@
+id: GD-001-M-time-013
+priority: P2
+layer: orchestration
+title: Cancellation Takes Too Long To Process
+source: mutation
+operator: cancel-slow-acknowledgment
+parent: GD-001
+intent: When user requests cancellation but it takes too long to process, the system must still show cancellation as pending.
+
+input:
+  mode: plot
+  prompt: "Create a histogram of response times."
+  retrieval_mode: auto
+  slow_cancel_scenario:
+    user_requests_cancel_at: T0_plus_10000
+    cancel_acknowledgment_timeout_ms: 5000
+    actual_cancel_processing_time_ms: 15000
+    backend_under_load: true
+
+expected:
+  frontend_state_must_be:
+    after_cancel_request: "cancel_pending"
+    after_cancel_complete: "canceled"
+  final_status: canceled
+  session_metadata_must_include:
+    - key: cancel_requested_at
+      value_type: timestamp
+
+anti_patterns:
+  - frontend shows "running" after user clicked cancel
+  - cancel times out and system continues execution
+  - user cannot tell if cancel was received
+  - multiple cancel requests cause system error
+  - cancel acknowledged but execution continues
+
+notes:
+  - Tests user experience during slow cancellation processing.
+  - Cancel pending state is important for user confidence.
+  - System under load may process cancels slowly.
+  - Cancel must be idempotent.
+  - Verification: frontend shows "cancel_pending" after cancel request.
+  - Verification: session metadata includes cancel_requested_at timestamp.
+
+tags:
+  - mutation
+  - time-sensitive
+  - cancellation
+  - slow-acknowledgment
+  - user-feedback

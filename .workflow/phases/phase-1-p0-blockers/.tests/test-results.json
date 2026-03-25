@@ -1,0 +1,22 @@
+{
+  "target": "phase-1-p0-blockers",
+  "completed_at": "2026-03-24T13:25:00Z",
+  "results": [
+    { "id": "T-001", "name": "GD-UI-004: Resume Event Emitted", "status": "pass", "details": "10 vitest tests passed" },
+    { "id": "T-002", "name": "GD-UI-004: Frontend Handles Resume Event", "status": "pass", "details": "vitest tests passed" },
+    { "id": "T-003", "name": "GD-UI-004: UI Displays Resume Indicator", "status": "pass", "details": "vitest tests passed" },
+    { "id": "T-004", "name": "GD-001: Stylist Stage Optional", "status": "pass", "details": "go test passed" },
+    { "id": "T-005", "name": "GD-UI-001: Stage Progress Visible", "status": "pass", "details": "8 vitest tests passed" },
+    { "id": "T-006", "name": "GD-UI-002: Failure Location Visible", "status": "pass", "details": "11 vitest tests passed" },
+    { "id": "T-007", "name": "GD-UI-003: Artifact Surfaced On Completion", "status": "pass", "details": "11 vitest tests passed" },
+    { "id": "T-008", "name": "GD-UI-005: Batch Per-Task Status", "status": "pass", "details": "15 vitest tests passed" }
+  ],
+  "summary": { "total": 298, "passed": 298, "issues": 0, "skipped": 0 },
+  "automated_test_run": {
+    "framework": "vitest",
+    "total_tests": 298,
+    "passed": 298,
+    "failed": 0,
+    "duration_ms": 56070
+  }
+}

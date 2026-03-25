@@ -1,0 +1,56 @@
+id: GD-UI-003-M-retrieval-manual
+priority: P1
+layer: ui
+title: Artifact Surfaced With Manual Reference Injection
+source: mutation
+operator: retrieval-manual
+parent: GD-UI-003
+intent: Artifact must be surfaced correctly when using manual reference injection, proving manual mode does not affect artifact availability.
+
+input:
+  ui_scenario: task has completed successfully with manual references
+  system_state:
+    session_status: completed
+    current_stage: critic
+    retrieval_mode: manual
+    stages_completed:
+      - retriever
+      - planner
+      - stylist
+      - visualizer
+      - critic
+    final_artifact:
+      kind: rendered_figure
+      mime_type: image/png
+      uri: memory://visualizer/current
+      bytes_present: true
+
+expected:
+  ui_must_show:
+    - completed status indicator
+    - final artifact rendered or downloadable
+    - all stages shown as completed
+  ui_must_not_show:
+    - running spinner
+    - failure message
+    - empty artifact area
+  interaction_contract:
+    - user can view or download the final artifact
+    - user can confirm the run is complete and stable
+
+anti_patterns:
+  - completed badge shown but artifact area is empty
+  - manual retrieval mode causes artifact to be unavailable
+  - download or preview action is unavailable despite artifact being present
+  - artifact shows evidence of reference injection in an exposed way
+
+notes:
+  - Tests that manual injection is transparent to the UI layer.
+  - The injected references are an implementation detail.
+  - Artifact quality may be higher due to manual references but UI behavior is same.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-manual
+  - artifact-availability

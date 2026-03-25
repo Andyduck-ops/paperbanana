@@ -1,0 +1,51 @@
+id: GD-BATCH-M-time-001
+priority: P1
+layer: orchestration
+title: Batch Timeout Cascade Effect
+source: mutation
+operator: timeout-cascade
+parent: GD-BATCH-001
+intent: When the first task in a batch times out, subsequent tasks must not be incorrectly marked as timed out due to cascading logic.
+
+input:
+  mode: plot
+  batch_requests:
+    - prompt: "Create scatter plot of education vs income."
+      inject_timeout_at: planner
+      timeout_duration_ms: 30000
+    - prompt: "Create bar chart of population by continent."
+      normal_execution: true
+    - prompt: "Create line chart of stock prices."
+      normal_execution: true
+  batch_timing:
+    task_sequential: true
+    first_task_timeout_affects: subsequent_scheduling
+
+expected:
+  task_1_status: failed
+  task_1_error: timeout
+  task_2_status: completed
+  task_3_status: completed
+  cascade_must_not_occur: true
+  each_task_timed_independently: true
+  batch_final_status: partial_success
+
+anti_patterns:
+  - all subsequent tasks marked as timed out when only first timed out
+  - timeout duration shared across batch causing all to fail
+  - second task starts timing from first task start, not its own start
+  - batch marked as completely failed when only first task failed
+  - no visual distinction between first-task timeout and later failures
+
+notes:
+  - Tests isolation of timeout handling between batch tasks.
+  - Each task must have its own independent timeout context.
+  - Cascading timeouts indicate incorrect shared state.
+  - Users need to see which specific tasks timed out.
+
+tags:
+  - mutation
+  - time-sensitive
+  - batch-processing
+  - timeout-isolation
+  - cascade-failure

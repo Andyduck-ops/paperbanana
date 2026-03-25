@@ -1,0 +1,58 @@
+id: GD-UI-001-M-responsive-03
+priority: P1
+layer: ui
+title: Tablet Layout Switch to Two Column Grid
+source: mutation
+operator: responsive-tablet-grid
+parent: GD-UI-001
+intent: At tablet viewport widths (768px-1023px), the UI must optimize space by switching to a two-column layout for stages while maintaining readability.
+
+input:
+  ui_scenario: user views task progress on tablet device
+  system_state:
+    session_status: running
+    current_stage: stylist
+    stages_completed:
+      - retriever
+      - planner
+    stages_remaining:
+      - visualizer
+      - critic
+    viewport:
+      width: 768px
+      height: 1024px
+    breakpoint: tablet
+
+expected:
+  ui_must_show:
+    - stages arranged in 2-column grid layout
+    - completed stages in one column, remaining in another
+    - or stages paired logically (retriever+planner, stylist+visualizer, critic+empty)
+    - each stage card maintains minimum 280px width
+  ui_must_not_show:
+    - single column layout that wastes horizontal space
+    - three or four column layout that cramps content
+    - stages overflowing viewport width
+  interaction_contract:
+    - user can see all stages without scrolling horizontally
+    - stage relationships remain clear in two-column layout
+    - current stage remains prominent and identifiable
+
+anti_patterns:
+  - All stages in single vertical column at 768px
+  - Four stages in one horizontal row with cramped content
+  - Two-column layout with stage cards narrower than 280px
+  - Current stage loses visual prominence in grid
+  - Inconsistent column widths causing visual imbalance
+
+notes:
+  - Tests breakpoint transition at 768px (iPad portrait).
+  - Two-column is optimal for tablet viewport range.
+  - Logical grouping of stages should be maintained.
+
+tags:
+  - mutation
+  - responsive-design
+  - tablet-layout
+  - grid-layout
+  - viewport-768px

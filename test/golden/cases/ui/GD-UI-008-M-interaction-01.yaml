@@ -1,0 +1,54 @@
+id: GD-UI-008-M-interaction-01
+priority: P0
+layer: ui
+title: Generate Button Shows Visual Feedback Within 100ms
+source: mutation
+operator: interaction-click-feedback-latency
+parent: GD-UI-001
+intent: When user clicks the Generate button, the UI must show visual feedback within 100ms to acknowledge the click. Delays beyond this threshold create perception of unresponsiveness and may cause duplicate submissions.
+
+input:
+  ui_scenario: user clicks Generate button to start paper generation
+  system_state:
+    session_status: idle
+    user_action: click_generate_button
+    timestamp: t0
+    interaction_type: primary_action
+
+expected:
+  ui_must_show:
+    - visual feedback within 100ms of click (disabled state, loading indicator, or ripple)
+    - button transitions to disabled state to prevent double-click
+    - cursor changes to indicate action in progress
+  ui_must_not_show:
+    - no visual change for more than 100ms after click
+    - button remaining clickable after submission
+    - no indication that action was received
+  interaction_contract:
+    - feedback_latency_ms: <=100
+    - button_must_disable: true
+    - cursor_feedback: true
+  timing_constraint:
+    max_feedback_latency_ms: 100
+
+anti_patterns:
+  - Generate button shows no change for 300ms+ after click
+  - button remains clickable allowing duplicate submissions
+  - no loading state appears until backend responds
+  - user clicks again thinking first click failed
+  - visual feedback only appears after network round-trip
+  - button stays in normal state while task starts in background
+
+notes:
+  - 100ms is the threshold for perceived instant response (Nielsen's heuristic).
+  - Visual feedback must be client-side, not dependent on server response.
+  - Button should show spinner or progress indicator, not just disable.
+  - Critical for preventing duplicate task submissions.
+
+tags:
+  - mutation
+  - interaction-design
+  - click-feedback
+  - response-latency
+  - button-state
+  - timing-constraint

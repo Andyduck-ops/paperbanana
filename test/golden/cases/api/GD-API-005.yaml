@@ -1,0 +1,44 @@
+id: GD-API-005
+priority: P1
+layer: api
+title: Snapshot Resume Session Integrity
+source: mutation
+operator: session-created-on-start
+parent: GD-003
+intent: A resumed session must preserve the original session ID and restore snapshot state correctly.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a retrieval-augmented generation pipeline."
+  retrieval_mode: auto
+  snapshot_captured_after: planner
+  resume_from: stylist
+
+expected:
+  original_session_preserved: true
+  session_id_unchanged_after_resume: true
+  snapshot_restored_correctly: true
+  session_status_transitions:
+    - before_resume: snapshot_stored
+    - after_resume: running
+  stages_must_not_rerun:
+    - retriever
+    - planner
+
+anti_patterns:
+  - resume creates a new session ID instead of reusing original
+  - session snapshot is cleared on resume
+  - original session record is deleted on resume
+  - resumed session has different project_id than original
+
+notes:
+  - Tests session identity preservation across resume boundaries.
+  - The session_id must remain stable for audit trail continuity.
+  - Snapshot restoration must not corrupt the original session record.
+
+tags:
+  - mutation
+  - persistence
+  - api
+  - resume
+  - session-identity

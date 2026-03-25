@@ -1,0 +1,69 @@
+id: GD-BATCH-017
+priority: P1
+layer: orchestration
+title: Batch Mixed Mode Execution
+source: mutation
+operator: batch-mixed-mode
+parent: GD-002
+intent: When a batch contains candidates with different modes, each must execute according to its mode while maintaining shared retriever optimization.
+
+input:
+  mode: mixed
+  batch_size: 4
+  prompts:
+    - mode: diagram
+      prompt: "Create a diagram of a neural network"
+    - mode: diagram
+      prompt: "Create a diagram of a convolution operation"
+    - mode: diagram
+      prompt: "Create a diagram of an attention mechanism"
+    - mode: diagram
+      prompt: "Create a diagram of a transformer block"
+  retrieval_mode: shared
+  mixed_mode_handling: per_candidate
+
+expected:
+  batch_final_status: completed
+  per_task_status:
+    - candidate_id: 0
+      status: completed
+      must_have_artifact: true
+      executed_mode: diagram
+    - candidate_id: 1
+      status: completed
+      must_have_artifact: true
+      executed_mode: diagram
+    - candidate_id: 2
+      status: completed
+      must_have_artifact: true
+      executed_mode: diagram
+    - candidate_id: 3
+      status: completed
+      must_have_artifact: true
+      executed_mode: diagram
+  shared_retriever_used: true
+  retriever_call_count: 1
+  mode_routing_correct: true
+  all_artifacts_match_mode: true
+
+anti_patterns:
+  - retriever called separately for each mode
+  - mode not respected for individual candidates
+  - wrong pipeline executed for a candidate's mode
+  - artifact format mismatch with expected mode
+  - batch fails due to mode heterogeneity
+
+notes:
+  - Tests batch execution with mode-aware routing
+  - All candidates in this case use diagram mode
+  - Verifies shared retriever still works with mode diversity
+  - Each candidate's pipeline matches its specified mode
+  - Tests extensibility for future mode additions
+
+tags:
+  - mutation
+  - batch
+  - batch-complexity
+  - mixed-mode
+  - mode-routing
+  - orchestration

@@ -1,0 +1,49 @@
+id: GD-UI-001
+priority: P0
+layer: ui
+title: Stage Progress Visible While Running
+source: seed
+intent: While a generation task is running, the UI must display real stage-level progress and not show only a generic loading indicator.
+
+input:
+  ui_scenario: task is mid-execution
+  system_state:
+    session_status: running
+    current_stage: planner
+    stages_completed:
+      - retriever
+    stages_remaining:
+      - stylist
+      - visualizer
+      - critic
+
+expected:
+  ui_must_show:
+    - current active stage name
+    - stages already completed
+    - overall pipeline structure (not just a spinner)
+  ui_must_not_show:
+    - completed badge
+    - final artifact
+    - failure message
+  interaction_contract:
+    - user can see the task is alive
+    - user can identify which agent is currently working
+
+anti_patterns:
+  - generic spinner with no stage information
+  - progress bar with percentage but no stage semantics
+  - UI shows "generating" with no indication of which of 5 stages is active
+  - completed stages not distinguished from pending stages
+
+notes:
+  - This case does not require the exact visual design to be fixed.
+  - It requires that stage-level semantic information is present in rendered output.
+  - Wire against the hook or component that consumes SSE stage events.
+
+tags:
+  - ui
+  - progress
+  - running-state
+  - stage-visibility
+  - sse

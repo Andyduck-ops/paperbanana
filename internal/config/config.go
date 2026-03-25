@@ -187,7 +187,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("security.rate_limit.enabled", true)
 	v.SetDefault("security.rate_limit.requests_per_minute", 60)
 	v.SetDefault("security.rate_limit.burst", 10)
-	v.SetDefault("security.cors.allowed_origins", []string{"*"})
+	// CORS defaults - restrict to localhost for development safety
+	v.SetDefault("security.cors.allowed_origins", []string{"http://localhost:*", "http://127.0.0.1:*"})
 	v.SetDefault("security.cors.allow_credentials", false)
 	// Plot defaults - SECURITY: disabled by default
 	v.SetDefault("plot.enabled", false)

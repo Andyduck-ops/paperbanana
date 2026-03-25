@@ -1,0 +1,50 @@
+id: GD-001-M-retrieval-random
+priority: P1
+layer: orchestration
+title: Happy Path With Random Retrieval
+source: mutation
+operator: retrieval-random
+parent: GD-001
+intent: Pipeline must complete successfully with random retrieval mode, ensuring random references do not corrupt the pipeline flow.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: random
+
+expected:
+  final_status: completed
+  stage_order:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+    - critic
+  retriever_must_produce_nonempty_bundle: true
+  planner_must_receive_references: true
+  retriever_artifact_must_exist: true
+  retriever_artifact_must_have_content_length: "> 0"
+  planner_input_must_include_reference_bundle: true
+  must_expose_progress: true
+  must_have_final_artifact: true
+  must_persist_session: true
+
+anti_patterns:
+  - pipeline fails when random retrieval returns unexpected reference format
+  - retriever crashes when bench contains malformed entries
+  - planner receives null or undefined instead of reference bundle
+  - random retrieval causes infinite loop or timeout
+
+notes:
+  - Random retrieval mode selects arbitrary references from the bench.
+  - Tests robustness of retriever against arbitrary bench content.
+  - The quality of retrieved references is not evaluated here.
+  - Ensures random mode is a valid test and development option.
+  - Verification: retriever_artifact existence proves retrieval ran and produced output.
+  - Verification: planner_input includes reference_bundle proves artifact chain is intact.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-random
+  - robustness

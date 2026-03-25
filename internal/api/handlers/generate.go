@@ -235,6 +235,22 @@ func (h *Handler) respondRunError(c *gin.Context, err error) {
 	c.JSON(status, gin.H{"error": err.Error()})
 }
 
+// Validation constants for input validation.
+const (
+	MaxPromptLength      = 100000 // Maximum prompt length in characters
+	MaxContentLength     = 500000 // Maximum content length in characters
+	MaxVisualIntentLength = 10000 // Maximum visual_intent length in characters
+	MaxTemperature       = 2.0
+	MinTemperature       = 0.0
+	MaxMaxTokens         = 100000
+)
+
+var validModes = map[string]bool{
+	"":       true, // Default mode
+	"diagram": true,
+	"plot":    true,
+}
+
 func validateGenerateRequest(req GenerateRequest) error {
 	if req.Resume {
 		if strings.TrimSpace(req.SessionID) == "" {
@@ -243,16 +259,75 @@ func validateGenerateRequest(req GenerateRequest) error {
 		return nil
 	}
 
+	// Validate prompt length
+	if len(req.Prompt) > MaxPromptLength {
+		return fmt.Errorf("prompt exceeds maximum length of %d characters", MaxPromptLength)
+	}
+
+	// Validate content length
+	if len(req.Content) > MaxContentLength {
+		return fmt.Errorf("content exceeds maximum length of %d characters", MaxContentLength)
+	}
+
+	// Validate visual_intent length
+	if len(req.VisualIntent) > MaxVisualIntentLength {
+		return fmt.Errorf("visual_intent exceeds maximum length of %d characters", MaxVisualIntentLength)
+	}
+
+	// Require at least one input
 	if strings.TrimSpace(req.Prompt) == "" &&
 		strings.TrimSpace(req.Content) == "" &&
 		strings.TrimSpace(req.VisualIntent) == "" {
 		return errors.New("prompt, content, or visual_intent is required")
 	}
+
+	// Validate mode
+	if !validModes[req.Mode] {
+		return fmt.Errorf("invalid mode %q: must be one of diagram, plot, or empty", req.Mode)
+	}
+
+	// Validate temperature
+	if req.Temperature < MinTemperature || req.Temperature > MaxTemperature {
+		return fmt.Errorf("temperature must be between %.1f and %.1f", MinTemperature, MaxTemperature)
+	}
+
+	// Validate max_tokens
+	if req.MaxTokens < 0 {
+		return errors.New("max_tokens must be non-negative")
+	}
+	if req.MaxTokens > MaxMaxTokens {
+		return fmt.Errorf("max_tokens exceeds maximum of %d", MaxMaxTokens)
+	}
+
+	// Validate critic_rounds
 	if req.CriticRounds < 0 || req.CriticRounds > 5 {
 		return errors.New("critic_rounds must be between 0 and 5")
 	}
 
+	// Validate aspect_ratio format if provided
+	if req.AspectRatio != "" && !isValidAspectRatio(req.AspectRatio) {
+		return fmt.Errorf("invalid aspect_ratio format: %s (expected format like '16:9' or '1.5')", req.AspectRatio)
+	}
+
 	return nil
+}
+
+// isValidAspectRatio validates aspect ratio format.
+func isValidAspectRatio(ratio string) bool {
+	// Allow decimal format (e.g., "1.5", "0.75")
+	if _, err := strconv.ParseFloat(ratio, 64); err == nil {
+		return true
+	}
+
+	// Allow colon format (e.g., "16:9", "4:3")
+	parts := strings.Split(ratio, ":")
+	if len(parts) == 2 {
+		_, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		_, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+		return err1 == nil && err2 == nil
+	}
+
+	return false
 }
 
 func buildGenerateResponse(result orchestrator.RunResult, projectID string) GenerateResponse {
@@ -338,15 +413,13 @@ func cloneArtifactsWithProjectID(artifacts []domainagent.Artifact, projectID str
 
 	cloned := make([]domainagent.Artifact, len(artifacts))
 	for i, artifact := range artifacts {
-		cloned[i] = artifact
-		if len(artifact.Bytes) > 0 {
+		// Use Artifact.Clone() which shares SharedBytes instead of deep copying
+		cloned[i] = artifact.Clone()
+		// Keep legacy Bytes field in sync for JSON serialization
+		if artifact.Shared != nil {
+			cloned[i].Bytes = artifact.Bytes
+		} else if len(artifact.Bytes) > 0 {
 			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
-		}
-		if len(artifact.Metadata) > 0 {
-			cloned[i].Metadata = make(map[string]string, len(artifact.Metadata))
-			for key, value := range artifact.Metadata {
-				cloned[i].Metadata[key] = value
-			}
 		}
 		// Set project_id on each artifact for frontend URL construction
 		if cloned[i].AssetID != "" && cloned[i].Metadata == nil {
@@ -441,15 +514,13 @@ func cloneArtifacts(artifacts []domainagent.Artifact) []domainagent.Artifact {
 
 	cloned := make([]domainagent.Artifact, len(artifacts))
 	for i, artifact := range artifacts {
-		cloned[i] = artifact
-		if len(artifact.Bytes) > 0 {
+		// Use Artifact.Clone() which shares SharedBytes instead of deep copying
+		cloned[i] = artifact.Clone()
+		// Keep legacy Bytes field in sync for JSON serialization
+		if artifact.Shared != nil {
+			cloned[i].Bytes = artifact.Bytes
+		} else if len(artifact.Bytes) > 0 {
 			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
-		}
-		if len(artifact.Metadata) > 0 {
-			cloned[i].Metadata = make(map[string]string, len(artifact.Metadata))
-			for key, value := range artifact.Metadata {
-				cloned[i].Metadata[key] = value
-			}
 		}
 	}
 

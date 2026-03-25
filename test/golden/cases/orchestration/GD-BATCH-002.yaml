@@ -1,0 +1,59 @@
+id: GD-BATCH-002
+priority: P1
+layer: orchestration
+title: Batch Partial Failure Planner
+source: mutation
+operator: batch-partial-failure
+parent: GD-002
+intent: When one candidate fails in a batch, other candidates must continue and complete independently, with accurate per-candidate failure attribution.
+
+input:
+  mode: diagram
+  batch_size: 3
+  prompts:
+    - "Create a diagram of a convolutional layer"
+    - "Create a diagram of a pooling layer"
+    - "Create a diagram of a dropout layer"
+  retrieval_mode: shared
+  inject_failure:
+    candidate_id: 1
+    stage: planner
+    error_message: "Planner failed for candidate 1"
+
+expected:
+  batch_final_status: completed
+  per_task_status:
+    - candidate_id: 0
+      status: completed
+      must_have_artifact: true
+    - candidate_id: 1
+      status: failed
+      failed_stage: planner
+      must_have_artifact: false
+    - candidate_id: 2
+      status: completed
+      must_have_artifact: true
+  shared_retriever_used: true
+  successful_count: 2
+  failed_count: 1
+  batch_completes_despite_failure: true
+
+anti_patterns:
+  - one candidate failure causes all candidates to abort
+  - batch final_status is failed instead of completed
+  - failed candidate's error not captured in results
+  - successful candidates blocked waiting for failed candidate
+  - shared retriever not called because one candidate might fail
+
+notes:
+  - Tests failure isolation within batch
+  - Batch should complete (not fail) even with partial failures
+  - Failed candidate should have accurate failed_stage attribution
+  - Successful candidates should have independent artifacts
+
+tags:
+  - mutation
+  - batch
+  - batch-partial-failure
+  - failure-isolation
+  - orchestration

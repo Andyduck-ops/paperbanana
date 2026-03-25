@@ -1,0 +1,53 @@
+id: GD-UI-003-M-cognitive-cancel-doesnt-stop
+priority: P1
+layer: ui
+title: Cancel Button Shows Cancelled But Backend Continues
+source: mutation
+operator: cognitive-cancel-doesnt-stop
+parent: GD-UI-002
+intent: When user clicks cancel, the UI must reflect that the backend has actually stopped processing. If the UI shows "cancelled" but the backend continues, users are misled and may accumulate unwanted costs.
+
+input:
+  ui_scenario: user cancels task mid-execution
+  system_state:
+    session_status: running
+    current_stage: planner
+    user_action: cancel
+    ui_shows: cancelled
+    backend_status: still_running
+
+expected:
+  ui_state_transition_must_follow:
+    - initial_state: running
+    - after_cancel_click: cancelling
+    - after_backend_confirm: cancelled
+  must_send_cancel_to_backend: true
+  backend_must_terminate_within_ms: 5000
+  session_status_must_be: cancelled
+  must_terminate_backend_process: true
+
+anti_patterns:
+  - UI shows "cancelled" immediately but backend continues processing
+  - cancel only affects UI state, not backend execution
+  - UI status = cancelled while backend_status = running and costs continue to accumulate
+  - no confirmation that backend received and processed cancel
+  - cancel button changes state but backend pipeline is unaware
+  - session status in database shows cancelled but agents still running
+  - user leaves page assuming stopped, backend runs to completion
+
+notes:
+  - Cancel must be end-to-end: UI -> API -> Backend -> Agents.
+  - Users trust the UI state as truth.
+  - "Cancelled" UI with running backend is a serious trust violation.
+  - Consider showing "Cancelling..." until backend confirms.
+  - Backend should terminate gracefully and persist cancelled state.
+  - Verification: UI shows "cancelling" immediately, then "cancelled" after backend confirms.
+  - Verification: session_status in database is "cancelled".
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - fake-cancel
+  - backend-desync
+  - cost-accumulation
+  - trust-violation

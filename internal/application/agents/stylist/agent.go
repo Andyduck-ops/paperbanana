@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/paperbanana/paperbanana/internal/application/agents/modelselection"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
@@ -92,7 +93,10 @@ func (a *Agent) Execute(ctx context.Context, input domainagent.AgentInput) (doma
 		return domainagent.AgentOutput{}, err
 	}
 
-	content := resp.Content
+	content := strings.TrimSpace(resp.Content)
+	if content == "" {
+		content = strings.TrimSpace(domainllm.CollectText(resp.Parts))
+	}
 	if content == "" {
 		err = errors.New("stylist returned empty content")
 		a.state.Status = domainagent.StatusFailed
@@ -168,13 +172,13 @@ func cloneArtifacts(artifacts []domainagent.Artifact) []domainagent.Artifact {
 
 	cloned := make([]domainagent.Artifact, len(artifacts))
 	for i, artifact := range artifacts {
-		cloned[i] = artifact
-		cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
-		if len(artifact.Metadata) > 0 {
-			cloned[i].Metadata = make(map[string]string, len(artifact.Metadata))
-			for key, value := range artifact.Metadata {
-				cloned[i].Metadata[key] = value
-			}
+		// Use Artifact.Clone() which shares SharedBytes instead of deep copying
+		cloned[i] = artifact.Clone()
+		// Keep legacy Bytes field in sync for JSON serialization
+		if artifact.Shared != nil {
+			cloned[i].Bytes = artifact.Bytes
+		} else {
+			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
 		}
 	}
 	return cloned

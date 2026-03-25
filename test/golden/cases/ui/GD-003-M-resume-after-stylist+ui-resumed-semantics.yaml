@@ -1,0 +1,57 @@
+id: GD-003-M-resume-after-stylist+ui-resumed-semantics
+priority: P1
+layer: ui
+title: Resume After Stylist Shows Correct UI Semantics
+source: mutation
+operators:
+  - resume-after-stylist
+  - ui-resumed-semantics
+parent: GD-003
+intent: When resuming from after stylist, the UI must show resume semantics and distinguish completed stages from running stages.
+
+input:
+  ui_scenario: task was resumed from a snapshot after stylist
+  system_state:
+    session_status: running
+    resumed_from_stage: stylist
+    current_stage: visualizer
+    stages_completed_before_resume:
+      - retriever
+      - planner
+      - stylist
+    stages_running_after_resume:
+      - visualizer
+    resume_metadata_preserved: true
+
+expected:
+  ui_must_show:
+    - stages completed before resume shown as already done
+    - current stage is visualizer, not retriever or planner
+    - clear indication that this is a resumed run
+    - resume origin (after stylist) visible
+  ui_must_not_show:
+    - retriever, planner, or stylist shown as currently running
+    - pipeline presented as starting from scratch
+    - no visual distinction between fresh run and resumed run
+  interaction_contract:
+    - user can see exactly where resume began
+    - user can see three stages were inherited from snapshot
+
+anti_patterns:
+  - resumed task appears identical to brand new task
+  - prior completed stages shown as pending
+  - no resume indicator or badge anywhere in UI
+  - resume origin not visible to user
+  - visualizer shown as starting from scratch
+
+notes:
+  - Tests the combination of resume boundary and UI semantics.
+  - User must understand this is a continuation, not a fresh run.
+  - Critical for user trust in the resume feature.
+
+tags:
+  - mutation
+  - combined
+  - resume-after-stylist
+  - ui-resumed-semantics
+  - state-continuity

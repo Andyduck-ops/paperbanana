@@ -1,0 +1,53 @@
+id: GD-001-M-boundary-03
+priority: P1
+layer: orchestration
+title: Corrupted Snapshot With Concurrent Modification Attempt
+source: mutation
+operators:
+  - corrupted-snapshot-truncated-json
+  - concurrent-modification-detection
+parent: GD-001
+intent: When a snapshot is corrupted and a concurrent modification is detected during resume attempt, the system must reject the resume with clear error attribution without data loss from other sessions.
+
+input:
+  mode: plot
+  prompt: "Create a pie chart of market share distribution."
+  retrieval_mode: auto
+  snapshot_captured_after: stylist
+  snapshot_corrupted: true
+  corruption_type: truncated_json
+  concurrent_scenario:
+    - another_session_attempts_write: true
+    - write_target: shared_artifact_storage
+
+expected:
+  final_status: failed
+  failed_stage: resume
+  failure_reason: snapshot_corrupted
+  concurrent_write_must_be_rejected: true
+  other_sessions_must_not_be_affected: true
+  ui_must_show:
+    - snapshot corruption error
+    - suggestion to restart session
+    - no indication that other sessions were impacted
+  must_have_final_artifact: false
+
+anti_patterns:
+  - concurrent write succeeds and corrupts other session data
+  - corrupted snapshot causes cascading failures across sessions
+  - resume attempts to proceed with partial data
+  - error message suggests other sessions were affected
+  - session state partially overwritten during failed resume
+
+notes:
+  - Tests the intersection of data integrity and concurrency control.
+  - Snapshot corruption should be isolated to the affected session.
+  - Concurrent modification detection must prevent cross-session contamination.
+
+tags:
+  - mutation
+  - boundary-combination
+  - corrupted-snapshot-truncated-json
+  - concurrent-modification-detection
+  - data-integrity
+  - isolation

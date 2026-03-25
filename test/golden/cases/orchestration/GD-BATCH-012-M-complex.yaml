@@ -1,0 +1,67 @@
+id: GD-BATCH-012
+priority: P1
+layer: orchestration
+title: Batch Timeout Domino Effect
+source: mutation
+operator: batch-timeout-domino
+parent: GD-002
+intent: When the first candidate times out, all other pending candidates must be cancelled with clear timeout attribution rather than appearing to fail independently.
+
+input:
+  mode: diagram
+  batch_size: 4
+  prompts:
+    - "Create a diagram of a complex multi-head attention with 64 heads"
+    - "Create a diagram of a simple feed-forward network"
+    - "Create a diagram of a pooling layer"
+    - "Create a diagram of an activation function"
+  retrieval_mode: shared
+  inject_timeout:
+    candidate_id: 0
+    timeout_seconds: 30
+    actual_duration_seconds: 60
+  batch_timeout_policy:
+    on_first_timeout: cancel_remaining
+    reason: "batch-timeout-domino"
+
+expected:
+  batch_final_status: completed
+  per_task_status:
+    - candidate_id: 0
+      status: failed
+      failure_reason: "timeout"
+      timeout_seconds: 30
+    - candidate_id: 1
+      status: cancelled
+      cancellation_reason: "batch_timeout_cascade"
+    - candidate_id: 2
+      status: cancelled
+      cancellation_reason: "batch_timeout_cascade"
+    - candidate_id: 3
+      status: cancelled
+      cancellation_reason: "batch_timeout_cascade"
+  cascade_cancellation_verified: true
+  timeout_attribution_correct: true
+  all_cancelled_after_first_timeout: true
+
+anti_patterns:
+  - each candidate appears to fail independently
+  - no distinction between timeout and other failures
+  - cancelled candidates marked as failed instead
+  - cascade cancellation not applied consistently
+  - batch hangs waiting for already-timed-out candidate
+
+notes:
+  - Tests timeout cascade behavior
+  - First timeout triggers batch-wide cancellation
+  - All cancellations must reference the original timeout
+  - Clear distinction between timeout, failure, and cancellation
+  - Batch should complete with mixed results
+
+tags:
+  - mutation
+  - batch
+  - batch-complexity
+  - timeout-domino
+  - cascade-cancellation
+  - orchestration

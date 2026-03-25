@@ -1,0 +1,61 @@
+id: GD-UI-001-M-visual-14
+priority: P1
+layer: ui
+title: Header and Footer Visual Weight Balance
+source: mutation
+operator: visual-header-footer-imbalance
+parent: GD-UI-001
+intent: Users scrolling down the page lose access to navigation when the header doesn't stay visible, and then notice the footer has more visual emphasis than the header, wondering "Where am I in the app?" and "What can I do next?"
+
+input:
+  ui_scenario: Header and footer have unbalanced visual presence
+  system_state:
+    header_specs:
+      background: 'bg-background'
+      border: 'border-b border-border'
+      padding: 'px-4 py-3'
+      z_index: 'z-50'
+      position: 'sticky top-0'
+    footer_specs:
+      background: 'bg-muted/30'
+      border: 'border-t border-border'
+      padding: 'px-4 py-3'
+    visual_weight:
+      header: 'primary navigation, higher visual weight'
+      footer: 'secondary information, lower visual weight'
+
+expected:
+  ui_must_show:
+    - header with stronger visual presence than footer
+    - sticky header for consistent navigation access
+    - footer with muted background (lower visual weight)
+    - consistent padding between header and footer
+  ui_must_not_show:
+    - footer more visually prominent than header
+    - header not sticky (scrolls out of view)
+    - footer with solid color competing with header
+    - drastically different padding between them
+  interaction_contract:
+    - user can always access navigation via header
+    - footer provides secondary info without distraction
+    - visual hierarchy guides eye appropriately
+
+anti_patterns:
+  - Footer uses solid primary color background
+  - Header padding px-6 py-4, footer padding px-2 py-1
+  - Header not sticky, scrolls away with content
+  - Footer has same visual weight as header
+  - Header border invisible, footer border prominent
+  - Missing border separation between header/footer and content
+
+notes:
+  - Tests header/footer visual balance in Layout component.
+  - Header should anchor the page with sticky positioning.
+  - Footer should recede visually with muted background.
+
+tags:
+  - mutation
+  - visual-design
+  - layout
+  - visual-weight
+  - hierarchy

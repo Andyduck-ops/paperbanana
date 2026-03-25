@@ -1,0 +1,47 @@
+id: GD-001-M-no-artifact-from-retriever
+priority: P1
+layer: orchestration
+title: Retriever Returns Empty Bundle
+source: mutation
+operator: no-artifact-from-retriever
+parent: GD-001
+intent: Pipeline must complete gracefully when retriever returns no bundle, treating it as a valid empty-result case rather than an error.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining quantum entanglement."
+  retrieval_mode: auto
+  inject_retriever_result: empty_bundle
+
+expected:
+  final_status: completed
+  stage_order:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+    - critic
+  retriever_must_return_empty: true
+  planner_must_handle_empty_references: true
+  must_have_final_artifact: true
+  must_handle_gracefully: true
+
+anti_patterns:
+  - pipeline crashes when retriever returns empty bundle
+  - error thrown with message like "no references found"
+  - retriever stage marked as failed due to empty result
+  - planner refuses to proceed without references
+  - final_status is failed despite retriever completing its job
+
+notes:
+  - Tests graceful handling when retrieval finds nothing relevant.
+  - Empty bundle is a valid outcome, not an error condition.
+  - Planner should generate plan using only the prompt text.
+  - This differs from retrieval-none where retrieval is explicitly disabled.
+
+tags:
+  - mutation
+  - artifact-presence
+  - retriever
+  - empty-bundle
+  - graceful-handling

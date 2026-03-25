@@ -1,0 +1,43 @@
+id: GD-002-M-fail-at-retriever
+priority: P1
+layer: orchestration
+title: Retriever Stage Failure Attribution
+source: mutation
+operator: fail-at-retriever
+parent: GD-002
+intent: When the retriever stage fails, the system must record the exact failure boundary and must not advance to any downstream stages.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing the water cycle with evaporation and precipitation."
+  retrieval_mode: auto
+  inject_failure_at: retriever
+
+expected:
+  final_status: failed
+  failed_stage: retriever
+  must_expose_progress: true
+  must_have_final_artifact: false
+  downstream_stages_must_not_run:
+    - planner
+    - stylist
+    - visualizer
+    - critic
+
+anti_patterns:
+  - downstream stages pretend to complete after retriever failure
+  - failed_stage reported as empty or generic
+  - pipeline reports completed status despite retriever error
+  - UI shows no indication of where failure occurred
+  - retriever failure masked as "initialization error"
+
+notes:
+  - Retriever is the first stage, so no prior stages should have completed.
+  - This tests the earliest possible failure point in the pipeline.
+  - Error attribution must be retriever-specific, not a generic "startup failed".
+
+tags:
+  - mutation
+  - failure-location
+  - retriever
+  - early-failure

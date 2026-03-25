@@ -1,0 +1,52 @@
+id: GD-005-M-fail-at-retriever
+priority: P1
+layer: ui
+title: UI State Visibility On Retriever Failure
+source: mutation
+operator: fail-at-retriever
+parent: GD-005
+intent: When retriever fails, the UI must expose a failed state with retriever as the failed_stage and must not show a generic "initialization failed" message.
+
+input:
+  scenarios:
+    - name: failed_at_retriever
+      description: task failed at the retriever stage
+      system_state:
+        session_status: failed
+        failed_stage: retriever
+        stages_completed: []
+        stages_not_run:
+          - planner
+          - stylist
+          - visualizer
+          - critic
+
+expected:
+  failed_at_retriever:
+    session_status: failed
+    failed_stage: retriever
+    must_emit_failure_event: true
+    ui_must_show:
+      - failed status indicator
+      - retriever as the failed stage name
+      - no completed stages
+      - all four downstream stages as not run
+
+anti_patterns:
+  - failed_stage is empty or null
+  - failed_stage shown as "initialization" instead of retriever
+  - UI shows all stages as failed
+  - no failure event emitted to UI
+  - session_status shows running instead of failed
+
+notes:
+  - This tests UI visibility for the earliest possible failure.
+  - The UI must clearly indicate that no stages completed.
+  - User should understand this is a retrieval failure, not a system crash.
+
+tags:
+  - mutation
+  - failure-location
+  - retriever
+  - ui-state
+  - event-emission

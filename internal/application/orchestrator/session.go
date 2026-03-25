@@ -49,6 +49,7 @@ func (h *RunHandle) setOutcome(result RunResult, err error) {
 }
 
 type sessionTracker struct {
+	mu           sync.Mutex
 	state        domainagent.SessionState
 	currentInput domainagent.AgentInput
 }
@@ -79,12 +80,16 @@ func newSessionTracker(input domainagent.AgentInput, pipeline []domainagent.Stag
 }
 
 func (s *sessionTracker) stageInput(stage domainagent.StageName) domainagent.AgentInput {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	next := cloneAgentInput(s.currentInput)
 	next.Stage = stage
 	return next
 }
 
 func (s *sessionTracker) completeStage(state domainagent.AgentState, output domainagent.AgentOutput) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.state.CurrentStage = state.Stage
 	s.state.Status = domainagent.StatusRunning
 	s.state.UpdatedAt = state.Timing.CompletedAt
@@ -94,7 +99,10 @@ func (s *sessionTracker) completeStage(state domainagent.AgentState, output doma
 }
 
 func (s *sessionTracker) failStage(state domainagent.AgentState, status domainagent.RunStatus, errDetail *domainagent.ErrorDetail) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.state.CurrentStage = state.Stage
+	s.state.FailedStage = state.Stage
 	s.state.Status = status
 	s.state.Error = cloneErrorDetail(errDetail)
 	s.state.UpdatedAt = state.Timing.CompletedAt
@@ -103,12 +111,16 @@ func (s *sessionTracker) failStage(state domainagent.AgentState, status domainag
 }
 
 func (s *sessionTracker) completeRun(at time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.state.Status = domainagent.StatusCompleted
 	s.state.UpdatedAt = at
 	s.state.CompletedAt = at
 }
 
 func (s *sessionTracker) snapshot() domainagent.SessionState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return cloneSessionState(s.state)
 }
 
@@ -234,9 +246,14 @@ func cloneArtifacts(artifacts []domainagent.Artifact) []domainagent.Artifact {
 
 	cloned := make([]domainagent.Artifact, len(artifacts))
 	for i, artifact := range artifacts {
-		cloned[i] = artifact
-		cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
-		cloned[i].Metadata = cloneStringMap(artifact.Metadata)
+		// Use Artifact.Clone() which shares SharedBytes instead of deep copying
+		cloned[i] = artifact.Clone()
+		// Keep legacy Bytes field in sync for JSON serialization
+		if artifact.Shared != nil {
+			cloned[i].Bytes = artifact.Bytes
+		} else {
+			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
+		}
 	}
 	return cloned
 }

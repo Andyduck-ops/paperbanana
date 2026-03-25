@@ -1,0 +1,49 @@
+id: GD-005-M-no-artifact-from-retriever
+priority: P1
+layer: orchestration
+title: UI State Truthfulness With Empty Retrieval
+source: mutation
+operator: no-artifact-from-retriever
+parent: GD-005
+intent: Session state must accurately reflect empty retrieval as a valid completion, not as a failure or missing data.
+
+input:
+  scenarios:
+    - name: running_with_empty_retrieval
+      description: task is mid-execution after retriever returned empty
+      retriever_result: empty_bundle
+    - name: completed_with_empty_retrieval
+      description: task completed successfully after retriever returned empty
+      retriever_result: empty_bundle
+
+expected:
+  running_with_empty_retrieval:
+    session_status: running
+    current_stage: planner_or_later
+    retriever_stage_must_show:
+      status: completed
+      bundle_size: 0
+    must_emit_stage_events: true
+  completed_with_empty_retrieval:
+    session_status: completed
+    must_have_final_artifact: true
+    retriever_must_not_be_marked_failed: true
+
+anti_patterns:
+  - retriever shown as failed due to empty result
+  - session_status is failed when only retrieval was empty
+  - bundle_size field is missing or undefined
+  - UI shows "error retrieving references" for empty result
+  - running state stuck on retriever despite it completing
+
+notes:
+  - Tests UI state accuracy when retrieval produces nothing.
+  - Empty retrieval is a valid outcome and must be represented truthfully.
+  - The session state should distinguish between "failed to retrieve" and "retrieved nothing".
+
+tags:
+  - mutation
+  - artifact-presence
+  - ui-bridge
+  - retriever
+  - state-truthfulness

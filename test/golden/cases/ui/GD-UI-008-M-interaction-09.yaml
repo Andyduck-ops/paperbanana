@@ -1,0 +1,52 @@
+id: GD-UI-008-M-interaction-09
+priority: P1
+layer: ui
+title: Double-Click Protection On Generate Button
+source: mutation
+operator: interaction-double-click-protection
+parent: GD-UI-001
+intent: The Generate button must prevent duplicate submissions from rapid double-clicks. Without protection, users may accidentally create multiple tasks.
+
+input:
+  ui_scenario: user rapidly double-clicks Generate button
+  system_state:
+    session_status: idle
+    user_action: double_click_generate
+    first_click_timestamp: t0
+    second_click_timestamp: t0_plus_50ms
+
+expected:
+  ui_must_show:
+    - button disabled immediately after first click
+    - only one task created, not two
+    - visual feedback that click was registered
+  ui_must_not_show:
+    - two tasks created from double-click
+    - button remaining enabled after first click
+    - multiple network requests from single user intention
+  interaction_contract:
+    - single_task_per_click_sequence: true
+    - button_disabled_after_click: true
+    - debounce_or_disable_immediate: true
+
+anti_patterns:
+  - Double-click creates two identical tasks
+  - button stays enabled allowing repeated clicks
+  - no debounce or disable logic implemented
+  - two API calls made to backend from double-click
+  - user sees two running tasks when they expected one
+  - button doesn't disable until server responds
+
+notes:
+  - Immediate disable is better than debounce for preventing double-submit.
+  - Disable should happen client-side before any network call.
+  - Track in local state that submission is in progress.
+  - Critical for preventing wasted compute resources.
+
+tags:
+  - mutation
+  - interaction-design
+  - double-click-protection
+  - submit-guard
+  - debounce
+  - idempotency

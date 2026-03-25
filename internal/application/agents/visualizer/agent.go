@@ -104,7 +104,24 @@ func (a *Agent) Execute(ctx context.Context, input domainagent.AgentInput) (doma
 	return output, nil
 }
 
-func (a *Agent) Cleanup(context.Context) error {
+func (a *Agent) Cleanup(ctx context.Context) error {
+	var errs []error
+
+	if a.cfg.PlotExecutor != nil {
+		if err := a.cfg.PlotExecutor.Cleanup(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if a.nodeRunner != nil {
+		if err := a.nodeRunner.Cleanup(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("visualizer cleanup encountered %d error(s): %v", len(errs), errs)
+	}
 	return nil
 }
 
@@ -427,16 +444,17 @@ func critiqueRequestsNoChange(rounds []domainagent.CritiqueRound) bool {
 }
 
 func renderedArtifact(mode domainagent.VisualMode, mimeType string, bytes []byte) domainagent.Artifact {
-	return domainagent.Artifact{
+	artifact := domainagent.Artifact{
 		ID:       fmt.Sprintf("visualizer-%s-rendered", mode),
 		Kind:     domainagent.ArtifactKindRenderedFigure,
 		MIMEType: mimeType,
 		URI:      fmt.Sprintf("memory://visualizer/%s/rendered", mode),
-		Bytes:    append([]byte(nil), bytes...),
 		Metadata: map[string]string{
 			"mode": string(mode),
 		},
 	}
+	artifact.SetBytes(bytes) // Use SetBytes for efficient SharedBytes sharing
+	return artifact
 }
 
 func promptTraceArtifact(mode domainagent.VisualMode, code string) domainagent.Artifact {
@@ -479,9 +497,14 @@ func cloneArtifacts(artifacts []domainagent.Artifact) []domainagent.Artifact {
 
 	cloned := make([]domainagent.Artifact, len(artifacts))
 	for i, artifact := range artifacts {
-		cloned[i] = artifact
-		cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
-		cloned[i].Metadata = cloneStringMap(artifact.Metadata)
+		// Use Artifact.Clone() which shares SharedBytes instead of deep copying
+		cloned[i] = artifact.Clone()
+		// Keep legacy Bytes field in sync for JSON serialization
+		if artifact.Shared != nil {
+			cloned[i].Bytes = artifact.Bytes
+		} else {
+			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
+		}
 	}
 	return cloned
 }

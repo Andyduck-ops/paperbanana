@@ -19,38 +19,48 @@ import (
 )
 
 type runtimeTestProviderRepo struct {
-	provider *domainconfig.Provider
+	providers []*domainconfig.Provider
+	defaultID string
 }
 
 func (r runtimeTestProviderRepo) Create(provider *domainconfig.Provider) error {
-	r.provider = provider
+	r.providers = append(r.providers, provider)
 	return nil
 }
 
 func (r runtimeTestProviderRepo) GetByID(id string) (*domainconfig.Provider, error) {
-	if r.provider != nil && r.provider.ID == id {
-		return r.provider, nil
+	for _, provider := range r.providers {
+		if provider != nil && provider.ID == id {
+			return provider, nil
+		}
 	}
 	return nil, errors.New("provider not found")
 }
 
 func (r runtimeTestProviderRepo) GetByName(name string) (*domainconfig.Provider, error) {
-	if r.provider != nil && r.provider.Name == name {
-		return r.provider, nil
+	for _, provider := range r.providers {
+		if provider != nil && provider.Name == name {
+			return provider, nil
+		}
 	}
 	return nil, errors.New("provider not found")
 }
 
 func (r runtimeTestProviderRepo) List() ([]*domainconfig.Provider, error) {
-	return nil, nil
+	return r.providers, nil
 }
 
 func (r runtimeTestProviderRepo) ListEnabled() ([]*domainconfig.Provider, error) {
-	return nil, nil
+	var enabled []*domainconfig.Provider
+	for _, provider := range r.providers {
+		if provider != nil && provider.Enabled {
+			enabled = append(enabled, provider)
+		}
+	}
+	return enabled, nil
 }
 
 func (r runtimeTestProviderRepo) Update(provider *domainconfig.Provider) error {
-	r.provider = provider
 	return nil
 }
 
@@ -63,10 +73,15 @@ func (r runtimeTestProviderRepo) SetDefault(string) error {
 }
 
 func (r runtimeTestProviderRepo) GetDefault() (*domainconfig.Provider, error) {
-	if r.provider == nil {
-		return nil, errors.New("provider not found")
+	for _, provider := range r.providers {
+		if provider != nil && provider.ID == r.defaultID {
+			return provider, nil
+		}
+		if provider != nil && provider.IsDefault {
+			return provider, nil
+		}
 	}
-	return r.provider, nil
+	return nil, errors.New("provider not found")
 }
 
 func (r runtimeTestProviderRepo) InitializeSystemProviders() error {
@@ -122,6 +137,8 @@ func TestRuntimeClientResolveClient_UsesRequestModelOverrideForDefaultProvider(t
 		APIHost:     "https://lx.lxsummer.cloud/v1",
 		QueryModel:  "grok-4.1-fast",
 		GenModel:    "grok-imagine-1.0",
+		Enabled:     true,
+		IsDefault:   true,
 	}
 
 	client := NewRuntimeClient(
@@ -133,7 +150,7 @@ func TestRuntimeClientResolveClient_UsesRequestModelOverrideForDefaultProvider(t
 			Model:   "grok-4.1-fast",
 		},
 		ClientOptions{},
-		runtimeTestProviderRepo{provider: provider},
+		runtimeTestProviderRepo{providers: []*domainconfig.Provider{provider}, defaultID: provider.ID},
 		runtimeTestAPIKeyRepo{},
 	)
 
@@ -156,6 +173,8 @@ func TestRuntimeClientResolveClient_UsesDefaultProviderModelWhenNoOverrideProvid
 		APIHost:     "https://lx.lxsummer.cloud/v1",
 		QueryModel:  "grok-4.1-thinking",
 		GenModel:    "grok-imagine-1.0",
+		Enabled:     true,
+		IsDefault:   true,
 	}
 
 	client := NewRuntimeClient(
@@ -167,13 +186,103 @@ func TestRuntimeClientResolveClient_UsesDefaultProviderModelWhenNoOverrideProvid
 			Model:   "grok-4.1-fast",
 		},
 		ClientOptions{},
-		runtimeTestProviderRepo{provider: provider},
+		runtimeTestProviderRepo{providers: []*domainconfig.Provider{provider}, defaultID: provider.ID},
 		runtimeTestAPIKeyRepo{},
 	)
 
 	_, resolvedReq, err := client.resolveClient(context.Background(), domainllm.GenerateRequest{})
 	require.NoError(t, err)
 	require.Equal(t, "grok-4.1-thinking", resolvedReq.Model)
+}
+
+func TestRuntimeClientResolveClient_UsesAssignedQueryProviderBeforeDefault(t *testing.T) {
+	t.Parallel()
+
+	defaultProvider := &domainconfig.Provider{
+		ID:          "provider-default",
+		Type:        domainconfig.ProviderTypeGrok,
+		Name:        "grok",
+		DisplayName: "xAI Grok",
+		APIHost:     "https://lx.lxsummer.cloud/v1",
+		QueryModel:  "",
+		GenModel:    "grok-imagine-1.0",
+		Enabled:     true,
+		IsDefault:   true,
+	}
+	assignedProvider := &domainconfig.Provider{
+		ID:          "provider-query",
+		Type:        domainconfig.ProviderTypeOpenAICompatible,
+		Name:        "tencent-coding",
+		DisplayName: "Tencent Coding",
+		APIHost:     "https://api.lkeap.cloud.tencent.com/coding/v3",
+		QueryModel:  "kimi-k2.5",
+		Enabled:     true,
+	}
+
+	client := NewRuntimeClient(
+		RuntimePurposeQuery,
+		"grok",
+		pbconfig.ProviderConfig{
+			APIKey:  "startup-key",
+			BaseURL: "https://lx.lxsummer.cloud/v1",
+			Model:   "grok-4.1-fast",
+		},
+		ClientOptions{},
+		runtimeTestProviderRepo{
+			providers: []*domainconfig.Provider{defaultProvider, assignedProvider},
+			defaultID: defaultProvider.ID,
+		},
+		runtimeTestAPIKeyRepo{},
+	)
+
+	_, resolvedReq, err := client.resolveClient(context.Background(), domainllm.GenerateRequest{})
+	require.NoError(t, err)
+	require.Equal(t, "kimi-k2.5", resolvedReq.Model)
+}
+
+func TestRuntimeClientResolveClient_UsesAssignedGenProviderBeforeDefault(t *testing.T) {
+	t.Parallel()
+
+	defaultProvider := &domainconfig.Provider{
+		ID:          "provider-default",
+		Type:        domainconfig.ProviderTypeGrok,
+		Name:        "grok",
+		DisplayName: "xAI Grok",
+		APIHost:     "https://lx.lxsummer.cloud/v1",
+		QueryModel:  "grok-4.1-fast",
+		GenModel:    "",
+		Enabled:     true,
+		IsDefault:   true,
+	}
+	assignedProvider := &domainconfig.Provider{
+		ID:          "provider-gen",
+		Type:        domainconfig.ProviderTypeOpenAICompatible,
+		Name:        "undying-image",
+		DisplayName: "Undying Gemini Image",
+		APIHost:     "https://vip.undyingapi.com/v1",
+		GenModel:    "gemini-3.1-flash-image-preview",
+		Enabled:     true,
+	}
+
+	client := NewRuntimeClient(
+		RuntimePurposeGen,
+		"grok",
+		pbconfig.ProviderConfig{
+			APIKey:  "startup-key",
+			BaseURL: "https://lx.lxsummer.cloud/v1",
+			Model:   "grok-imagine-1.0",
+		},
+		ClientOptions{},
+		runtimeTestProviderRepo{
+			providers: []*domainconfig.Provider{defaultProvider, assignedProvider},
+			defaultID: defaultProvider.ID,
+		},
+		runtimeTestAPIKeyRepo{},
+	)
+
+	_, resolvedReq, err := client.resolveClient(context.Background(), domainllm.GenerateRequest{})
+	require.NoError(t, err)
+	require.Equal(t, "gemini-3.1-flash-image-preview", resolvedReq.Model)
 }
 
 func TestRuntimeClientGenerate_UsesProviderScopedHTTPClient(t *testing.T) {
@@ -214,6 +323,7 @@ func TestRuntimeClientGenerate_UsesProviderScopedHTTPClient(t *testing.T) {
 		DisplayName: "Tencent Coding",
 		APIHost:     server.URL,
 		QueryModel:  "kimi-k2.5",
+		Enabled:     true,
 	}
 
 	client := NewRuntimeClient(
@@ -226,7 +336,7 @@ func TestRuntimeClientGenerate_UsesProviderScopedHTTPClient(t *testing.T) {
 			Timeout: time.Second,
 		},
 		ClientOptions{HTTPClient: sharedClient},
-		runtimeTestProviderRepo{provider: provider},
+		runtimeTestProviderRepo{providers: []*domainconfig.Provider{provider}, defaultID: provider.ID},
 		runtimeTestAPIKeyRepo{},
 	)
 
@@ -275,6 +385,7 @@ func TestRuntimeClientGenerate_RetriesTransientProviderFailures(t *testing.T) {
 		APIHost:     server.URL,
 		QueryModel:  "minimax-m2.5",
 		TimeoutMs:   1000,
+		Enabled:     true,
 	}
 
 	client := NewRuntimeClient(
@@ -287,7 +398,7 @@ func TestRuntimeClientGenerate_RetriesTransientProviderFailures(t *testing.T) {
 			Timeout: time.Second,
 		},
 		ClientOptions{},
-		runtimeTestProviderRepo{provider: provider},
+		runtimeTestProviderRepo{providers: []*domainconfig.Provider{provider}, defaultID: provider.ID},
 		runtimeTestAPIKeyRepo{},
 	)
 

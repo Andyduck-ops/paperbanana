@@ -1,0 +1,54 @@
+id: GD-UI-019-M-cognitive-results-overwhelming
+priority: P1
+layer: ui
+title: Long Results Displayed Without Chunking Or Summary
+source: mutation
+operator: cognitive-results-overwhelming
+parent: GD-UI-003
+intent: Long output results must be chunked with a summary or table of contents. Displaying massive text blocks without structure overwhelms users and makes navigation difficult.
+
+input:
+  ui_scenario: task produces very long text output
+  system_state:
+    output_length: 15000_characters
+    output_type: markdown_report
+    ui_shows: continuous_scroll_no_breaks
+    user_sees: wall_of_text
+
+expected:
+  ui_for_long_output_must_include:
+    - element: summary_section
+      visible: true
+    - element: table_of_contents
+      visible: true
+      clickable_links: true
+    - element: reading_time_estimate
+      visible: true
+      format: "X min read"
+  content_must_be_sectioned: true
+
+anti_patterns:
+  - 15,000 character report with no summary
+  - no table of contents or section navigation
+  - single continuous scroll with no visual breaks
+  - no way to jump to specific section
+  - no indication of document length before reading
+  - user must scroll entire document to find relevant part
+  - no progress indicator while reading
+
+notes:
+  - Auto-generate "Executive Summary" at top.
+  - Table of contents with anchor links.
+  - Show "5 min read" estimate.
+  - Collapse sections by default, expand on click.
+  - "Jump to: Findings, Recommendations, Appendix".
+  - Verification: UI has summary_section element visible at top.
+  - Verification: table_of_contents has clickable anchor links.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - information-overload
+  - content-chunking
+  - navigation-absence
+  - reading-burden

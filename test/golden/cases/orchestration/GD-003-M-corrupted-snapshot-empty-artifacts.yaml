@@ -1,0 +1,52 @@
+id: GD-003-M-corrupted-snapshot-empty-artifacts
+priority: P1
+layer: orchestration
+title: Corrupted Snapshot Empty Artifacts List
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-003
+intent: When a snapshot has completed stage status but empty GeneratedArtifacts, the resume must detect this inconsistency and fail rather than proceeding with missing artifacts.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a multi-head self-attention computation."
+  retrieval_mode: auto
+  snapshot_captured_after: planner
+  corrupted_snapshot:
+    type: inconsistent_state
+    description: "Stage shows status completed but GeneratedArtifacts is empty"
+    stage_status: completed
+    generated_artifacts: []
+    expected_artifacts:
+      - reference_bundle
+      - plan
+
+expected:
+  stages_rerun: []
+  stages_continued: []
+  final_status: failed
+  must_have_final_artifact: false
+  error_must_include:
+    - inconsistent
+    - artifact
+  error_must_not_rerun_any_stages: true
+
+anti_patterns:
+  - system proceeds with empty artifacts causing downstream stage to fail
+  - downstream stage receives nil artifacts and crashes
+  - error only surfaces at visualizer or critic stage
+  - no validation of artifact presence for completed stages
+  - session marked as completed despite missing artifacts
+
+notes:
+  - Tests semantic consistency validation beyond schema validity.
+  - A completed stage should have produced artifacts; missing artifacts indicate corruption.
+  - This validation may be advisory or strict depending on stage type.
+  - Planner and retriever outputs are critical; their absence breaks the pipeline.
+
+tags:
+  - mutation
+  - resume-boundary
+  - corrupted-snapshot
+  - semantic-validation
+  - artifact-integrity

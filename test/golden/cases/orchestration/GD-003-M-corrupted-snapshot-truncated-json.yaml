@@ -1,0 +1,49 @@
+id: GD-003-M-corrupted-snapshot-truncated-json
+priority: P1
+layer: orchestration
+title: Corrupted Snapshot Truncated JSON
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-003
+intent: When a snapshot file contains truncated or malformed JSON, the resume must fail with a parse error rather than silently creating partial state.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a reinforcement learning policy gradient flow."
+  retrieval_mode: auto
+  corrupted_snapshot:
+    type: truncated_json
+    description: "Snapshot file is truncated mid-JSON, possibly from crash during write"
+    file_content: '{"schema_version": "agent-stage-store/v1", "session": {"session_id": "sess-123", "stage_states": ['
+    parseable: false
+
+expected:
+  stages_rerun: []
+  stages_continued: []
+  final_status: failed
+  must_have_final_artifact: false
+  error_must_include:
+    - ErrInvalidSnapshot
+    - decode
+  error_must_not_rerun_any_stages: true
+  session_state_must_record_error: true
+
+anti_patterns:
+  - system attempts to parse partial JSON and continue with missing fields
+  - JSON parse error caught but treated as missing snapshot
+  - system creates new session to "recover" from parse failure
+  - unhandled JSON exception propagates to caller
+  - truncated snapshot file is overwritten or deleted
+
+notes:
+  - Tests resilience to crash-during-write scenarios.
+  - The atomic write pattern (temp file + rename) should prevent this, but test anyway.
+  - JSON decoder with DisallowUnknownFields should fail cleanly.
+  - Original corrupted file should be preserved for forensic analysis.
+
+tags:
+  - mutation
+  - resume-boundary
+  - corrupted-snapshot
+  - json-parse
+  - crash-recovery

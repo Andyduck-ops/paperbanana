@@ -1,0 +1,51 @@
+id: GD-UI-001-M-empty-prompt
+priority: P1
+layer: ui
+title: Empty Prompt Must Show Validation Error In UI
+source: mutation
+operator: empty-prompt
+parent: GD-UI-001
+intent: When an empty prompt is submitted, the UI must display a clear validation error rather than showing a running state or hanging with no timeout.
+
+input:
+  ui_scenario: task submitted with empty prompt
+  system_state:
+    session_status: failed
+    failed_stage: validation
+    validation_error: empty_prompt
+    stages_completed: []
+    stages_remaining: []
+
+expected:
+  ui_must_show:
+    - failed status indicator
+    - clear error message about empty prompt
+    - guidance to provide a valid prompt
+  ui_must_not_show:
+    - running spinner or progress indicator
+    - generic "generation failed" message
+    - pipeline stages as if processing had started
+  interaction_contract:
+    - user understands why the request was rejected
+    - user knows what to fix before retrying
+    - user can immediately retry with valid input
+
+anti_patterns:
+  - UI shows running spinner while backend rejects empty prompt
+  - UI shows generic error with no indication of what was wrong
+  - UI shows pipeline stages as "pending" when validation never started them
+  - user has no actionable information from the error state
+  - session_status and UI state are inconsistent
+
+notes:
+  - This tests the UI validation error surface.
+  - The empty prompt should fail at validation, not during pipeline.
+  - UI must surface validation errors distinctly from pipeline failures.
+  - This protects against confusing UX on the most basic input error.
+
+tags:
+  - mutation
+  - input-ambiguity
+  - empty-prompt
+  - validation-error
+  - actionable-feedback

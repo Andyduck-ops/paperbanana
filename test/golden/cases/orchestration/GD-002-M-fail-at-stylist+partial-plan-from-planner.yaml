@@ -1,0 +1,46 @@
+id: GD-002-M-fail-at-stylist+partial-plan-from-planner
+priority: P2
+layer: orchestration
+title: Partial Plan Propagates to Stylist Failure
+source: mutation
+operators:
+  - fail-at-stylist
+  - partial-plan-from-planner
+parent: GD-002
+intent: When planner produces a partial plan and stylist fails, the failure must be attributed to stylist with evidence that partial plan was received.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing blockchain transaction flow."
+  retrieval_mode: auto
+  planner_returns_partial_plan: true
+  partial_plan_missing_fields:
+    - layout
+    - component_positions
+  inject_failure_at: stylist
+
+expected:
+  final_status: failed
+  failed_stage: stylist
+  must_expose_progress: true
+  planner_completed_with_partial_output: true
+  stylist_received_partial_plan: true
+  stylist_failure_exposes_input_quality_issue: true
+
+anti_patterns:
+  - failure attributed to planner when stylist is the failing component
+  - stylist silently produces incomplete output with completed status
+  - partial plan evidence is lost from artifact chain
+  - error message does not indicate that stylist received incomplete input
+
+notes:
+  - Tests failure attribution when multiple stages contribute to the problem.
+  - The stylist receives bad input but must still report failure at its own boundary.
+  - Catches regressions where downstream stages absorb upstream quality issues silently.
+
+tags:
+  - mutation
+  - combined
+  - fail-at-stylist
+  - partial-plan-from-planner
+  - failure-attribution

@@ -1,0 +1,46 @@
+id: GD-UI-006-M-a11y-02
+priority: P0
+layer: ui
+title: Cancel Button Keyboard Accessible
+source: mutation
+operator: a11y-keyboard-cancel
+parent: GD-UI-001
+intent: The cancel button must be fully accessible via keyboard. Users who cannot use a mouse must be able to cancel a running task using keyboard navigation and activation. The Escape key should provide a quick cancel mechanism.
+wcag_criterion: WCAG 2.1 2.1.1 Keyboard (Level A)
+
+input:
+  ui_scenario: user navigating via keyboard only, task is running
+  system_state:
+    session_status: running
+    current_stage: stylist
+    input_method: keyboard_only
+
+expected:
+  cancel_button_must_be_focusable: true
+  cancel_button_must_have_visible_focus_indicator: true
+  cancel_button_must_be_activatable_via_keyboard: true
+  escape_key_should_trigger_cancel: true
+  cancel_confirmation_must_also_be_keyboard_accessible: true
+
+anti_patterns:
+  - cancel button is not in tab order (tabindex="-1" or missing)
+  - cancel button cannot be activated with Enter or Space
+  - no visible focus indicator when cancel button has focus
+  - Escape key does nothing when task is running
+  - cancel confirmation dialog traps keyboard focus
+  - user must use mouse to cancel a running task
+  - focus moves to invisible element after cancel
+
+notes:
+  - Focus indicator must have 3:1 contrast ratio minimum.
+  - Escape key cancel should show confirmation for long-running tasks.
+  - Test full keyboard workflow: Tab to cancel, Enter to activate.
+  - Ensure no keyboard trap in confirmation dialogs.
+
+tags:
+  - mutation
+  - accessibility
+  - keyboard-navigation
+  - wcag-2.1.1
+  - cancel-action
+  - focus-management

@@ -1,0 +1,56 @@
+id: GD-UI-007-M-cognitive-progress-nesting-overload
+priority: P1
+layer: ui
+title: Progress Display Has Excessive Nesting Levels
+source: mutation
+operator: cognitive-progress-nesting-overload
+parent: GD-UI-001
+intent: Progress indicators must not exceed 3 levels of nesting. Deeply nested progress like "Stage > Phase > Step > Sub-step > Item" overwhelms users and obscures actual progress status.
+
+input:
+  ui_scenario: batch task with deeply nested progress hierarchy
+  system_state:
+    batch_status: running
+    progress_display:
+      level_1: "Batch Processing"
+      level_2: "Candidate 3/10"
+      level_3: "Stage: Planner"
+      level_4: "Phase: Analysis"
+      level_5: "Step: Tokenizing"
+    ui_shows: all_5_levels_simultaneously
+
+expected:
+  progress_nesting_levels_max: 3
+  ui_must_show_dominant_progress:
+    - element: overall_percentage
+      visible: true
+    - element: top_level_status
+      visible: true
+      example: "Batch 3/10"
+  sub_progress_levels_must_be_collapsed: true
+
+anti_patterns:
+  - progress shows 5 nested levels all at once
+  - user sees "Step 2 of 3 of Phase 1 of Stage 2 of Batch" without summary
+  - multiple spinners at different nesting levels
+  - nested progress bars with no dominant indicator
+  - breadcrumb-style progress that spans entire screen width
+  - user cannot understand overall progress percentage
+  - each sub-step has its own progress indicator
+
+notes:
+  - Users need to understand progress at a glance.
+  - Recommended: Top-level (Batch 3/10) + Stage (Planner) + Progress bar.
+  - Collapse details into expandable sections if needed.
+  - One dominant progress bar with percentage.
+  - Sub-progress should be secondary or hidden.
+  - Verification: progress nesting does not exceed 3 levels.
+  - Verification: overall percentage is visible and dominant.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - progress-overload
+  - nesting-depth
+  - visual-clutter
+  - cognitive-overhead

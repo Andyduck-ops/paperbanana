@@ -1,0 +1,48 @@
+id: GD-001-M-no-rendered-output
+priority: P1
+layer: orchestration
+title: Visualizer Produces No Image Bytes
+source: mutation
+operator: no-rendered-output
+parent: GD-001
+intent: System must detect and report when visualizer stage completes but produces zero-length output (image_bytes_length=0). This tests OUTPUT PRODUCTION failure - visualizer ran but generated nothing. Distinct from GD-005-M-artifact-not-surfaced which tests OUTPUT BINDING failure.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a distributed system architecture."
+  retrieval_mode: auto
+  inject_visualizer_result:
+    status: completed
+    image_bytes: null
+    image_bytes_length: 0
+
+expected:
+  must_handle_gracefully: true
+  final_status: failed
+  failed_stage: visualizer
+  error_message_must_include:
+    - indication that visualizer produced no output
+  must_have_final_artifact: false
+  critic_must_not_run: true
+
+anti_patterns:
+  - final_status is completed but artifact is empty
+  - system passes empty bytes to critic without detection
+  - critic runs and tries to analyze null image
+  - error message is generic with no mention of visualizer
+  - session state shows completed with no artifact audit trail
+
+notes:
+  - Tests OUTPUT PRODUCTION validation at visualizer stage.
+  - Visualizer completing with no bytes is a failure, not success.
+  - Distinct from GD-005-M-artifact-not-surfaced:
+    - This test: visualizer output is empty (production failure)
+    - GD-005: visualizer output exists but not bound to session (binding failure)
+  - The system must validate artifact bytes > 0 before marking stage complete.
+
+tags:
+  - mutation
+  - artifact-production
+  - visualizer
+  - empty-output
+  - output-validation

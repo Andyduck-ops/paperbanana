@@ -16,7 +16,7 @@ func TestPipelineModeMetadata(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
+		name         string
 		pipelineMode string
 	}{
 		{name: "full pipeline", pipelineMode: "full"},
@@ -69,8 +69,8 @@ func TestPipelineModeMetadata(t *testing.T) {
 	}
 }
 
-// TestPipelineModeRouting documents expected behavior for pipeline routing.
-// Full implementation of routing logic will be added in a future phase.
+// TestPipelineModeRouting verifies that the runner executes only the stages
+// enabled by the requested pipeline mode.
 func TestPipelineModeRouting(t *testing.T) {
 	t.Parallel()
 
@@ -79,7 +79,6 @@ func TestPipelineModeRouting(t *testing.T) {
 		"full": {
 			domainagent.StageRetriever,
 			domainagent.StagePlanner,
-			domainagent.StageStylist,
 			domainagent.StageVisualizer,
 			domainagent.StageCritic,
 		},
@@ -92,31 +91,41 @@ func TestPipelineModeRouting(t *testing.T) {
 		},
 	}
 
-	// Verify expected stages are defined correctly
 	for mode, stages := range expectedStages {
-		t.Run(mode+"_stages_defined", func(t *testing.T) {
+		t.Run(mode, func(t *testing.T) {
 			t.Parallel()
 
-			assert.NotEmpty(t, stages, "expected stages should not be empty for mode %s", mode)
+			var (
+				mu        sync.Mutex
+				callOrder []domainagent.StageName
+			)
 
-			switch mode {
-			case "full":
-				assert.Contains(t, stages, domainagent.StageRetriever, "full mode should include Retriever")
-				assert.Contains(t, stages, domainagent.StagePlanner, "full mode should include Planner")
-				assert.Contains(t, stages, domainagent.StageStylist, "full mode should include Stylist")
-				assert.Contains(t, stages, domainagent.StageVisualizer, "full mode should include Visualizer")
-				assert.Contains(t, stages, domainagent.StageCritic, "full mode should include Critic")
-			case "planner-critic":
-				assert.Contains(t, stages, domainagent.StagePlanner, "planner-critic mode should include Planner")
-				assert.Contains(t, stages, domainagent.StageCritic, "planner-critic mode should include Critic")
-				assert.NotContains(t, stages, domainagent.StageRetriever, "planner-critic mode should NOT include Retriever")
-				assert.NotContains(t, stages, domainagent.StageVisualizer, "planner-critic mode should NOT include Visualizer")
-			case "vanilla":
-				assert.Contains(t, stages, domainagent.StageVisualizer, "vanilla mode should include Visualizer")
-				assert.NotContains(t, stages, domainagent.StageRetriever, "vanilla mode should NOT include Retriever")
-				assert.NotContains(t, stages, domainagent.StagePlanner, "vanilla mode should NOT include Planner")
-				assert.NotContains(t, stages, domainagent.StageCritic, "vanilla mode should NOT include Critic")
+			runner := NewRunner(newStubRegistry(func(_ context.Context, input domainagent.AgentInput) (domainagent.AgentOutput, error) {
+				mu.Lock()
+				callOrder = append(callOrder, input.Stage)
+				mu.Unlock()
+
+				return domainagent.AgentOutput{
+					Stage:        input.Stage,
+					Content:      string(input.Stage) + "-output",
+					VisualIntent: input.VisualIntent,
+					Prompt:       input.Prompt,
+				}, nil
+			}), WithEventBuffer(16))
+
+			input := testAgentInput()
+			input.Metadata = map[string]string{
+				"config.pipeline_mode": mode,
 			}
+
+			handle, err := runner.Start(context.Background(), input)
+			require.NoError(t, err)
+
+			result, err := handle.Wait()
+			require.NoError(t, err)
+
+			assert.Equal(t, stages, callOrder)
+			assert.Equal(t, stages, result.Session.Pipeline)
 		})
 	}
 }
@@ -147,4 +156,90 @@ func TestCanonicalPipelineIncludesStylist(t *testing.T) {
 
 	assert.True(t, plannerIdx < stylistIdx, "Planner should run before Stylist")
 	assert.True(t, stylistIdx < visualizerIdx, "Stylist should run before Visualizer")
+}
+
+// TestInvalidPipelineModeFallback verifies that invalid pipeline modes fall back to full pipeline.
+func TestInvalidPipelineModeFallback(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		pipelineMode string
+		expectFull   bool
+	}{
+		{name: "empty mode falls back to full", pipelineMode: "", expectFull: true},
+		{name: "invalid mode falls back to full", pipelineMode: "invalid-mode", expectFull: true},
+		{name: "random string falls back to full", pipelineMode: "random", expectFull: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				mu        sync.Mutex
+				callOrder []domainagent.StageName
+			)
+
+			runner := NewRunner(newStubRegistry(func(_ context.Context, input domainagent.AgentInput) (domainagent.AgentOutput, error) {
+				mu.Lock()
+				callOrder = append(callOrder, input.Stage)
+				mu.Unlock()
+
+				return domainagent.AgentOutput{
+					Stage:        input.Stage,
+					Content:      string(input.Stage) + "-output",
+					VisualIntent: input.VisualIntent,
+					Prompt:       input.Prompt,
+				}, nil
+			}), WithEventBuffer(16))
+
+			input := testAgentInput()
+			input.Metadata = map[string]string{
+				"config.pipeline_mode": tc.pipelineMode,
+			}
+
+			handle, err := runner.Start(context.Background(), input)
+			require.NoError(t, err)
+
+			result, err := handle.Wait()
+			require.NoError(t, err)
+
+			// Invalid modes should fall back to the full pipeline
+			fullPipeline := []domainagent.StageName{
+				domainagent.StageRetriever,
+				domainagent.StagePlanner,
+				domainagent.StageStylist,
+				domainagent.StageVisualizer,
+				domainagent.StageCritic,
+			}
+			assert.Equal(t, fullPipeline, callOrder, "invalid mode should execute full pipeline")
+			assert.Equal(t, fullPipeline, result.Session.Pipeline, "session should reflect full pipeline")
+		})
+	}
+}
+
+// TestPipelineModeValidation verifies the IsValidPipelineMode function.
+func TestPipelineModeValidation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		mode     string
+		expected bool
+	}{
+		{"full", true},
+		{"planner-critic", true},
+		{"vanilla", true},
+		{"", false},
+		{"invalid", false},
+		{"FULL", false}, // case sensitive
+		{"Vanilla", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.mode, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.expected, domainagent.IsValidPipelineMode(tc.mode))
+		})
+	}
 }

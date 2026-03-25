@@ -1,0 +1,47 @@
+id: GD-001-M-time-011
+priority: P1
+layer: orchestration
+title: Resume Timeout During Snapshot Load
+source: mutation
+operator: resume-load-timeout
+parent: GD-001
+intent: When snapshot loading during resume takes too long, the system must fail gracefully without corrupting the session.
+
+input:
+  mode: plot
+  prompt: "Create a scatter plot showing correlation between education and income."
+  retrieval_mode: auto
+  resume_timeout_scenario:
+    original_session_completed_through: planner
+    snapshot_size_mb: 500
+    snapshot_load_timeout_ms: 30000
+    actual_load_time_ms: 60000
+    storage_backend: slow_network_storage
+
+expected:
+  final_status: failed
+  error_must_indicate: snapshot_load_timeout
+  original_session_must_remain_intact: true
+  snapshot_must_not_be_corrupted: true
+  user_must_be_offered: start_fresh_option
+  retry_resume_may_succeed: true
+
+anti_patterns:
+  - partial snapshot load corrupts original session
+  - system attempts to continue with incomplete snapshot
+  - no indication that snapshot load was the bottleneck
+  - session deleted during failed resume attempt
+  - user has no option to start fresh instead of retry
+
+notes:
+  - Tests timeout handling during recovery operations.
+  - Large snapshots may take time to load from network storage.
+  - Original session must remain recoverable.
+  - User should have option to abandon resume.
+
+tags:
+  - mutation
+  - time-sensitive
+  - resume
+  - snapshot-load
+  - recovery-timeout

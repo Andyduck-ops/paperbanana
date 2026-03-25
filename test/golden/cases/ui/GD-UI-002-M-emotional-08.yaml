@@ -1,0 +1,59 @@
+id: GD-UI-002-M-emotional-08
+priority: P1
+layer: ui
+title: Failure Recovery Must Feel Supported Not Abandoned
+source: mutation
+operator: emotional-failure-support
+parent: GD-UI-002
+intent: After a task fails, the UI must make the user feel supported in recovery rather than abandoned. Failure should be framed as a temporary setback with a clear path forward.
+
+input:
+  ui_scenario: task fails at visualizer stage due to rendering error
+  system_state:
+    session_status: failed
+    failed_stage: visualizer
+    error_type: rendering_failure
+    stages_completed:
+      - retriever
+      - planner
+      - stylist
+    partial_artifacts_available: true
+
+expected:
+  ui_must_show:
+    - empathetic acknowledgment that this is frustrating
+    - reassurance that partial work is preserved
+    - clear, easy recovery actions (retry, adjust, report)
+    - human tone that doesn't blame the user
+  ui_must_not_show:
+    - cold "Task failed" with no support
+    - implying user should figure out recovery alone
+    - hiding partial artifacts that could be salvaged
+    - making recovery require technical knowledge
+  interaction_contract:
+    - user feels the system is helping them recover
+    - user sees a clear path forward
+    - failure becomes a minor setback, not a dead end
+
+anti_patterns:
+  - "Generation failed. Please try again." with no context
+    - no indication of what was preserved from earlier stages
+    - retry button hidden or hard to find
+    - no guidance on what might have caused failure
+    - user must start from scratch
+    - error tone that suggests user did something wrong
+    - no way to report or get help
+
+notes:
+  - Failure is an emotional low point - support is critical.
+  - Consider: "Something went wrong at the final step. Here's what you can do..."
+  - Partial work should be visible and usable.
+  - Easy retry or adjustment paths reduce frustration.
+
+tags:
+  - mutation
+  - emotional-design
+  - failure-recovery
+  - support
+  - resilience
+  - user-assistance

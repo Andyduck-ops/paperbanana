@@ -1,0 +1,53 @@
+id: GD-001-M-time-008
+priority: P2
+layer: orchestration
+title: Concurrent Timeout and Retry
+source: mutation
+operator: timeout-retry-race
+parent: GD-001
+intent: When a timeout fires at the exact moment a retry is initiated, the system must handle the race deterministically.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: auto
+  retry_timeout_race:
+    initial_attempt:
+      stage: planner
+      starts_at: T0
+      timeout_ms: 30000
+    retry_triggered_at: T0_plus_29500
+    timeout_fires_at: T0_plus_30000
+    retry_already_in_progress: true
+
+expected:
+  race_resolution: deterministic
+  one_of:
+    - scenario: retry_wins
+      result: second_attempt_runs
+      final_status: completed_or_failed_based_on_second
+    - scenario: timeout_wins
+      result: first_attempt_marked_timeout
+      final_status: failed
+  no_duplicate_execution: true
+  no_zombie_process: true
+
+anti_patterns:
+  - both timeout and retry proceed, causing double execution
+  - system state becomes inconsistent with both running and failed flags
+  - retry is ignored because timeout already fired
+  - timeout fires but retry also starts, wasting resources
+  - no clear indication to user which path was taken
+
+notes:
+  - Tests race condition between timeout handling and retry logic.
+  - Must be deterministic for reproducibility.
+  - System should prefer timeout (fail-fast) or retry (best-effort) consistently.
+  - Logging which path was taken is essential for debugging.
+
+tags:
+  - mutation
+  - time-sensitive
+  - race-condition
+  - retry
+  - timeout

@@ -1,0 +1,1 @@
+ {{Xiaomancode}}{{VCPTavern::dailychat}}{{ShowBase64}}

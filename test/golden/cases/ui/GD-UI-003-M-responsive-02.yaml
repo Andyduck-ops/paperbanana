@@ -1,0 +1,59 @@
+id: GD-UI-003-M-responsive-02
+priority: P1
+layer: ui
+title: Desktop Dual Artifact Layout
+source: mutation
+operator: responsive-desktop-dual-artifact
+parent: GD-UI-003
+intent: At desktop viewports, code and image artifacts must be displayed side-by-side for efficient comparison and review.
+
+input:
+  ui_scenario: user views completed task with both code and image artifacts on desktop
+  system_state:
+    session_status: completed
+    artifacts:
+      - type: image
+        width: 1024
+        height: 1024
+      - type: code
+        language: typescript
+        lines: 250
+    viewport:
+      width: 1440px
+      height: 900px
+    breakpoint: desktop
+
+expected:
+  ui_must_show:
+    - side-by-side layout with image and code panels
+    - each panel takes approximately 50% of content area
+    - code panel with syntax highlighting
+    - image panel with zoom controls
+  ui_must_not_show:
+    - stacked layout wasting horizontal space
+    - one artifact type hidden behind tabs
+    - code panel narrower than 400px (unreadable)
+    - image panel narrower than 300px (too small)
+  interaction_contract:
+    - user can see both artifacts simultaneously
+    - user can compare image output with code input
+    - both artifacts remain accessible without switching tabs
+
+anti_patterns:
+  - Artifacts stacked vertically on 1440px viewport
+  - Code hidden in tab, image shown by default
+  - Code panel only 200px wide with line wrapping
+  - Image panel takes 80% of space, code crammed
+  - Must switch tabs to see different artifact types
+
+notes:
+  - Tests dual artifact layout at desktop viewport.
+  - Side-by-side enables comparison workflow.
+  - Minimum widths ensure usability of each panel.
+
+tags:
+  - mutation
+  - responsive-design
+  - artifact-display
+  - desktop-layout
+  - dual-panel

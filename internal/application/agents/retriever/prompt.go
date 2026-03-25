@@ -3,7 +3,9 @@ package retriever
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
+	"unicode"
 
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 )
@@ -19,6 +21,7 @@ type promptSpec struct {
 	outputField        string
 	instructionSuffix  string
 	autoCandidateLimit int
+	promptCharBudget   int
 }
 
 func SystemPrompt(mode domainagent.VisualMode) (string, error) {
@@ -38,28 +41,32 @@ func promptTemplate(mode domainagent.VisualMode) (string, error) {
 }
 
 func buildUserPrompt(input domainagent.AgentInput, candidates []ReferenceExample) (string, error) {
+	return buildUserPromptWithLite(input, candidates, false)
+}
+
+func buildUserPromptWithLite(input domainagent.AgentInput, candidates []ReferenceExample, lite bool) (string, error) {
 	spec, err := promptForMode(input.VisualIntent.Mode)
 	if err != nil {
 		return "", err
 	}
 
+	candidates = shortlistCandidates(input, candidates, spec.autoCandidateLimit, spec.promptCharBudget)
+
 	var builder strings.Builder
 	builder.WriteString("**Target Input**\n")
 	builder.WriteString(fmt.Sprintf("- %s: %s\n", spec.targetLabels[0], formatTargetIntent(input.VisualIntent)))
-	builder.WriteString(fmt.Sprintf("- %s: %s\n\n", spec.targetLabels[1], input.Content))
+	builder.WriteString(fmt.Sprintf("- %s: %s\n\n", spec.targetLabels[1], truncateForPrompt(input.Content, 3000)))
 	builder.WriteString("**Candidate Pool**\n")
 
-	limit := len(candidates)
-	if spec.autoCandidateLimit > 0 && limit > spec.autoCandidateLimit {
-		limit = spec.autoCandidateLimit
-	}
-
-	for idx := 0; idx < limit; idx++ {
-		candidate := candidates[idx]
+	for idx, candidate := range candidates {
 		builder.WriteString(fmt.Sprintf("Candidate %s %d:\n", spec.candidateType, idx+1))
 		builder.WriteString(fmt.Sprintf("- %s: %s\n", spec.candidateLabels[0], candidate.ID))
 		builder.WriteString(fmt.Sprintf("- %s: %s\n", spec.candidateLabels[1], candidate.VisualIntent))
-		builder.WriteString(fmt.Sprintf("- %s: %s\n\n", spec.candidateLabels[2], candidate.ContentString()))
+		if !lite {
+			builder.WriteString(fmt.Sprintf("- %s: %s\n\n", spec.candidateLabels[2], truncateForPrompt(candidate.ContentString(), 1600)))
+		} else {
+			builder.WriteString("\n")
+		}
 	}
 
 	builder.WriteString("Now, based on the Target Input and the Candidate Pool, ")
@@ -90,7 +97,8 @@ func promptForMode(mode domainagent.VisualMode) (promptSpec, error) {
 			candidateType:      "Diagram",
 			outputField:        "top10_diagrams",
 			instructionSuffix:  "select the Top 10 most relevant diagrams according to the instructions provided. Your output should be a strictly valid JSON object containing a single list of the exact ids of the top 10 selected diagrams.",
-			autoCandidateLimit: 200,
+			autoCandidateLimit: 12,
+			promptCharBudget:   220000,
 		}, nil
 	case domainagent.VisualModePlot:
 		return promptSpec{
@@ -105,11 +113,150 @@ func promptForMode(mode domainagent.VisualMode) (promptSpec, error) {
 			candidateType:      "Plot",
 			outputField:        "top10_plots",
 			instructionSuffix:  "select the Top 10 most relevant plots according to the instructions provided. Your output should be a strictly valid JSON object containing a single list of the exact ids of the top 10 selected plots.",
-			autoCandidateLimit: 0,
+			autoCandidateLimit: 12,
+			promptCharBudget:   220000,
 		}, nil
 	default:
 		return promptSpec{}, fmt.Errorf("unsupported visual mode %q", mode)
 	}
+}
+
+func shortlistCandidates(input domainagent.AgentInput, candidates []ReferenceExample, limit, promptCharBudget int) []ReferenceExample {
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	if limit <= 0 || limit > len(candidates) {
+		limit = len(candidates)
+	}
+
+	type scoredCandidate struct {
+		candidate ReferenceExample
+		score     int
+		index     int
+	}
+
+	targetIntentTokens := tokenizeText(input.VisualIntent.Goal)
+	targetContentTokens := tokenizeText(input.Content)
+	targetIntentKeywords := visualKeywords(input.VisualIntent.Goal)
+
+	scored := make([]scoredCandidate, 0, len(candidates))
+	for index, candidate := range candidates {
+		intentText := candidate.VisualIntent
+		contentText := candidate.ContentString()
+		scored = append(scored, scoredCandidate{
+			candidate: candidate,
+			score: 4*overlapCount(targetIntentTokens, tokenizeText(intentText)) +
+				2*overlapCount(targetIntentTokens, tokenizeText(truncateForScoring(contentText))) +
+				overlapCount(targetContentTokens, tokenizeText(truncateForScoring(intentText+" "+contentText))) +
+				6*sharedKeywordCount(targetIntentKeywords, visualKeywords(intentText)),
+			index: index,
+		})
+	}
+
+	sort.SliceStable(scored, func(i, j int) bool {
+		if scored[i].score == scored[j].score {
+			leftSize := promptCandidateSize(scored[i].candidate)
+			rightSize := promptCandidateSize(scored[j].candidate)
+			if leftSize == rightSize {
+				return scored[i].index < scored[j].index
+			}
+			return leftSize < rightSize
+		}
+		return scored[i].score > scored[j].score
+	})
+
+	minimumCandidates := limit
+	if minimumCandidates > 10 {
+		minimumCandidates = 10
+	}
+
+	selected := make([]ReferenceExample, 0, limit)
+	totalChars := 0
+	for _, item := range scored {
+		candidateSize := promptCandidateSize(item.candidate)
+		if promptCharBudget > 0 && len(selected) >= minimumCandidates && totalChars+candidateSize > promptCharBudget {
+			continue
+		}
+
+		selected = append(selected, item.candidate)
+		totalChars += candidateSize
+		if len(selected) == limit {
+			break
+		}
+	}
+
+	return selected
+}
+
+func tokenizeText(value string) map[string]struct{} {
+	parts := strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+
+	tokens := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		if len(part) < 3 {
+			continue
+		}
+		if _, skip := stopWords[part]; skip {
+			continue
+		}
+		tokens[part] = struct{}{}
+	}
+	return tokens
+}
+
+func overlapCount(left, right map[string]struct{}) int {
+	if len(left) == 0 || len(right) == 0 {
+		return 0
+	}
+
+	count := 0
+	for token := range left {
+		if _, ok := right[token]; ok {
+			count++
+		}
+	}
+	return count
+}
+
+func visualKeywords(value string) map[string]struct{} {
+	keywords := map[string]struct{}{}
+	for token := range tokenizeText(value) {
+		switch token {
+		case "architecture", "bar", "chart", "comparison", "dashboard", "diagram", "flow", "framework", "histogram", "line", "module", "overview", "pipeline", "plot", "scatter", "system", "timeline", "workflow":
+			keywords[token] = struct{}{}
+		}
+	}
+	return keywords
+}
+
+func sharedKeywordCount(left, right map[string]struct{}) int {
+	return overlapCount(left, right)
+}
+
+func truncateForScoring(value string) string {
+	const scoringLimit = 4000
+	if len(value) <= scoringLimit {
+		return value
+	}
+	return value[:scoringLimit]
+}
+
+func promptCandidateSize(candidate ReferenceExample) int {
+	return len(candidate.ID) + len(candidate.VisualIntent) + len(truncateForPrompt(candidate.ContentString(), 1600))
+}
+
+func truncateForPrompt(value string, limit int) string {
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+	return value[:limit] + " ..."
+}
+
+var stopWords = map[string]struct{}{
+	"and": {}, "are": {}, "for": {}, "from": {}, "into": {}, "that": {}, "the": {}, "this": {}, "with": {},
 }
 
 func formatTargetIntent(intent domainagent.VisualIntent) string {
@@ -191,8 +338,7 @@ Candidate Diagram i:
 
 # Output Format
 Provide your output strictly in the following JSON format, containing only the **exact IDs** of the Top 10 selected diagrams (use the exact IDs from the Candidate Pool, such as "ref_1", "ref_25", "ref_100", etc.):
-` + "```json\n" + `
-{
+` + "```json\n" + `{
   "top10_diagrams": [
     "ref_1",
     "ref_25",
@@ -259,8 +405,7 @@ Candidate Plot i:
 
 # Output Format
 Provide your output strictly in the following JSON format, containing only the **exact Plot IDs** of the Top 10 selected plots (use the exact IDs from the Candidate Pool, such as "ref_0", "ref_25", "ref_100", etc.):
-` + "```json\n" + `
-{
+` + "```json\n" + `{
   "top10_plots": [
     "ref_0",
     "ref_25",

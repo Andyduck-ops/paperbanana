@@ -1,0 +1,60 @@
+id: GD-UI-014-M-cognitive-similar-sessions-confusion
+priority: P1
+layer: ui
+title: Multiple Similar Tasks Create Session Confusion
+source: mutation
+operator: cognitive-similar-sessions-confusion
+parent: GD-UI-BATCH-001
+intent: When users run multiple similar tasks, each session must be clearly distinguishable. Identical or similar-looking session cards cause confusion about which task is which.
+
+input:
+  ui_scenario: user runs multiple similar prompts
+  system_state:
+    sessions:
+      - id: "sess-1"
+        prompt: "Analyze Q1 sales"
+        status: completed
+      - id: "sess-2"
+        prompt: "Analyze Q2 sales"
+        status: completed
+    ui_shows: two_identical_cards_without_distinction
+
+expected:
+  session_card_must_display:
+    - key: session_id
+      visible: true
+    - key: created_at
+      visible: true
+      format: "timestamp or relative time"
+    - key: prompt_preview
+      visible: true
+      min_chars: 30
+    - key: artifact_thumbnail
+      visible: true
+  sessions_must_be_sortable_by: timestamp
+
+anti_patterns:
+  - two session cards show "Analyze sales data" with no distinction
+  - no timestamp to show which is newer
+  - identical thumbnails for different artifacts
+  - no way to rename sessions for easy identification
+  - session list sorted by ID not time
+  - truncated prompts all look the same
+  - no color coding or visual distinction
+
+notes:
+  - Show timestamp: "Today 2:34 PM" prominently.
+  - Allow user to rename sessions.
+  - Show artifact preview thumbnail on card.
+  - Color-code by status or user-defined tags.
+  - "Q1 analysis" vs "Q2 analysis" - custom names help.
+  - Verification: each session card displays session_id, created_at, and prompt_preview.
+  - Verification: sessions are sortable by timestamp (newest first).
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - session-confusion
+  - differentiation-failure
+  - visual-ambiguity
+  - identification-burden

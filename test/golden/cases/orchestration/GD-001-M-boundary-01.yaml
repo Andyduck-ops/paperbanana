@@ -1,0 +1,54 @@
+id: GD-001-M-boundary-01
+priority: P1
+layer: orchestration
+title: Resume From Snapshot With Network Timeout During Visualizer
+source: mutation
+operators:
+  - resume-after-planner
+  - fail-at-visualizer-network-timeout
+parent: GD-001
+intent: When a session is resumed from a snapshot and network times out during visualizer execution, the system must preserve the snapshot state and allow a second resume attempt without data loss.
+
+input:
+  mode: plot
+  prompt: "Create a line chart showing stock price trends over 5 years."
+  retrieval_mode: auto
+  snapshot_captured_after: planner
+  resume_from: stylist
+  inject_failure_at: visualizer
+  failure_type: network_timeout
+  network_timeout_duration_ms: 30000
+
+expected:
+  final_status: failed
+  failed_stage: visualizer
+  failure_reason: network_timeout
+  must_expose_progress: true
+  stages_completed_before_failure:
+    - retriever
+    - planner
+    - stylist
+  snapshot_must_remain_intact: true
+  second_resume_possible: true
+  second_resume_should_succeed: true
+  must_have_final_artifact: false
+
+anti_patterns:
+  - snapshot corrupted by failed visualizer attempt
+  - resume state lost after network timeout
+  - second resume attempts from beginning instead of stylist
+  - network timeout treated as unrecoverable without resume option
+  - visualizer artifacts partially written and corrupt session state
+
+notes:
+  - Tests the intersection of resume boundary and network reliability.
+  - Network timeouts are common in production and should not corrupt resume state.
+  - The snapshot must be preserved for retry scenarios.
+
+tags:
+  - mutation
+  - boundary-combination
+  - resume-after-planner
+  - fail-at-visualizer-network-timeout
+  - network-resilience
+  - state-preservation

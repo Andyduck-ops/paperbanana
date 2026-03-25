@@ -1,0 +1,42 @@
+id: GD-004-M-retrieval-random
+priority: P1
+layer: orchestration
+title: Retrieval Constrains Planning With Random Mode
+source: mutation
+operator: retrieval-random
+parent: GD-004
+intent: Planner must receive and use random references, demonstrating the causal chain works regardless of retrieval content quality.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing how attention heads work in a transformer."
+  retrieval_mode: random
+
+expected:
+  final_status: completed
+  retriever_must_produce_bundle: true
+  planner_must_receive_bundle: true
+  retriever_artifact_must_exist: true
+  retriever_artifact_must_have_content_length: "> 0"
+  planner_input_must_include_reference_bundle: true
+  plan_artifact_must_exist: true
+  artifact_flow_must_preserve_bundle: true
+
+anti_patterns:
+  - retriever runs but produces empty bundle in random mode
+  - planner receives references but ignores them entirely
+  - plan is identical to retrieval-none variant, suggesting references dropped
+  - random retrieval causes planner timeout or crash
+
+notes:
+  - Random mode may return irrelevant references; planner must still process them.
+  - Verification: retriever_artifact existence proves retrieval stage ran and produced output.
+  - Verification: planner_input includes reference_bundle proves artifact chain is intact.
+  - This is a weaker assertion than GD-004 manual mode but still validates flow.
+  - Critical for testing retrieval-planner integration with noisy data.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-random
+  - causal-flow

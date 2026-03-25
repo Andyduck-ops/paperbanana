@@ -1,0 +1,53 @@
+id: GD-UI-012-M-cognitive-interruption-no-resume
+priority: P1
+layer: ui
+title: No Way To Resume After Interruption
+source: mutation
+operator: cognitive-interruption-no-resume
+parent: GD-UI-004
+intent: Users must be able to resume their workflow after interruption (browser close, tab switch, network loss). Forcing users to restart from scratch after interruption is a significant cognitive burden and time waste.
+
+input:
+  ui_scenario: user returns after closing browser mid-task
+  system_state:
+    previous_session:
+      status: completed
+      artifact_available: true
+      session_id: "sess-123"
+    user_returns: new_browser_session
+    ui_shows: home_page_no_resume_option
+
+expected:
+  home_page_must_show_recent_sessions:
+    - element: recent_sessions_list
+      visible: true
+    - element: session_recovery_link
+      visible: true
+      links_to: "sess-123"
+  must_preserve_session_state_server_side: true
+
+anti_patterns:
+  - user closes browser, returns, no indication of previous session
+  - no "Recent sessions" or "Continue where you left off"
+  - session data lost when browser closes
+  - must start new task even though previous completed
+  - no session history access from main UI
+  - artifact exists but user has no link to it
+  - user must remember session ID to recover
+
+notes:
+  - Show "Welcome back! Your last session completed." with link.
+  - Persist session state server-side with reasonable TTL.
+  - "Recent Sessions" section on home page.
+  - Email notification with session link on completion.
+  - Session recovery URL should be shareable.
+  - Verification: home page displays recent_sessions_list element.
+  - Verification: session_recovery_link points to previous session.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - session-recovery
+  - interruption-handling
+  - workflow-continuity
+  - resume-ability

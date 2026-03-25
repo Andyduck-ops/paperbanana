@@ -1,0 +1,48 @@
+id: GD-002-M-partial-plan-from-planner
+priority: P1
+layer: orchestration
+title: Planner Returns Plan With Missing Fields
+source: mutation
+operator: partial-plan-from-planner
+parent: GD-002
+intent: System must detect and handle partially-formed plans from planner, failing gracefully with meaningful error rather than propagating invalid state.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a transformer attention mechanism."
+  retrieval_mode: auto
+  inject_planner_result: partial_plan
+  partial_plan_missing_fields:
+    - layout_spec
+    - style_hints
+
+expected:
+  final_status: failed
+  must_handle_gracefully: true
+  failed_stage: planner
+  failure_reason_must_include: validation error
+  stages_must_not_run_after_failure:
+    - stylist
+    - visualizer
+    - critic
+  must_emit_validation_error: true
+
+anti_patterns:
+  - pipeline proceeds to stylist with incomplete plan
+  - stylist crashes on null layout_spec
+  - failure reason is generic "planner failed" without field detail
+  - partial plan silently accepted and produces garbage output
+  - validation error logged internally but not surfaced to session state
+
+notes:
+  - Tests validation boundary between planner and stylist.
+  - Planner output must be validated for required fields before handoff.
+  - Error message should indicate which fields are missing.
+  - This protects against planner hallucinations that omit critical fields.
+
+tags:
+  - mutation
+  - artifact-presence
+  - partial-plan
+  - planner
+  - validation

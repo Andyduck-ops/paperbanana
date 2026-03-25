@@ -1,0 +1,46 @@
+id: GD-UI-006-M-a11y-15
+priority: P1
+layer: ui
+title: No Seizure-Inducing Content During Progress
+source: mutation
+operator: a11y-no-seizure-content
+parent: GD-UI-001
+intent: The UI must not contain any content that flashes more than three times per second. Progress indicators and animations must be evaluated for seizure risk. Users with photosensitive epilepsy must be protected from triggering content.
+wcag_criterion: WCAG 2.1 2.3.1 Three Flashes or Below Threshold (Level A)
+
+input:
+  ui_scenario: user with photosensitive epilepsy monitoring task progress
+  system_state:
+    session_status: running
+    current_stage: visualizer
+    animations_active: true
+
+expected:
+  no_content_flashes_more_than_3_times_per_second: true
+  progress_spinner_must_not_strobe: true
+  error_flash_must_be_below_threshold: true
+  reduced_motion_must_disable_all_flashing: true
+  visual_alerts_must_have_non_visual_alternative: true
+
+anti_patterns:
+  - progress indicator has pulsing animation faster than 3Hz
+  - error state triggers rapid red flash
+  - stage transition causes screen flash
+  - loading spinner uses strobe effect
+  - completion celebration has flashing elements
+  - background gradient animates rapidly
+  - no consideration for photosensitivity in design
+
+notes:
+  - Flash threshold: no more than 3 flashes per second.
+  - Use smooth transitions instead of rapid flashes.
+  - Provide non-visual alerts for all visual notifications.
+  - Test with photosensitive seizure analysis tools.
+
+tags:
+  - mutation
+  - accessibility
+  - seizure-prevention
+  - wcag-2.3.1
+  - photosensitive-epilepsy
+  - animation-safety

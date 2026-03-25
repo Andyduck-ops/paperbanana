@@ -1,0 +1,54 @@
+id: GD-UI-004-M-corrupted-snapshot-ui-feedback
+priority: P1
+layer: ui
+title: Corrupted Snapshot Shows Clear Error In UI
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-UI-004
+intent: When a resume fails due to corrupted snapshot, the UI must display a clear error message indicating the resume failure, not a generic generation error.
+
+input:
+  ui_scenario: user attempts to resume a task but snapshot is corrupted
+  system_state:
+    resume_attempted: true
+    resume_failed: true
+    failure_reason: corrupted_snapshot
+    snapshot_error_detail: "schema version mismatch"
+    original_session_id: session-abc123
+    stages_attempted: []
+
+expected:
+  ui_must_show:
+    - resume failed status clearly indicated
+    - error message mentioning "resume" and "snapshot"
+    - option to start fresh generation
+    - original session ID for support reference
+  ui_must_not_show:
+    - generic "generation failed" message
+    - loading spinner visible for >60s with no error message
+    - empty error state with no message
+    - error attributed to a stage (since no stage ran)
+  interaction_contract:
+    - user understands this is a resume failure, not a generation failure
+    - user can take corrective action (start fresh, contact support)
+    - user has session ID for debugging
+
+anti_patterns:
+  - UI shows same error as generation failure with no resume context
+  - UI shows loading spinner for >60s with no error resolution
+  - error message says "planner failed" when planner never ran
+  - no option to recover and start fresh
+  - session_id field not displayed in error context or support reference
+
+notes:
+  - Tests UI error handling for resume-specific failures.
+  - User must distinguish resume failure from generation failure.
+  - Recovery options must be presented.
+  - Session ID enables support/debugging workflow.
+
+tags:
+  - mutation
+  - resume-boundary
+  - corrupted-snapshot
+  - ui-error-handling
+  - user-recovery

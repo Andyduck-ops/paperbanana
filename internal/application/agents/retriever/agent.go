@@ -26,10 +26,11 @@ const (
 type RetrievalMode string
 
 const (
-	RetrievalModeAuto   RetrievalMode = "auto"
-	RetrievalModeManual RetrievalMode = "manual"
-	RetrievalModeRandom RetrievalMode = "random"
-	RetrievalModeNone   RetrievalMode = "none"
+	RetrievalModeAuto      RetrievalMode = "auto"
+	RetrievalModeAutoFull  RetrievalMode = "auto-full"
+	RetrievalModeManual    RetrievalMode = "manual"
+	RetrievalModeRandom    RetrievalMode = "random"
+	RetrievalModeNone      RetrievalMode = "none"
 )
 
 type ReferenceExample struct {
@@ -205,44 +206,50 @@ func (a *Agent) executeMode(ctx context.Context, input domainagent.AgentInput, m
 		selected := a.randomExamples(candidates, 10)
 		return a.buildOutput(input, prompt, mode, selectedExampleIDs(selected), selected), nil
 	case RetrievalModeAuto:
-		candidates, err := a.loadCandidates(ctx, input.VisualIntent.Mode)
-		if err != nil {
-			return domainagent.AgentOutput{}, err
-		}
-		if len(candidates) == 0 {
-			return a.buildOutput(input, prompt, RetrievalModeNone, nil, nil), nil
-		}
-		if a.client == nil {
-			return domainagent.AgentOutput{}, errors.New("retriever requires an llm client in auto mode")
-		}
-
-		userPrompt, err := buildUserPrompt(input, candidates)
-		if err != nil {
-			return domainagent.AgentOutput{}, err
-		}
-		req := domainllm.GenerateRequest{
-			SystemInstruction: prompt.SystemInstruction,
-			Messages: []domainllm.Message{
-				{
-					Role:  domainllm.RoleUser,
-					Parts: []domainllm.Part{domainllm.TextPart(userPrompt)},
-				},
-			},
-			Model:         modelselection.QueryModel(input.Metadata, a.cfg.Model),
-			Temperature:   a.cfg.Temperature,
-			MaxTokens:     a.cfg.MaxOutputTokens,
-			PromptVersion: prompt.Version,
-		}
-		resp, err := a.client.Generate(ctx, req)
-		if err != nil {
-			return domainagent.AgentOutput{}, err
-		}
-
-		ids := ParseTopReferences(resp.Content, input.VisualIntent.Mode)
-		return a.buildOutput(input, prompt, mode, ids, selectExamples(ids, candidates)), nil
+		return a.executeAutoRetrieval(ctx, input, mode, prompt, true)
+	case RetrievalModeAutoFull:
+		return a.executeAutoRetrieval(ctx, input, mode, prompt, false)
 	default:
 		return domainagent.AgentOutput{}, fmt.Errorf("unsupported retrieval mode %q", mode)
 	}
+}
+
+func (a *Agent) executeAutoRetrieval(ctx context.Context, input domainagent.AgentInput, mode RetrievalMode, prompt domainagent.PromptMetadata, lite bool) (domainagent.AgentOutput, error) {
+	candidates, err := a.loadCandidates(ctx, input.VisualIntent.Mode)
+	if err != nil {
+		return domainagent.AgentOutput{}, err
+	}
+	if len(candidates) == 0 {
+		return a.buildOutput(input, prompt, RetrievalModeNone, nil, nil), nil
+	}
+	if a.client == nil {
+		return domainagent.AgentOutput{}, errors.New("retriever requires an llm client in auto mode")
+	}
+
+	userPrompt, err := buildUserPromptWithLite(input, candidates, lite)
+	if err != nil {
+		return domainagent.AgentOutput{}, err
+	}
+	req := domainllm.GenerateRequest{
+		SystemInstruction: prompt.SystemInstruction,
+		Messages: []domainllm.Message{
+			{
+				Role:  domainllm.RoleUser,
+				Parts: []domainllm.Part{domainllm.TextPart(userPrompt)},
+			},
+		},
+		Model:         modelselection.QueryModel(input.Metadata, a.cfg.Model),
+		Temperature:   a.cfg.Temperature,
+		MaxTokens:     a.cfg.MaxOutputTokens,
+		PromptVersion: prompt.Version,
+	}
+	resp, err := a.client.Generate(ctx, req)
+	if err != nil {
+		return domainagent.AgentOutput{}, err
+	}
+
+	ids := ParseTopReferences(resp.Content, input.VisualIntent.Mode)
+	return a.buildOutput(input, prompt, mode, ids, selectExamples(ids, candidates)), nil
 }
 
 func (a *Agent) promptMetadata(mode domainagent.VisualMode) (domainagent.PromptMetadata, error) {
@@ -271,7 +278,7 @@ func (a *Agent) resolveMode(input domainagent.AgentInput) (RetrievalMode, error)
 
 func parseMode(value string) (RetrievalMode, error) {
 	switch RetrievalMode(value) {
-	case RetrievalModeAuto, RetrievalModeManual, RetrievalModeRandom, RetrievalModeNone:
+	case RetrievalModeAuto, RetrievalModeAutoFull, RetrievalModeManual, RetrievalModeRandom, RetrievalModeNone:
 		return RetrievalMode(value), nil
 	default:
 		return "", fmt.Errorf("unknown retrieval_setting: %s", value)

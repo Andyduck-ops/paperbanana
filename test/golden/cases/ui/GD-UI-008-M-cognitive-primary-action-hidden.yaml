@@ -1,0 +1,48 @@
+id: GD-UI-008-M-cognitive-primary-action-hidden
+priority: P1
+layer: ui
+title: Primary Action Requires Scrolling Or Navigation
+source: mutation
+operator: cognitive-primary-action-hidden
+parent: GD-UI-003
+intent: The primary action button (Submit, Run, Confirm) must be visible without scrolling. Requiring users to scroll or navigate to find the main action increases cognitive load and reduces task completion rates.
+
+input:
+  ui_scenario: form with primary action button below fold
+  system_state:
+    page_type: task_creation_form
+    viewport_height: 768px
+    form_height: 1200px
+    primary_action_position: bottom_of_form
+    user_sees: input_fields_only_submit_below_fold
+
+expected:
+  primary_action_must_be_visible_above_fold: true
+  must_show_sticky_action_bar: true
+  must_not_require_scroll_to_submit: true
+  must_highlight_primary_action: true
+  must_disable_until_valid: true
+
+anti_patterns:
+  - submit button at bottom of long form, requires scrolling
+  - no sticky header/footer with primary action
+  - primary action is same visual weight as secondary actions
+  - user must hunt for how to proceed
+  - "Next" button is hidden in accordion or tab
+  - action buttons scattered across page
+  - primary action de-emphasized with subtle styling
+
+notes:
+  - Primary action should be immediately visible and obvious.
+  - Consider sticky footer with Submit button always accessible.
+  - Use visual hierarchy: primary (solid), secondary (outline).
+  - Mobile: floating action button for primary action.
+  - User should never wonder "how do I proceed?"
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - action-discoverability
+  - hidden-affordance
+  - scroll-hunt
+  - task-completion

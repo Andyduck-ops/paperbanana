@@ -1,0 +1,55 @@
+id: GD-UI-018-M-cognitive-token-budget-invisible
+priority: P1
+layer: ui
+title: Token Budget Or Limits Not Visible Before Submit
+source: mutation
+operator: cognitive-token-budget-invisible
+parent: GD-UI-002
+intent: Users must see estimated token usage and their remaining budget BEFORE submitting. Discovering budget limits after submission wastes user effort and causes frustration.
+
+input:
+  ui_scenario: user submits large task without budget awareness
+  system_state:
+    user_remaining_budget: 5000_tokens
+    estimated_task_tokens: 50000_tokens
+    ui_shows: no_budget_indicator
+    result: task_fails_after_partial_processing
+
+expected:
+  ui_must_show_before_submit:
+    - key: remaining_budget
+      value_type: number
+      unit: tokens
+    - key: estimated_task_tokens
+      value_type: number
+      condition: "calculated from prompt"
+  warning_must_appear_when:
+    condition: estimated > remaining
+    warning_text_contains: "exceed"
+  must_prevent_submit_if_over_budget: true
+
+anti_patterns:
+  - user enters large prompt, submits, then learns budget exceeded
+  - no indication of token budget anywhere in UI
+  - task starts processing then fails mid-way for budget
+  - no estimate of how many tokens task will use
+  - budget info buried in settings, not visible on form
+  - user wastes time on task that cannot complete
+  - no suggestion for reducing token usage
+
+notes:
+  - Show "Budget: 5,000 tokens remaining" on form.
+  - Estimate: "This task may use ~50,000 tokens".
+  - Warning: "This may exceed your budget. Continue?"
+  - Suggest: "Try a shorter prompt to reduce tokens".
+  - Block submit with clear message if definitely over budget.
+  - Verification: UI displays remaining_budget numeric value.
+  - Verification: estimated_task_tokens is calculated and shown.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - budget-invisibility
+  - token-awareness
+  - pre-submit-validation
+  - wasted-effort

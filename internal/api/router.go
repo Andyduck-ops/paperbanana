@@ -101,6 +101,8 @@ func SetupRouter(runner *orchestrator.Runner, logger *zap.Logger) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
+	// Apply secure default CORS middleware
+	router.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 
 	// Health endpoints (no dependencies to check in basic setup)
 	router.GET("/health", func(c *gin.Context) {
@@ -130,6 +132,8 @@ func SetupRouterWithPersistenceAndDB(runner *orchestrator.Runner, services Persi
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
+	// Apply secure default CORS middleware
+	router.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 
 	healthChecker := NewHealthChecker(db)
 
@@ -225,6 +229,8 @@ func SetupRouterWithPersistenceWithRegistryAndDB(runner *orchestrator.Runner, se
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
 	router.Use(middleware.Metrics())
+	// Apply secure default CORS middleware
+	router.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 
 	healthChecker := NewHealthChecker(db)
 
@@ -311,7 +317,7 @@ func SetupRouterWithPersistenceWithRegistryAndDB(runner *orchestrator.Runner, se
 
 // SetupRouterWithConfig creates the full router with all endpoints including config management.
 func SetupRouterWithConfig(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, logger *zap.Logger) *gin.Engine {
-	return SetupRouterWithConfigAndBatch(runner, services, configSvc, nil, nil, nil, logger)
+	return SetupRouterWithConfigAndBatch(runner, services, configSvc, nil, nil, logger)
 }
 
 // SetupRouterWithConfigAndBatch creates the full router with all endpoints including config and batch management.

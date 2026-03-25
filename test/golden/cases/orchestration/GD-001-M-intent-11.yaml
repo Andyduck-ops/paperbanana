@@ -1,0 +1,46 @@
+id: GD-001-M-intent-11
+priority: P1
+layer: orchestration
+title: Missing Intent Information Must Be Requested Not Fabricated
+source: mutation
+operator: intent-fabrication-prevention
+parent: GD-001
+intent: When a prompt is missing critical intent information, the system must request the missing information rather than fabricate plausible but ungrounded details.
+
+input:
+  mode: diagram
+  prompt: "Create a flowchart for the user registration process."
+  retrieval_mode: auto
+  retrieval_results: empty
+
+expected:
+  one_of:
+    - final_status: completed
+      must_use_generic_registration_patterns: true
+      must_flag_fabricated_content: true
+      must_document_assumptions: true
+    - final_status: failed
+      error_must_identify_missing_context: true
+      error_must_request_specific_details: true
+  must_not_present_fabrication_as_fact: true
+  must_acknowledge_missing_information: true
+
+anti_patterns:
+  - system fabricates specific steps without any basis (e.g., "Enter SSN")
+  - system presents fabricated details as if they were from authoritative source
+  - no acknowledgment that the system doesn't know the specific registration process
+  - generic flowchart is presented as specific to user's system
+  - system doesn't distinguish between known patterns and fabricated specifics
+
+notes:
+  - The prompt lacks context about whose registration process.
+  - Without retrieval results, the system has no specific knowledge.
+  - A good system would either ask for specifics or use generic patterns with clear attribution.
+  - This tests integrity in handling missing intent information.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-fabrication-prevention
+  - missing-information
+  - knowledge-integrity

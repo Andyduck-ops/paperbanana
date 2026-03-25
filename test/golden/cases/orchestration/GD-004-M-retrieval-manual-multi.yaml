@@ -1,0 +1,65 @@
+id: GD-004-M-retrieval-manual-multi
+priority: P1
+layer: orchestration
+title: Multiple Manual References Constrain Planning
+source: mutation
+operator: retrieval-manual
+parent: GD-004
+intent: Planner must correctly process and use multiple manually injected references, demonstrating the planner can synthesize from multiple sources.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing how attention heads work in a transformer."
+  retrieval_mode: manual
+  injected_references:
+    - id: ref_transformer_attention
+      summary: "Transformer attention mechanism with multi-head structure"
+      content: "Detailed description of query, key, value attention computation."
+      path_to_gt_image: "ref_transformer_attention.png"
+    - id: ref_attention_visualization
+      summary: "Visualization patterns for attention mechanisms"
+      content: "Common visual patterns: heatmaps, arrow diagrams, flow charts."
+      path_to_gt_image: "ref_attention_visualization.png"
+    - id: ref_transformer_architecture
+      summary: "Overall transformer architecture components"
+      content: "Encoder-decoder structure, positional encoding, layer normalization."
+      path_to_gt_image: "ref_transformer_architecture.png"
+
+expected:
+  final_status: completed
+  retriever_must_produce_bundle: true
+  planner_must_receive_bundle: true
+  retriever_artifact_must_contain:
+    - "ref_transformer_attention"
+    - "ref_attention_visualization"
+    - "ref_transformer_architecture"
+  plan_artifact_must_contain_at_least:
+    count: 2
+    from_keywords:
+      - "attention"
+      - "query"
+      - "key"
+      - "value"
+      - "encoder"
+      - "decoder"
+      - "heatmap"
+  artifact_flow_must_preserve_bundle: true
+
+anti_patterns:
+  - only first reference is used, others are ignored
+  - multiple references cause planner confusion or timeout
+  - plan references only subset of injected references
+  - reference ordering affects which ones are used
+
+notes:
+  - Tests planner robustness with multiple simultaneous references.
+  - Verification: retriever_artifact contains all three injected reference ids.
+  - Verification: plan_artifact contains keywords from at least 2 of 3 references.
+  - Critical for ensuring planner can synthesize from multiple sources.
+  - This is a stress test for the reference processing pipeline.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-manual
+  - multi-reference

@@ -1,0 +1,57 @@
+id: GD-UI-001-M-consistency-15
+priority: P1
+layer: ui
+title: Local State Survives Backend Deletion
+source: mutation
+operator: consistency-local-survives-deletion
+parent: GD-UI-001
+intent: When backend deletes a session, local UI state must be invalidated rather than continuing to show deleted data.
+
+input:
+  ui_scenario: user has session open in tab, backend deletes session due to retention policy, UI still shows the session
+  system_state:
+    session_id: session-deleted-local-001
+    frontend_local_state:
+      session_id: session-deleted-local-001
+      status: completed
+      artifact_id: artifact-xyz
+      cached_in: IndexedDB
+    backend_state:
+      session_exists: false
+      deleted_at: t1
+      deletion_reason: "retention policy: 30 day limit"
+    frontend_unaware_of_deletion: true
+
+expected:
+  ui_must_show:
+    - session no longer available message
+    - cleanup of local cached data
+    - option to start new generation
+  ui_must_not_show:
+    - completed session that no longer exists
+    - artifact download that fails with 404
+    - user confusion from ghost data
+  interaction_contract:
+    - user understands session was deleted
+    - local cache is cleaned up
+    - no orphaned data remains
+
+anti_patterns:
+  - UI shows completed session that was deleted
+  - No backend state validation on page focus
+  - Local IndexedDB survives backend deletion
+  - User tries to download artifact that no longer exists
+  - No synchronization of deletion events
+
+notes:
+  - Tests local state lifecycle management.
+  - Backend deletion should propagate to frontend.
+  - Visibility change or focus should trigger validation.
+  - Local cache must be invalidated on detection.
+
+tags:
+  - mutation
+  - state-consistency
+  - local-cache
+  - deletion-propagation
+  - lifecycle-sync

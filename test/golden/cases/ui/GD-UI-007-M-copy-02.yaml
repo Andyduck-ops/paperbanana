@@ -1,0 +1,59 @@
+id: GD-UI-007-M-copy-02
+priority: P0
+layer: ui
+title: Error Messages Must Include Actionable Next Step
+source: mutation
+operator: copy-error-not-actionable
+parent: GD-UI-002
+intent: Error messages must tell users what went wrong AND what they can do about it. Non-actionable errors cause frustration and support requests. Every error must include at least one concrete recovery action.
+
+input:
+  ui_scenario: user encounters an error during task processing
+  system_state:
+    error_contexts:
+      - error_type: network_failure
+        user_action: was submitting query
+      - error_type: validation_failure
+        user_action: was saving settings
+      - error_type: rate_limit
+        user_action: was making request
+      - error_type: resource_not_found
+        user_action: was accessing artifact
+
+expected:
+  ui_must_show:
+    - clear explanation of what went wrong in plain language
+    - at least one specific action user can take to resolve
+    - recovery action presented as button or link
+  ui_must_not_show:
+    - technical jargon like "Error 0x80042" or "ECONNREFUSED"
+    - generic messages like "Something went wrong" without next step
+    - error messages that blame the user
+    - errors that require developer knowledge to understand
+  interaction_contract:
+    - user can resolve error without contacting support
+    - error message includes visible action button or link
+    - recovery action is contextually relevant to the error
+
+anti_patterns:
+  - "An error occurred. Please try again." (no explanation, no specific action)
+  - "Error 500: Internal Server Error" (technical, not actionable)
+  - "Invalid input" without specifying which field or format expected
+  - "Request failed" with no retry or alternative suggestion
+  - "You made an invalid request" (blames user, no guidance)
+  - "Connection timeout" with no "Check your network" or "Retry" option
+  - "Rate limit exceeded" without showing when user can retry
+
+notes:
+  - Follow pattern: Problem + Solution in single message.
+  - Example: "Couldn't connect to server. Check your network and try again."
+  - Include interactive elements: "Retry" button, "Contact Support" link.
+  - Avoid accusatory language like "You entered invalid data."
+
+tags:
+  - mutation
+  - ux-writing
+  - error-messages
+  - actionable
+  - recovery
+  - user-friendly

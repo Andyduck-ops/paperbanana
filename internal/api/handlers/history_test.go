@@ -6,13 +6,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
 	"time"
 
-	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
-	domainworkspace "github.com/paperbanana/paperbanana/internal/domain/workspace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
+	domainworkspace "github.com/paperbanana/paperbanana/internal/domain/workspace"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ import (
 type mockHistoryService struct {
 	versions       map[string]*domainworkspace.VisualizationVersion
 	sessions       map[string]*domainworkspace.SessionRecord
+	recentSessions []*domainworkspace.SessionRecord
 	latestSession  *domainworkspace.SessionRecord
 	err            error
 }
@@ -47,6 +49,36 @@ func (m *mockHistoryService) GetVersion(ctx context.Context, projectID, versionI
 		return v, nil
 	}
 	return nil, errors.New("version not found")
+}
+
+func (m *mockHistoryService) ListRecentSessions(ctx context.Context, projectID string, limit int) ([]*domainworkspace.SessionRecord, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	sessions := append([]*domainworkspace.SessionRecord(nil), m.recentSessions...)
+	if len(sessions) == 0 {
+		for _, session := range m.sessions {
+			sessions = append(sessions, session)
+		}
+	}
+
+	filtered := sessions[:0]
+	for _, session := range sessions {
+		if projectID == "" || session.ProjectID == projectID {
+			filtered = append(filtered, session)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	})
+
+	if limit > 0 && len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	return filtered, nil
 }
 
 func (m *mockHistoryService) GetLatestSession(ctx context.Context, projectID, visualizationID string) (*domainworkspace.SessionRecord, error) {
@@ -185,6 +217,178 @@ func TestHistoryHandler_GetVersion(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+func TestHistoryHandler_ListRecentSessions(t *testing.T) {
+	projectOneID := uuid.NewString()
+	projectTwoID := uuid.NewString()
+	vizID := uuid.NewString()
+	now := time.Now().UTC()
+
+	mock := &mockHistoryService{
+		recentSessions: []*domainworkspace.SessionRecord{
+			{
+				ID:              uuid.NewString(),
+				ProjectID:       projectOneID,
+				VisualizationID: &vizID,
+				Status:          string(domainagent.StatusCompleted),
+				CurrentStage:    string(domainagent.StageCritic),
+				SchemaVersion:   "1.0.0",
+				Snapshot: &domainagent.SessionState{
+					SessionID:    uuid.NewString(),
+					CurrentStage: domainagent.StageCritic,
+					InitialInput: domainagent.AgentInput{
+						Content: "Paper Context: transformer compression.",
+						VisualIntent: domainagent.VisualIntent{
+							Goal: "Draw a narrow paper workflow figure",
+						},
+						Metadata: map[string]string{"http.visual_intent": "Draw a narrow paper workflow figure"},
+					},
+					StageStates: []domainagent.AgentState{
+						{
+							Stage: domainagent.StageVisualizer,
+							Output: domainagent.AgentOutput{
+								Content:  "Rendered a concise workflow figure.",
+								Metadata: map[string]string{"summary": "Rendered a concise workflow figure."},
+							},
+						},
+					},
+					FinalOutput: domainagent.AgentOutput{
+						Content:  "Final figure ready.",
+						Metadata: map[string]string{"summary": "Final figure ready."},
+					},
+				},
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				CompletedAt: &now,
+			},
+			{
+				ID:            uuid.NewString(),
+				ProjectID:     projectTwoID,
+				Status:        string(domainagent.StatusRunning),
+				CurrentStage:  string(domainagent.StageVisualizer),
+				SchemaVersion: "1.0.0",
+				Snapshot: &domainagent.SessionState{
+					SessionID:    uuid.NewString(),
+					CurrentStage: domainagent.StageVisualizer,
+					InitialInput: domainagent.AgentInput{
+						Metadata: map[string]string{"http.visual_intent": "Plot the ablation comparison"},
+					},
+				},
+				CreatedAt: now.Add(-time.Hour),
+				UpdatedAt: now.Add(-time.Hour),
+			},
+		},
+	}
+
+	router, handler := setupHistoryTest(t, mock)
+	router.GET("/sessions/recent", handler.ListRecentSessions)
+
+	t.Run("returns recent sessions globally", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/sessions/recent?limit=5", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ListRecentSessionsResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		require.Len(t, response.Sessions, 2)
+		assert.Equal(t, "", response.ProjectID)
+		assert.Equal(t, projectOneID, response.Sessions[0].ProjectID)
+		assert.Equal(t, "Draw a narrow paper workflow figure", response.Sessions[0].Prompt)
+		assert.Equal(t, "Final figure ready.", response.Sessions[0].Summary)
+		require.NotNil(t, response.Sessions[0].CompletedAt)
+	})
+
+	t.Run("filters recent sessions by project", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/sessions/recent?project_id="+projectTwoID+"&limit=5", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ListRecentSessionsResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		require.Len(t, response.Sessions, 1)
+		assert.Equal(t, projectTwoID, response.ProjectID)
+		assert.Equal(t, "Plot the ablation comparison", response.Sessions[0].Prompt)
+	})
+
+	t.Run("groups batch candidates into one recent history item", func(t *testing.T) {
+		batchGroupID := "batch-root-001"
+		candidateOneID := batchGroupID + "-candidate-0"
+		candidateTwoID := batchGroupID + "-candidate-1"
+
+		mock.recentSessions = []*domainworkspace.SessionRecord{
+			{
+				ID:            candidateOneID,
+				ProjectID:     projectOneID,
+				Status:        string(domainagent.StatusCompleted),
+				CurrentStage:  string(domainagent.StageCritic),
+				SchemaVersion: "1.0.0",
+				Snapshot: &domainagent.SessionState{
+					SessionID:    candidateOneID,
+					CurrentStage: domainagent.StageCritic,
+					InitialInput: domainagent.AgentInput{
+						Content: "Paper Context: vision transformer ablation.",
+						VisualIntent: domainagent.VisualIntent{
+							Goal: "Generate three ablation figure variants",
+						},
+						Metadata: map[string]string{
+							"http.visual_intent": "Generate three ablation figure variants",
+							"batch.group_id":     batchGroupID,
+							"batch.candidate_id": "0",
+						},
+					},
+				},
+				CreatedAt: now.Add(-2 * time.Minute),
+				UpdatedAt: now.Add(-2 * time.Minute),
+			},
+			{
+				ID:            candidateTwoID,
+				ProjectID:     projectOneID,
+				Status:        string(domainagent.StatusFailed),
+				CurrentStage:  string(domainagent.StageVisualizer),
+				SchemaVersion: "1.0.0",
+				Snapshot: &domainagent.SessionState{
+					SessionID:    candidateTwoID,
+					CurrentStage: domainagent.StageVisualizer,
+					InitialInput: domainagent.AgentInput{
+						Content: "Paper Context: vision transformer ablation.",
+						VisualIntent: domainagent.VisualIntent{
+							Goal: "Generate three ablation figure variants",
+						},
+						Metadata: map[string]string{
+							"http.visual_intent": "Generate three ablation figure variants",
+							"batch.group_id":     batchGroupID,
+							"batch.candidate_id": "1",
+						},
+					},
+				},
+				CreatedAt: now.Add(-3 * time.Minute),
+				UpdatedAt: now.Add(-3 * time.Minute),
+			},
+		}
+
+		req := httptest.NewRequest("GET", "/sessions/recent?project_id="+projectOneID+"&limit=5", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ListRecentSessionsResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		require.Len(t, response.Sessions, 1)
+		assert.Equal(t, "batch", response.Sessions[0].Mode)
+		assert.Equal(t, batchGroupID, response.Sessions[0].ID)
+		assert.Equal(t, batchGroupID, response.Sessions[0].BatchID)
+		assert.Equal(t, []string{candidateOneID, candidateTwoID}, response.Sessions[0].CandidateSessionIDs)
+		assert.Equal(t, string(domainagent.StatusCompleted), response.Sessions[0].Status)
 	})
 }
 

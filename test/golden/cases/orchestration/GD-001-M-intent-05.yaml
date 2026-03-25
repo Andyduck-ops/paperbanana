@@ -1,0 +1,44 @@
+id: GD-001-M-intent-05
+priority: P1
+layer: orchestration
+title: Cancel Plus Modify Plus Resume Must Preserve Modified Intent
+source: mutation
+operator: intent-cancel-modify-resume
+parent: GD-001
+intent: When a user cancels an execution, modifies their intent, and resumes, the system must preserve the modified intent throughout the new execution rather than reverting to the original or some intermediate state.
+
+input:
+  mode: plot
+  prompt: "Create a scatter plot of customer satisfaction vs purchase frequency."
+  retrieval_mode: auto
+  cancellation_point: mid_planner
+  modification_prompt: "Change it to a heatmap instead, showing satisfaction distribution by region."
+  resume_from: retriever
+
+expected:
+  final_status: completed
+  must_preserve_modified_intent: true
+  artifact_must_be_heatmap: true
+  must_not_produce_scatter_plot: true
+  modified_intent_must_propagate_through_pipeline: true
+  intent_modification_must_be_logged: true
+
+anti_patterns:
+  - system produces scatter plot ignoring the modification
+  - system attempts to combine scatter plot and heatmap in confusing way
+  - modification is lost between pipeline stages
+  - retriever returns scatter-plot-related content instead of heatmap content
+  - resume uses cached artifacts from canceled execution that don't match new intent
+
+notes:
+  - This tests the full cancel-modify-resume workflow with intent preservation.
+  - The modification fundamentally changes the visualization type.
+  - Cached artifacts from the canceled run may be invalid for the new intent.
+  - All pipeline stages must adapt to the modified intent.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-cancel-modify-resume
+  - intent-preservation
+  - mid-execution-modification

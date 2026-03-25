@@ -1,0 +1,77 @@
+id: GD-BATCH-M-boundary-01
+priority: P1
+layer: orchestration
+title: Batch Concurrent States With Single Candidate Timeout And Resource Contention
+source: mutation
+operators:
+  - batch-concurrent-states
+  - single-candidate-timeout
+  - resource-contention
+parent: GD-BATCH-001
+intent: When batch processing has candidates at different stages and one times out due to resource contention from others, the system must isolate the failure and complete remaining candidates.
+
+input:
+  mode: plot
+  batch_size: 4
+  prompts:
+    - "Create a heatmap of correlation matrix (large dataset)"
+    - "Create a simple line chart"
+    - "Create a pie chart (small)"
+    - "Create a scatter plot (medium dataset)"
+  retrieval_mode: shared
+  timing_control:
+    candidate_0_complexity: high
+    candidate_1_complexity: low
+    candidate_2_complexity: low
+    candidate_3_complexity: medium
+  resource_limits:
+    gpu_memory_mb: 4096
+    candidate_0_estimated_memory_mb: 3500
+  inject_failure_at: visualizer
+  failure_candidate: 0
+  failure_type: resource_timeout
+
+expected:
+  batch_final_status: partial_failure
+  resource_contention_handling:
+    - candidate_0_timed_out: true
+    - timeout_reason: gpu_memory_exhausted
+    - other_candidates_not_affected: true
+  concurrent_states_must_be_preserved: true
+  per_task_status:
+    - candidate_id: 0
+      status: failed
+      failure_stage: visualizer
+      failure_reason: resource_timeout
+    - candidate_id: 1
+      status: completed
+    - candidate_id: 2
+      status: completed
+    - candidate_id: 3
+      status: completed
+  successful_count: 3
+  failed_count: 1
+  ui_must_show:
+    - candidate 0 failed with resource timeout
+    - other candidates completed successfully
+    - resource contention warning
+
+anti_patterns:
+  - all candidates fail due to one resource exhaustion
+  - timeout on candidate 0 causes batch-wide abort
+  - resource allocation not isolated per candidate
+  - UI shows all candidates as failed
+  - completed candidates' artifacts not available
+
+notes:
+  - Tests isolation of resource-related failures in concurrent batch processing.
+  - Complex candidates should not starve simpler ones.
+  - Resource limits should be enforced per-candidate where possible.
+
+tags:
+  - mutation
+  - boundary-combination
+  - batch-concurrent-states
+  - single-candidate-timeout
+  - resource-contention
+  - batch-isolation

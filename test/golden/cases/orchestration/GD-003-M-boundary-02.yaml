@@ -1,0 +1,62 @@
+id: GD-003-M-boundary-02
+priority: P1
+layer: orchestration
+title: Resume After Visualizer With Critic Rejection And Revision Loop
+source: mutation
+operators:
+  - resume-after-visualizer
+  - critic-rejection
+  - revision-loop-limit
+parent: GD-003
+intent: When resuming after visualizer and critic rejects the output, the system must handle revision loops correctly with a maximum iteration limit.
+
+input:
+  mode: diagram
+  prompt: "Create a state machine diagram for order processing."
+  retrieval_mode: auto
+  snapshot_captured_after: visualizer
+  resume_from: critic
+  critic_behavior:
+    reject_count: 3
+    rejection_reason: "Diagram does not clearly show state transitions"
+    revision_requests:
+      - "Add labeled arrows for transitions"
+      - "Include guard conditions"
+      - "Show final states distinctly"
+  max_revision_iterations: 3
+
+expected:
+  final_status: failed
+  failed_stage: critic
+  failure_reason: revision_loop_exhausted
+  revision_history_must_show:
+    - iteration_1: rejected_with_feedback
+    - iteration_2: rejected_with_feedback
+    - iteration_3: rejected_with_feedback
+    - max_iterations_reached: true
+  must_expose_progress: true
+  visualizer_artifact_must_be_accessible: true
+  ui_must_show:
+    - revision history with all feedback
+    - final status as failed after revision limit
+    - access to last generated artifact
+
+anti_patterns:
+  - revision loop continues indefinitely
+  - revision feedback lost between iterations
+  - visualizer artifacts from each revision not preserved
+  - failure attributed to visualizer instead of critic
+  - user cannot access any artifacts after loop exhaustion
+
+notes:
+  - Tests the boundary between iterative improvement and runaway loops.
+  - Revision feedback must be preserved for debugging.
+  - Maximum iteration limits prevent resource exhaustion.
+
+tags:
+  - mutation
+  - boundary-combination
+  - resume-after-visualizer
+  - critic-rejection
+  - revision-loop-limit
+  - iteration-control

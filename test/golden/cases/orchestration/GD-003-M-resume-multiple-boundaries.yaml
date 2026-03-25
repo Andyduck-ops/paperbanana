@@ -1,0 +1,63 @@
+id: GD-003-M-resume-multiple-boundaries
+priority: P1
+layer: orchestration
+title: Resume Through Multiple Snapshot Boundaries
+source: mutation
+operator: resume-after-planner
+parent: GD-003
+intent: A session can be resumed multiple times at different boundaries, with each resume correctly preserving state from all previous runs.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a retrieval-augmented generation pipeline."
+  retrieval_mode: auto
+  multi_resume_scenario:
+    - run_1:
+        completed_stages: [retriever, planner]
+        snapshot_after: planner
+        stop_reason: user_cancel
+    - run_2_resume_from: stylist
+        completed_stages: [stylist, visualizer]
+        snapshot_after: visualizer
+        stop_reason: system_timeout
+    - run_3_resume_from: critic
+        expected_final_stages: [critic]
+
+expected:
+  final_status: completed
+  stages_must_not_rerun:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+  stages_continued:
+    - critic
+  must_have_final_artifact: true
+  resume_history_preserved:
+    - first_resume_from: planner
+    - second_resume_from: visualizer
+    - total_resumes: 2
+  intermediate_artifacts_from_all_runs:
+    - retriever artifacts from run 1
+    - stylist artifacts from run 2
+    - critic artifacts from run 3
+
+anti_patterns:
+  - only artifacts from most recent run preserved
+  - resume history overwritten on each resume
+  - earlier intermediate artifacts lost
+  - planner output lost after second resume
+  - session shows only single resume metadata
+
+notes:
+  - Tests that multiple resumes accumulate state correctly.
+  - Each resume must preserve all previous work.
+  - Resume history should be traceable for debugging.
+  - Critical for long-running generations with multiple interruptions.
+
+tags:
+  - mutation
+  - resume-boundary
+  - multiple-resume
+  - state-accumulation
+  - resume-history

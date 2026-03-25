@@ -1,0 +1,41 @@
+id: GD-API-016
+priority: P0
+layer: api
+title: Refine Success Returns Refined Image Artifact
+source: mutation
+operator: refine-image-contract
+parent: PB-REFINE-001
+intent: A successful refine request must return an image-bearing payload and persist a restorable polish session.
+
+input:
+  route: POST /api/v1/refine
+  image_data: data-url-or-base64
+  instructions: non-empty
+  resolution: 2K
+
+expected:
+  response_status: completed
+  response_fields:
+    - session_id
+    - status
+    - image.data
+    - image.mime_type
+  image_payload_required: true
+  session_persisted: true
+  persisted_current_stage: polish
+  persisted_artifact_kind: polished_image
+
+anti_patterns:
+  - 200 response with content only and no image payload
+  - refine result not queryable via session history
+  - empty session_id on success
+  - polish session persisted without final artifact bytes
+
+notes:
+  - This case is backed by handler tests for Data URL decoding, image response shape, and session persistence.
+
+tags:
+  - api
+  - refine
+  - persistence
+  - image-contract

@@ -1,0 +1,55 @@
+id: GD-UI-001-M-emotional-10
+priority: P1
+layer: ui
+title: Waiting States Must Provide Reassurance and Entertainment
+source: mutation
+operator: emotional-waiting-engagement
+parent: GD-UI-001
+intent: During extended waiting periods, the UI must provide engaging content or reassurance to prevent user frustration and abandonment. Waiting should feel productive or at least pleasant.
+
+input:
+  ui_scenario: generation is running and has been in planner stage for 60+ seconds
+  system_state:
+    session_status: running
+    current_stage: planner
+    elapsed_time: 65_seconds
+    extended_wait: true
+
+expected:
+  ui_must_show:
+    - reassuring message about extended processing
+    - optional: educational content about what's happening
+    - optional: progress-related tips or trivia
+    - sense that time is being used well
+  ui_must_not_show:
+    - static UI that looks frozen
+    - no acknowledgment of extended wait
+    - silence that breeds doubt
+    - user feeling like their time is wasted
+  interaction_contract:
+    - user feels informed and engaged during wait
+    - extended wait doesn't cause abandonment
+    - waiting time feels productive or pleasant
+
+anti_patterns:
+  - same "Processing..." message for entire 2-minute wait
+    - no differentiation between short and long waits
+    - user has nothing to read or engage with
+    - no reassurance that extended wait is normal
+    - UI looks identical at 5 seconds and 60 seconds
+    - no educational content during waiting time
+    - user assumes something is wrong
+
+notes:
+  - Long waits are inevitable; design for them.
+  - Consider: tips about using the tool, fun facts, progress updates.
+  - "The planner is working hard - complex diagrams take time."
+  - Engagement reduces perceived wait time.
+
+tags:
+  - mutation
+  - emotional-design
+  - waiting-experience
+  - engagement
+  - reassurance
+  - time-perception

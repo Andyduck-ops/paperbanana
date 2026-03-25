@@ -5,7 +5,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
+	"slices"
 	"strings"
+	"sync"
 
 	pbconfig "github.com/paperbanana/paperbanana/internal/config"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
@@ -18,16 +21,87 @@ type nodeExecutor interface {
 	Execute(ctx context.Context, node pbconfig.NodeDefinition) (httpnode.Result, error)
 }
 
+type nodeCleaner interface {
+	Cleanup(ctx context.Context) error
+}
+
 type nodeRunner struct {
-	catalog *pbconfig.NodeCatalog
-	adapter nodeExecutor
+	catalog     *pbconfig.NodeCatalog
+	adapter     nodeExecutor
+	mu          sync.Mutex
+	sessions    map[string]context.CancelFunc
+	tempFiles   []string
+	tempFilesMu sync.Mutex
 }
 
 func newNodeRunner(catalog *pbconfig.NodeCatalog, adapter nodeExecutor) *nodeRunner {
 	return &nodeRunner{
-		catalog: catalog,
-		adapter: adapter,
+		catalog:  catalog,
+		adapter:  adapter,
+		sessions: make(map[string]context.CancelFunc),
 	}
+}
+
+func (r *nodeRunner) Cleanup(ctx context.Context) error {
+	var errs []error
+
+	r.mu.Lock()
+	for sessionID, cancel := range r.sessions {
+		cancel()
+		delete(r.sessions, sessionID)
+	}
+	r.mu.Unlock()
+
+	if r.adapter != nil {
+		if cleaner, ok := r.adapter.(nodeCleaner); ok {
+			if err := cleaner.Cleanup(ctx); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	r.tempFilesMu.Lock()
+	for _, path := range r.tempFiles {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			errs = append(errs, fmt.Errorf("remove temp file %s: %w", path, err))
+		}
+	}
+	r.tempFiles = nil
+	r.tempFilesMu.Unlock()
+
+	if len(errs) > 0 {
+		return fmt.Errorf("node runner cleanup encountered %d error(s): %v", len(errs), errs)
+	}
+	return nil
+}
+
+func (r *nodeRunner) trackSession(sessionID string, cancel context.CancelFunc) {
+	r.mu.Lock()
+	r.sessions[sessionID] = cancel
+	r.mu.Unlock()
+}
+
+func (r *nodeRunner) untrackSession(sessionID string) {
+	r.mu.Lock()
+	delete(r.sessions, sessionID)
+	r.mu.Unlock()
+}
+
+func (r *nodeRunner) trackTempFile(path string) {
+	r.tempFilesMu.Lock()
+	r.tempFiles = append(r.tempFiles, path)
+	r.tempFilesMu.Unlock()
+}
+
+func (r *nodeRunner) untrackTempFile(path string) {
+	r.tempFilesMu.Lock()
+	for i, p := range r.tempFiles {
+		if p == path {
+			r.tempFiles = slices.Delete(r.tempFiles, i, i+1)
+			break
+		}
+	}
+	r.tempFilesMu.Unlock()
 }
 
 func (r *nodeRunner) enabled(input domainagent.AgentInput) bool {

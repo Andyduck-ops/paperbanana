@@ -73,14 +73,15 @@ func (c *Client) Generate(ctx context.Context, req domainllm.GenerateRequest) (*
 }
 
 func (c *Client) GenerateImage(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	model := domainllm.ResolveModel(req.Model, c.model)
+	if shouldUseChatImageGeneration(model) {
+		req.Model = model
+		return c.generateImageViaChatCompletion(ctx, req)
+	}
+
 	prompt, err := buildImagePrompt(req)
 	if err != nil {
 		return nil, err
-	}
-
-	model := domainllm.ResolveModel(req.Model, c.model)
-	if shouldUseChatImageGeneration(model) {
-		return c.generateImageViaChatCompletion(ctx, req, model, prompt)
 	}
 
 	imageReq := openaisdk.ImageRequest{
@@ -115,33 +116,11 @@ func shouldUseChatImageGeneration(model string) bool {
 	return strings.HasPrefix(model, "gemini-") && strings.Contains(model, "image")
 }
 
-func (c *Client) generateImageViaChatCompletion(
-	ctx context.Context,
-	req domainllm.GenerateRequest,
-	model string,
-	prompt string,
-) (*domainllm.GenerateResponse, error) {
-	chatReq := openaisdk.ChatCompletionRequest{
-		Model:       model,
-		Temperature: float32(req.Temperature),
-		Messages: []openaisdk.ChatCompletionMessage{{
-			Role:    openaisdk.ChatMessageRoleUser,
-			Content: prompt,
-		}},
+func (c *Client) generateImageViaChatCompletion(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	chatReq, err := buildChatCompletionRequest(req, c.model, false)
+	if err != nil {
+		return nil, err
 	}
-	if req.MaxTokens > 0 {
-		chatReq.MaxTokens = req.MaxTokens
-	}
-	if req.PromptVersion != "" {
-		chatReq.Metadata = map[string]string{"prompt_version": req.PromptVersion}
-	}
-	if system := strings.TrimSpace(req.SystemInstruction); system != "" {
-		chatReq.Messages = append([]openaisdk.ChatCompletionMessage{{
-			Role:    openaisdk.ChatMessageRoleSystem,
-			Content: system,
-		}}, chatReq.Messages...)
-	}
-
 	resp, err := c.client.CreateChatCompletion(ctx, chatReq)
 	if err != nil {
 		return nil, fmt.Errorf("openai chat image generation failed: %w", err)
@@ -151,6 +130,10 @@ func (c *Client) generateImageViaChatCompletion(
 	}
 
 	parts, content, err := buildChatImageResponseParts(resp.Choices[0].Message)
+	if err != nil {
+		return nil, err
+	}
+	parts, err = c.resolveImageURLs(ctx, parts)
 	if err != nil {
 		return nil, err
 	}
@@ -321,6 +304,28 @@ func (c *Client) downloadImage(ctx context.Context, url string) (string, []byte,
 	return mimeType, body, nil
 }
 
+func (c *Client) resolveImageURLs(ctx context.Context, parts []domainllm.Part) ([]domainllm.Part, error) {
+	if len(parts) == 0 {
+		return nil, nil
+	}
+
+	resolved := make([]domainllm.Part, len(parts))
+	for i, part := range parts {
+		resolved[i] = part
+		if part.Type != domainllm.PartTypeImage || len(part.Data) > 0 || strings.TrimSpace(part.URL) == "" {
+			continue
+		}
+
+		mimeType, body, err := c.downloadImage(ctx, part.URL)
+		if err != nil {
+			return nil, err
+		}
+		resolved[i] = domainllm.InlineImagePart(mimeType, body)
+	}
+
+	return resolved, nil
+}
+
 func detectImageMIMEType(data []byte) string {
 	if len(data) == 0 {
 		return "image/png"
@@ -467,19 +472,25 @@ func buildResponseParts(message openaisdk.ChatCompletionMessage) []domainllm.Par
 
 func buildChatImageResponseParts(message openaisdk.ChatCompletionMessage) ([]domainllm.Part, string, error) {
 	textSegments := make([]string, 0, 1+len(message.MultiContent))
+	parts := make([]domainllm.Part, 0, len(message.MultiContent)+1)
 	if content := strings.TrimSpace(message.Content); content != "" {
 		textSegments = append(textSegments, content)
 	}
 	for _, item := range message.MultiContent {
-		if item.Type != openaisdk.ChatMessagePartTypeText {
-			continue
-		}
-		if text := strings.TrimSpace(item.Text); text != "" {
-			textSegments = append(textSegments, text)
+		switch item.Type {
+		case openaisdk.ChatMessagePartTypeText:
+			if text := strings.TrimSpace(item.Text); text != "" {
+				textSegments = append(textSegments, text)
+			}
+		case openaisdk.ChatMessagePartTypeImageURL:
+			imageParts, err := imagePartsFromURL(item.ImageURL)
+			if err != nil {
+				return nil, "", err
+			}
+			parts = append(parts, imageParts...)
 		}
 	}
 
-	parts := make([]domainllm.Part, 0, len(textSegments)+1)
 	contentParts := make([]string, 0, len(textSegments))
 	for _, text := range textSegments {
 		imageParts, sanitized, err := extractInlineImagesFromText(text)
@@ -502,6 +513,22 @@ func buildChatImageResponseParts(message openaisdk.ChatCompletionMessage) ([]dom
 		content = "generated image via chat completion"
 	}
 	return parts, content, nil
+}
+
+func imagePartsFromURL(imageURL *openaisdk.ChatMessageImageURL) ([]domainllm.Part, error) {
+	if imageURL == nil || strings.TrimSpace(imageURL.URL) == "" {
+		return nil, nil
+	}
+
+	if matches := inlineImageDataURIRegex.FindStringSubmatch(imageURL.URL); len(matches) == 3 {
+		decoded, err := base64.StdEncoding.DecodeString(matches[2])
+		if err != nil {
+			return nil, fmt.Errorf("decode chat image payload: %w", err)
+		}
+		return []domainllm.Part{domainllm.InlineImagePart(matches[1], decoded)}, nil
+	}
+
+	return []domainllm.Part{domainllm.URLImagePart("", imageURL.URL)}, nil
 }
 
 func extractInlineImagesFromText(text string) ([]domainllm.Part, string, error) {

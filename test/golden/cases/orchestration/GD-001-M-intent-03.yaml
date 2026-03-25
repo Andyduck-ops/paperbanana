@@ -1,0 +1,44 @@
+id: GD-001-M-intent-03
+priority: P1
+layer: orchestration
+title: Intent Drift During Resume Must Use Latest User Intent
+source: mutation
+operator: intent-drift-resume
+parent: GD-001
+intent: When resuming a session, if the user's new prompt indicates a different intent than the original session, the system must recognize the intent shift and adapt accordingly rather than continuing with stale intent.
+
+input:
+  mode: diagram
+  prompt: "Create a system architecture diagram for an e-commerce platform."
+  retrieval_mode: auto
+  snapshot_captured_after: planner
+  resume_from: stylist
+  resume_prompt: "Actually, make it a sequence diagram showing the checkout flow instead."
+
+expected:
+  final_status: completed
+  must_detect_intent_change: true
+  must_use_resume_prompt_intent: true
+  must_not_reuse_stale_plan: true
+  artifact_must_match_new_intent: true
+  intent_change_must_be_logged: true
+
+anti_patterns:
+  - system continues with architecture diagram plan ignoring the intent change
+  - system produces architecture diagram with minor modifications instead of sequence diagram
+  - resume prompt is treated as refinement rather than intent change
+  - planner artifacts from original intent are reused unchanged
+  - no recognition that "architecture diagram" and "sequence diagram" are different intents
+
+notes:
+  - This tests intent preservation and adaptation across resume boundaries.
+  - The resume prompt fundamentally changes the output type (architecture vs sequence).
+  - The system should recognize this as an intent pivot, not a minor refinement.
+  - Stale plan reuse would produce wrong artifact type.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-drift-resume
+  - resume-adaptation
+  - intent-pivot

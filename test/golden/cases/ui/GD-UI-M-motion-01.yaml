@@ -1,0 +1,67 @@
+id: GD-UI-M-motion-01
+priority: P1
+layer: ui
+title: Stage Transition Animation Timing
+source: motion-design
+operator: motion-transition-timing
+parent: GD-UI-001
+intent: Stage transitions must have animations that complete within 200-500ms, providing clear orientation feedback without causing waiting fatigue or motion sickness.
+
+input:
+  ui_scenario: user observes stage transition during task execution
+  system_state:
+    session_status: running
+    stage_transitions:
+      - from: retriever
+        to: planner
+        animation_expected: true
+        timing_constraint_ms:
+          min: 200
+          max: 500
+      - from: planner
+        to: stylist
+        animation_expected: true
+        timing_constraint_ms:
+          min: 200
+          max: 500
+    animation_type: fade_slide
+    easing_function: ease-out
+
+expected:
+  ui_must_show:
+    - transition animation duration between 200-500ms
+    - smooth easing that avoids jarring stops
+    - clear visual indication of source and destination stages
+    - animation completes before next stage work begins
+  ui_must_not_show:
+    - instant transition without any animation (0ms)
+    - animation exceeding 500ms causing perceived lag
+    - linear easing that feels mechanical
+    - animation that overlaps with next stage processing
+  interaction_contract:
+    - user perceives smooth, purposeful movement
+    - animation reinforces the directionality of progress
+    - no jarring or disorienting transitions
+  motion_contract:
+    - animation_duration_ms: 200-500
+    - easing: ease-out or equivalent
+    - purpose: orientation_feedback
+
+anti_patterns:
+  - stage indicator instantly changes with no animation
+  - transition animation takes 800ms+ creating perceived sluggishness
+  - animation uses linear timing causing abrupt stop
+  - multiple stage transitions animate simultaneously causing visual confusion
+  - animation starts but is interrupted by next update
+
+notes:
+  - Tests animation timing for stage progress indicators.
+  - 200ms is minimum for perception, 500ms is max before it feels slow.
+  - Animation must convey direction (forward progress) not just state change.
+
+tags:
+  - motion-design
+  - animation-timing
+  - stage-transitions
+  - orientation-feedback
+  - timing-constraints

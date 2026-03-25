@@ -1,0 +1,61 @@
+id: GD-UI-001-M-visual-02
+priority: P1
+layer: ui
+title: Typography Hierarchy in Stage Cards
+source: mutation
+operator: visual-typography-break
+parent: GD-UI-001
+intent: When stage description text appears larger than the agent name, users get confused about which information is more important and scan the cards inefficiently, missing the primary agent identity at first glance.
+
+input:
+  ui_scenario: stage cards render with broken typography hierarchy
+  system_state:
+    stage_card:
+      agent_name_font: 'font-medium text-base'
+      stage_description_font: 'text-sm opacity-75'
+      summary_font: 'text-sm opacity-80'
+    expected_hierarchy:
+      - level: agent_name
+        size: '16px (text-base)'
+        weight: '500 (font-medium)'
+      - level: stage_description
+        size: '14px (text-sm)'
+        weight: '400'
+      - level: summary
+        size: '14px (text-sm)'
+        weight: '400'
+
+expected:
+  ui_must_show:
+    - agent name rendered at larger size than stage description
+    - agent name with font-medium weight, stage with normal weight
+    - clear visual distinction between primary and secondary information
+    - summary text smaller or equal to stage description
+  ui_must_not_show:
+    - stage description larger than agent name
+    - all text at same size eliminating visual hierarchy
+    - agent name with lighter weight than description
+    - summary text larger than agent name
+  interaction_contract:
+    - user can quickly scan agent names as primary information
+    - visual hierarchy guides eye from important to supporting info
+    - consistent typography across all stage cards
+
+anti_patterns:
+  - Stage description rendered at text-lg while agent name at text-sm
+  - All text uses text-base eliminating hierarchy
+  - Agent name uses font-normal while description uses font-medium
+  - Summary rendered at text-lg larger than agent name
+  - Different font weights within same hierarchy level
+
+notes:
+  - Tests typography hierarchy in StageCard component.
+  - Font size ratio: agent (1em) > stage (0.875em) >= summary (0.875em).
+  - Weight hierarchy: agent (500) > others (400).
+
+tags:
+  - mutation
+  - visual-design
+  - typography
+  - hierarchy
+  - readability

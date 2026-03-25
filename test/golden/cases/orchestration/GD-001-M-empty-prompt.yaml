@@ -1,0 +1,41 @@
+id: GD-001-M-empty-prompt
+priority: P1
+layer: orchestration
+title: Empty Prompt Must Fail Explicitly Without Pipeline Side Effects
+source: mutation
+operator: empty-prompt
+parent: GD-001
+intent: When a completely empty or whitespace-only prompt is submitted, the system must reject the request immediately without initiating the pipeline or creating any artifacts.
+
+input:
+  mode: diagram
+  prompt: ""
+  retrieval_mode: auto
+
+expected:
+  final_status: failed
+  must_fail_before_pipeline_start: true
+  error_must_indicate_empty_prompt: true
+  error_message_must_be_actionable: true
+  must_not_create_session: false
+  must_not_produce_artifact: true
+
+anti_patterns:
+  - pipeline starts and retriever runs with empty query
+  - system creates a session that remains in running state indefinitely
+  - error message is generic "generation failed" without mentioning empty input
+  - final_status is completed with an empty or placeholder artifact
+  - session state shows running with no stage progress
+
+notes:
+  - Empty string is the most extreme edge case for prompt validation.
+  - The system should validate input before any pipeline stage runs.
+  - Session creation is acceptable if it records the validation failure.
+  - This protects against resource waste on invalid input.
+
+tags:
+  - mutation
+  - input-ambiguity
+  - empty-prompt
+  - input-validation
+  - early-rejection

@@ -1,0 +1,55 @@
+id: GD-UI-016-M-cognitive-input-validation-after-submit
+priority: P1
+layer: ui
+title: Input Validation Errors Only After Submit
+source: mutation
+operator: cognitive-input-validation-after-submit
+parent: GD-UI-001
+intent: Form validation must occur before submit, not after. Showing validation errors only after submission wastes user time and increases cognitive load through repeated failure-retry cycles.
+
+input:
+  ui_scenario: user submits form, then sees validation errors
+  system_state:
+    form_fields:
+      prompt: ""
+      mode: null
+    validation_shown: after_submit_only
+    user_experience: fill_submit_fail_correct_resubmit
+
+expected:
+  validation_timing_must_be:
+    - on_blur: true
+    - on_input: true
+  form_field_must_show_inline_error:
+    - condition: field_invalid
+      error_message_visible: true
+      error_icon_visible: true
+  submit_button_state_must_be:
+    - condition: form_invalid
+      disabled: true
+
+anti_patterns:
+  - user fills form, clicks submit, then sees "Prompt is required"
+  - all validation errors shown at once after submit
+  - no inline validation during typing
+  - submit button enabled even with empty required fields
+  - error appears next to field only after failed submission
+  - user must re-read entire form to find errors
+  - no visual indication of which fields are invalid before submit
+
+notes:
+  - Validate on blur: show error when user leaves field.
+  - Validate on input: clear error as user corrects.
+  - Disable submit until form is valid.
+  - Show checkmark for valid fields.
+  - "Fix X errors before submitting" summary.
+  - Verification: inline error message appears next to invalid field on blur.
+  - Verification: submit button is disabled when form has validation errors.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - late-validation
+  - wasted-effort
+  - form-ux
+  - cognitive-tax

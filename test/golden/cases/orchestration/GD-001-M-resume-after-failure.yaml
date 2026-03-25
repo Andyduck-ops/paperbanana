@@ -1,0 +1,53 @@
+id: GD-001-M-resume-after-failure
+priority: P1
+layer: orchestration
+title: Resume After Failure Requires Explicit Retry Configuration
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-001
+intent: A failed session cannot be resumed automatically - explicit retry configuration is required to avoid infinite retry loops.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: auto
+  failure_scenario:
+    failed_at: visualizer
+    failure_reason: external_service_timeout
+  resume_attempt:
+    resume_from: visualizer
+    retry_configuration: none
+
+expected:
+  final_status: failed
+  error_type: ErrResumeFailedSession
+  error_message_must_contain:
+    - "failed session"
+    - "cannot resume"
+    - "retry"
+  stages_must_not_run:
+    - visualizer
+    - critic
+  must_preserve_failure_state: true
+  must_not_auto_retry: true
+  must_require_explicit_retry_flag: true
+
+anti_patterns:
+  - system automatically retries failed stage without user consent
+  - failure state overwritten by resume attempt
+  - infinite retry loop for transient failures
+  - resume succeeds but original failure reason is lost
+  - no distinction between resume-from-interrupt and retry-after-failure
+
+notes:
+  - Tests that failed sessions require explicit retry semantics.
+  - Resume from cancellation is allowed; resume from failure requires retry flag.
+  - Original failure context must be preserved for debugging.
+  - Protects against runaway retry loops.
+
+tags:
+  - mutation
+  - resume-boundary
+  - failure-handling
+  - retry-semantics
+  - explicit-retry

@@ -1,0 +1,67 @@
+id: GD-001-M-time-005
+priority: P2
+layer: orchestration
+title: Timezone Confusion - Task Submitted from Different Location
+source: mutation
+operator: clock-skew
+parent: GD-001
+intent: |
+  User is traveling and submits a task from a different timezone than their usual
+  location. The frontend shows task creation time in the user's current timezone,
+  but the backend stores timestamps in UTC. When the user checks their task history
+  later, the timestamps appear wrong - tasks show as "created in the future" or
+  have nonsensical durations like "-5 hours". The user expects consistent, meaningful
+  timestamps regardless of where they submitted the task.
+
+input:
+  mode: plot
+  prompt: "Create a histogram of response times."
+  retrieval_mode: auto
+  user_scenario:
+    user_home_timezone: "America/New_York (UTC-5)"
+    user_current_timezone: "Asia/Tokyo (UTC+9)"
+    backend_timezone: "UTC"
+    user_expectation: "timestamps should make sense wherever I am"
+  clock_skew_scenario:
+    frontend_clock: T0_plus_300
+    backend_clock: T0
+    skew_seconds: 300
+    stage_timeout_ms: 30000
+    frontend_shows_timeout_at: backend_T0_plus_30000
+
+expected:
+  timeout_must_use_backend_clock: true
+  frontend_must_not_show_timeout_early: true
+  frontend_must_not_show_running_after_timeout: true
+  state_synchronization_must_work: true
+  final_status: completed_or_failed_based_on_backend
+  clock_skew_must_not_cause: double_timeout
+  timestamps_must_display_in_user_timezone: true
+  duration_calculations_must_be_positive: true
+  task_history_must_be_chronologically_ordered: true
+
+anti_patterns:
+  - task shows "created at 3:00 AM tomorrow" - user thinks system is broken
+  - task duration shows "-14 hours" because timezone math went wrong
+  - user in Tokyo sees task created at NY time, confused why it's "late night"
+  - timeout fires on frontend but not backend - user sees inconsistent state
+  - task history is sorted by frontend timestamps, showing tasks in wrong order
+  - relative timestamps like "5 minutes ago" calculated from wrong timezone
+  - user cannot tell if timeout was backend-enforced or frontend-display-glitch
+  - settings show timeout in seconds but no indication of whose clock counts
+
+notes:
+  - Real user pain point: timestamps that don't make sense in their context.
+  - Users care about "when did I do this" not "what does the database store".
+  - Mobile users commonly cross timezones - this scenario is not rare.
+  - Frontend should always display times in user's local timezone.
+  - Backend must use single source of truth (UTC) for all calculations.
+  - Relative timestamps ("2 hours ago") must be calculated from current time.
+
+tags:
+  - mutation
+  - time-sensitive
+  - clock-skew
+  - timezone-handling
+  - user-experience
+  - distributed-systems

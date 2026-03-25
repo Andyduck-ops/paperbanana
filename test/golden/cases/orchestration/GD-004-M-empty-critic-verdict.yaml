@@ -1,0 +1,43 @@
+id: GD-004-M-empty-critic-verdict
+priority: P1
+layer: orchestration
+title: Critic Returns Empty Verdict Structure
+source: mutation
+operator: empty-critic-verdict
+parent: GD-001
+intent: System must handle empty or malformed critic verdicts without crashing, ensuring completion status is not blocked by critic output validation failure.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a microservices architecture."
+  retrieval_mode: auto
+  inject_critic_result: empty_verdict
+
+expected:
+  final_status: completed
+  must_handle_gracefully: true
+  critic_must_complete: true
+  critic_verdict_must_be_logged: true
+  artifact_must_still_be_accessible: true
+  must_emit_critic_warning: true
+  warning_must_include: critic verdict empty or malformed
+
+anti_patterns:
+  - pipeline crashes on empty critic verdict
+  - final_status is failed due to critic verdict validation
+  - artifact is discarded because critic verdict is invalid
+  - critic stage shown as failed in session state
+  - UI shows error state instead of completed with warning
+
+notes:
+  - Tests the artifact presence boundary at the critic stage.
+  - Critic is a quality gate, not a completion gate.
+  - Empty verdict should be logged as warning, not block completion.
+  - Artifact should remain accessible even if critic produces no structured output.
+
+tags:
+  - mutation
+  - artifact-presence
+  - empty-verdict
+  - critic
+  - graceful-degradation

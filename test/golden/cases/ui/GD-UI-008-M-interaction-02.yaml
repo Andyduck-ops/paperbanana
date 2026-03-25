@@ -1,0 +1,58 @@
+id: GD-UI-008-M-interaction-02
+priority: P0
+layer: ui
+title: Cancel Requires Explicit Confirmation For Running Tasks
+source: mutation
+operator: interaction-cancel-confirmation
+parent: GD-UI-002
+intent: Canceling a running task must require explicit confirmation dialog, not immediate abort. This prevents accidental data loss and gives users a chance to reconsider destructive action.
+
+input:
+  ui_scenario: user clicks Cancel button while task is running
+  system_state:
+    session_status: running
+    current_stage: planner
+    progress_percent: 45
+    user_action: click_cancel
+    time_invested_minutes: 3
+
+expected:
+  ui_must_show:
+    - confirmation dialog asking user to confirm cancellation
+    - clear message explaining what will be lost
+    - "Continue" and "Cancel" options (not "OK" and "Cancel")
+  ui_must_not_show:
+    - immediate cancellation without confirmation
+    - generic "Are you sure?" without context
+    - ambiguous button labels
+  interaction_contract:
+    - confirmation_required: true
+    - must_explain_consequences: true
+    - default_action: continue_running
+  dialog_content:
+    title: "Cancel generation?"
+    message: "Your progress (45% complete) will be lost. This cannot be undone."
+    primary_button: "Continue generating"
+    secondary_button: "Yes, cancel"
+
+anti_patterns:
+  - Cancel button immediately stops task without any confirmation
+  - confirmation dialog has OK/Cancel buttons (ambiguous which does what)
+  - no information about progress that will be lost
+  - confirmation appears but cancellation happens even if dismissed
+  - default button is "Cancel" making accidental cancellation easier
+  - dialog is auto-dismissed after timeout
+
+notes:
+  - Destructive actions require confirmation per UX best practices.
+  - Button labels must clearly state the action, not generic "OK/Cancel".
+  - Default should preserve work, not destroy it.
+  - Consider showing time/progress investment in confirmation message.
+
+tags:
+  - mutation
+  - interaction-design
+  - cancel-confirmation
+  - destructive-action
+  - confirmation-dialog
+  - user-safety

@@ -1,0 +1,63 @@
+id: GD-UI-M-motion-10
+priority: P2
+title: Error Message Shake Animation
+layer: ui
+source: motion-design
+operator: motion-error-shake
+parent: GD-UI-002
+intent: Error messages must include subtle shake animation to draw attention and convey error state, following established UI patterns for validation or system errors.
+
+input:
+  ui_scenario: error message appears in interface
+  system_state:
+    session_status: failed
+    error_display:
+      message: "Generation failed at visualizer stage"
+      severity: error
+      visible: true
+    error_animation:
+      type: shake
+      trigger: error_appears
+      duration_ms: 300-500
+      intensity: subtle
+      axis: horizontal
+
+expected:
+  ui_must_show:
+    - subtle horizontal shake animation when error appears
+    - animation draws attention without being jarring
+    - error message remains readable during animation
+    - animation settles to stable error display
+  ui_must_not_show:
+    - error message appears without any attention-drawing animation
+    - shake that is too intense (large displacement)
+    - shake that makes text unreadable during animation
+    - animation with loop_count = infinite
+  interaction_contract:
+    - user's attention is drawn to error location
+    - shake is brief and purposeful, not annoying
+    - error is clearly visible after animation settles
+  motion_contract:
+    - shake_duration_ms: 300-500
+    - shake_intensity_px: 4-8
+    - purpose: attention_draw
+    - error_indication: true
+
+anti_patterns:
+  - error appears with no animation
+  - shake displaces by 20+ pixels
+  - text becomes unreadable during shake
+  - shake loop_count > 1
+  - shake is vertical instead of horizontal (unusual pattern)
+
+notes:
+  - Tests error message animation for attention and feedback.
+  - Shake is established pattern for errors in many UI systems.
+  - Must be subtle enough to not annoy while drawing attention.
+
+tags:
+  - motion-design
+  - error-animation
+  - shake-animation
+  - attention-draw
+  - error-feedback

@@ -1,0 +1,67 @@
+id: GD-UI-M-motion-11
+priority: P2
+title: Batch Task Status Transition Animation
+layer: ui
+source: motion-design
+operator: motion-batch-transition
+parent: GD-UI-005
+intent: Batch task status changes must animate individually, not all at once, allowing user to track which specific task changed status in the batch view.
+
+input:
+  ui_scenario: user observes batch of tasks with status changes
+  system_state:
+    batch_mode: true
+    tasks:
+      - id: task-1
+        status: completed
+        animation: individual
+      - id: task-2
+        status: running
+        animation: individual
+      - id: task-3
+        status: failed
+        animation: individual
+    batch_animation:
+      type: staggered_individual
+      trigger: status_change_per_task
+      stagger_delay_ms: 50-150
+
+expected:
+  ui_must_show:
+    - each task animates its status change individually
+    - slight stagger between animations if multiple happen simultaneously
+    - status change animation clearly identifies which task changed
+    - animation does not affect other tasks in the batch
+  ui_must_not_show:
+    - all tasks animate simultaneously causing visual chaos
+    - no animation for status changes
+    - animation that affects visibility of other tasks
+    - all tasks show same animation regardless of status
+  interaction_contract:
+    - user can track individual task status changes
+    - stagger prevents overwhelming visual noise
+    - each task's outcome is independently visible
+  motion_contract:
+    - stagger_delay_ms: 50-150
+    - per_task_animation: true
+    - purpose: individual_task_tracking
+    - isolation: animation_does_not_affect_neighbors
+
+anti_patterns:
+  - all 10 tasks complete and animate at the exact same moment
+  - no animation when task status changes
+  - animation covers neighboring tasks
+  - failed and completed tasks use identical animation
+  - batch summary animates instead of individual tasks
+
+notes:
+  - Tests batch view animation for tracking individual task progress.
+  - Stagger prevents visual overwhelm when many tasks complete together.
+  - Each task's animation must be independently perceivable.
+
+tags:
+  - motion-design
+  - batch-animation
+  - staggered-animation
+  - status-transition
+  - individual-tracking

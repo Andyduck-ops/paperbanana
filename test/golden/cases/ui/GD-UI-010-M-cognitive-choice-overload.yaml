@@ -1,0 +1,49 @@
+id: GD-UI-010-M-cognitive-choice-overload
+priority: P1
+layer: ui
+title: Decision Point With Too Many Options
+source: mutation
+operator: cognitive-choice-overload
+parent: GD-UI-002
+intent: No single decision point should present more than 5 options without grouping. Excessive choices cause decision paralysis, slow task completion, and increase error rates (Hick's Law).
+
+input:
+  ui_scenario: mode selection with excessive ungrouped options
+  system_state:
+    decision_point: select_analysis_mode
+    options_presented: 12_ungrouped_modes
+    ui_shows: dropdown_with_12_items_flat_list
+    user_sees: all_12_options_equal_weight
+
+expected:
+  top_level_options_count_must_be: "<= 5"
+  options_must_be_grouped: true
+  recommended_option_must_be_highlighted: true
+  ui_must_show_quick_start_button: true
+  searchable_dropdown_for_options_exceeding: 5
+
+anti_patterns:
+  - dropdown with 15 ungrouped options in single list
+  - all options have equal visual weight, no recommendation
+  - no grouping or categorization
+  - no search/filter for long option lists
+  - user must read all options to make decision
+  - no "most common" or "recommended" indicators
+  - no keyboard shortcuts for common selections
+
+notes:
+  - Hick's Law: More options = longer decision time.
+  - Group options into logical categories.
+  - Highlight recommended/default option.
+  - For many options, use searchable select or categorized menu.
+  - Show "Quick start" with sensible defaults.
+  - Verification: number of top-level options does not exceed 5.
+  - Verification: quick start button is visible and functional.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - choice-overload
+  - hicks-law
+  - decision-paralysis
+  - option-fatigue

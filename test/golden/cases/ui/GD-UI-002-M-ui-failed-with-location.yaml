@@ -1,0 +1,57 @@
+id: GD-UI-002-M-ui-failed-with-location
+priority: P1
+layer: ui
+title: Failed State With Precise Location
+source: mutation
+operator: ui-failed-with-location
+parent: GD-UI-002
+intent: UI must display the exact failure location even when the failure occurred mid-stage, not just at stage boundaries.
+
+input:
+  ui_scenario: task failed during stage execution, not at boundary
+  system_state:
+    session_status: failed
+    failed_stage: visualizer
+    failure_detail:
+      phase: rendering
+      step: apply_style
+      timestamp: t_failed
+    stages_completed:
+      - retriever
+      - planner
+      - stylist
+    stages_not_run:
+      - critic
+
+expected:
+  ui_must_show:
+    - failed status indicator
+    - failed stage name prominently displayed
+    - stages completed before failure clearly marked
+    - stages not run clearly distinguished from failed stage
+  ui_must_not_show:
+    - generic failure message without stage attribution
+    - all stages shown as failed
+    - failure detail hidden in expandable section only
+  interaction_contract:
+    - user can immediately identify which stage failed
+    - user has enough context to understand failure scope
+
+anti_patterns:
+  - UI shows "generation failed" with no stage information
+  - visualizer shown same as pending stages
+  - failure detail requires click to expand before seeing stage
+  - critic shown as failed when it never ran
+  - error timestamp not correlated with stage timeline
+
+notes:
+  - Tests granular failure location visibility.
+  - Failure may occur within a stage, not just between stages.
+  - The UI should show enough detail without requiring user drill-down.
+
+tags:
+  - mutation
+  - ui-state
+  - failed-state
+  - failure-location
+  - stage-attribution

@@ -1,0 +1,46 @@
+id: GD-001-M-fail-at-retriever-network
+priority: P1
+layer: orchestration
+title: Retriever Network Timeout Failure
+source: mutation
+operator: fail-at-retriever
+parent: GD-001
+intent: When the retriever stage fails due to a network timeout, the system must attribute the failure to retriever and not attempt to continue with cached or stale data.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a distributed microservices architecture."
+  retrieval_mode: auto
+  inject_failure_at: retriever
+  failure_type: network_timeout
+
+expected:
+  final_status: failed
+  failed_stage: retriever
+  must_expose_progress: true
+  must_have_final_artifact: false
+  error_must_indicate: network_timeout
+  downstream_stages_must_not_run:
+    - planner
+    - stylist
+    - visualizer
+    - critic
+
+anti_patterns:
+  - system proceeds with empty or default retrieval results
+  - failure attributed to "network" instead of retriever stage
+  - UI shows "loading" indefinitely instead of failure state
+  - retry logic hides the original failure from session state
+  - error message suggests user wait without indicating actual failure
+
+notes:
+  - Network timeout is a common real-world failure scenario.
+  - The system must not silently degrade to empty retrieval.
+  - This tests error propagation from infrastructure to orchestration layer.
+
+tags:
+  - mutation
+  - failure-location
+  - retriever
+  - network-error
+  - timeout

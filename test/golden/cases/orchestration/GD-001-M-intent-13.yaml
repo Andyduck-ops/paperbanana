@@ -1,0 +1,50 @@
+id: GD-001-M-intent-13
+priority: P1
+layer: orchestration
+title: Partial Intent Specification Must Trigger Smart Defaults
+source: mutation
+operator: intent-partial-specification
+parent: GD-001
+intent: When a user specifies some aspects of intent but leaves others unspecified, the system must apply smart defaults for unspecified aspects while strictly adhering to specified aspects.
+
+input:
+  mode: plot
+  prompt: "Create a chart showing sales by region."
+  retrieval_mode: auto
+  data_context:
+    - region: "North"
+      sales: 150000
+    - region: "South"
+      sales: 120000
+    - region: "East"
+      sales: 180000
+    - region: "West"
+      sales: 90000
+
+expected:
+  final_status: completed
+  must_use_smart_default_for_chart_type: true
+  must_not_invent_data_beyond_context: true
+  must_log_defaults_applied: true
+  artifact_must_match_specified_intent: true
+  defaults_must_be_reasonable_for_context: true
+
+anti_patterns:
+  - system fails because chart type isn't specified
+  - system asks for chart type when bar chart is the obvious default for categorical data
+  - system invents additional regions or data points not in context
+  - defaults are inappropriate (e.g., pie chart for many categories)
+  - default choices are not logged for transparency
+
+notes:
+  - "Chart" is underspecified - could be bar, pie, etc.
+  - For categorical data (regions), bar chart is a reasonable default.
+  - The system should not invent data but should apply sensible defaults.
+  - This tests graceful handling of partial intent specification.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-partial-specification
+  - smart-defaults
+  - graceful-completion

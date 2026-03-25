@@ -45,6 +45,26 @@ func (r *SessionRepository) GetByID(ctx context.Context, id string) (*workspace.
 	return modelToSession(&model), nil
 }
 
+// ListRecent retrieves the most recently created sessions across all projects.
+func (r *SessionRepository) ListRecent(ctx context.Context, limit int) ([]*workspace.SessionRecord, error) {
+	query := r.db.WithContext(ctx).Order("created_at DESC")
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	var models []SessionModel
+	if err := query.Find(&models).Error; err != nil {
+		return nil, fmt.Errorf("list recent sessions: %w", err)
+	}
+
+	sessions := make([]*workspace.SessionRecord, len(models))
+	for i, model := range models {
+		sessions[i] = modelToSession(&model)
+	}
+	return sessions, nil
+}
+
 // GetByProject retrieves sessions for a project, ordered by creation time descending.
 func (r *SessionRepository) GetByProject(ctx context.Context, projectID string, limit int) ([]*workspace.SessionRecord, error) {
 	query := r.db.WithContext(ctx).

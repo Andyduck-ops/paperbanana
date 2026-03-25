@@ -1,0 +1,64 @@
+id: GD-UI-M-motion-04
+priority: P1
+title: Running State Pulse Animation
+layer: ui
+source: motion-design
+operator: motion-running-pulse
+parent: GD-UI-001
+intent: Running stages must display a subtle pulse animation indicating active work, distinguishing from frozen state and providing reassurance that progress is occurring.
+
+input:
+  ui_scenario: user observes task in running state
+  system_state:
+    session_status: running
+    current_stage: planner
+    stages_completed:
+      - retriever
+    running_animation:
+      type: pulse
+      trigger: running_status
+      properties:
+        cycle_duration_ms: 1500-2500
+        opacity_range: [0.7, 1.0]
+        scale_factor: 1.0
+        color: accent_primary
+
+expected:
+  ui_must_show:
+    - subtle pulse animation on current running stage indicator
+    - consistent cycle timing that conveys activity without distraction
+    - animation continues throughout the running state
+    - completed stages have no pulse, showing stable state
+  ui_must_not_show:
+    - completely static running stage indicator (looks frozen)
+    - pulse animation that is too rapid (under 1000ms cycle)
+    - pulse animation that is too intense (large opacity/scale changes)
+    - pulse animation on completed or pending stages
+  interaction_contract:
+    - user can distinguish running from stuck/frozen state
+    - pulse provides reassurance without demanding attention
+    - pulse does not interfere with reading stage information
+  motion_contract:
+    - cycle_duration_ms: 1500-2500
+    - purpose: activity_indication
+    - intensity: subtle
+    - scope: current_running_stage_only
+
+anti_patterns:
+  - running stage shows no animation, appearing frozen
+  - pulse cycles every 500ms creating strobing effect
+  - pulse causes 50% opacity change making text hard to read
+  - all stages pulse regardless of status
+  - pulse animation stops while task is still running
+
+notes:
+  - Tests that running state has reassuring activity indication.
+  - Pulse must be subtle enough for extended viewing without fatigue.
+  - Distinguishes from stuck state where progress has halted.
+
+tags:
+  - motion-design
+  - running-animation
+  - pulse-animation
+  - activity-indication
+  - reassurance-feedback

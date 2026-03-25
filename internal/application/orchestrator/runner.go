@@ -44,11 +44,12 @@ func DefaultStageTimeouts() StageTimeouts {
 }
 
 type Runner struct {
-	agents        map[domainagent.StageName]domainagent.BaseAgent
-	pipeline      []domainagent.StageName
-	eventBuffer   int
-	snapshotStore SnapshotStore
-	stageTimeouts StageTimeouts
+	agents          map[domainagent.StageName]domainagent.BaseAgent
+	pipeline        []domainagent.StageName
+	eventBuffer     int
+	snapshotStore   SnapshotStore
+	stageTimeouts   StageTimeouts
+	gracefulDegrade bool
 }
 
 func NewCanonicalRunner(retriever, planner, stylist, visualizer, critic domainagent.BaseAgent, opts ...RunnerOption) *Runner {
@@ -104,6 +105,15 @@ func WithStageTimeouts(timeouts StageTimeouts) RunnerOption {
 				r.stageTimeouts[stage] = timeout
 			}
 		}
+	}
+}
+
+// WithGracefulDegradation enables graceful degradation for non-critical stages.
+// When enabled, failures in non-critical stages (retriever, stylist, critic) will
+// allow the pipeline to continue with fallback behavior.
+func WithGracefulDegradation(enabled bool) RunnerOption {
+	return func(r *Runner) {
+		r.gracefulDegrade = enabled
 	}
 }
 
@@ -399,16 +409,44 @@ func (r *Runner) resumeTracker(input domainagent.AgentInput) (*sessionTracker, [
 			return nil, nil, err
 		}
 
+		// Validate session state is resumable
+		// Only sessions that failed, were canceled, or have remaining stages can be resumed
+		sessionStatus := snapshot.Session.Status
+		if sessionStatus == domainagent.StatusRunning {
+			// A running session might be a stale state; skip to find a better restore point
+			continue
+		}
+
+		// Validate the snapshot stage has completed status
 		if snapshot.Stage.Status != domainagent.StatusCompleted {
 			continue
 		}
 
+		// Validate pipeline integrity
 		pipeline := r.pipelineForResume(snapshot, input.Metadata)
+		if len(pipeline) == 0 {
+			return nil, nil, fmt.Errorf("%w: session %s", ErrResumePipelineEmpty, input.SessionID)
+		}
+
+		// Validate essential session fields
+		if strings.TrimSpace(snapshot.Session.SessionID) == "" {
+			return nil, nil, fmt.Errorf("%w: session has empty session_id", ErrResumeSessionNotValid)
+		}
+
 		tracker := newRestoredSessionTracker(snapshot, input, pipeline)
 		if err := r.restoreCompletedStates(snapshot); err != nil {
 			return nil, nil, err
 		}
-		return tracker, remainingPipeline(snapshot.Stage.Stage, pipeline), nil
+
+		remaining := remainingPipeline(snapshot.Stage.Stage, pipeline)
+
+		// If no remaining stages, check if this was a failed session that can be retried
+		if len(remaining) == 0 && sessionStatus != domainagent.StatusFailed && sessionStatus != domainagent.StatusCanceled {
+			// Session completed successfully with no remaining stages - nothing to resume
+			continue
+		}
+
+		return tracker, remaining, nil
 	}
 
 	return nil, nil, fmt.Errorf("%w: %s", ErrResumeSnapshotMissing, input.SessionID)
@@ -712,6 +750,52 @@ func stageAgentName(stage domainagent.StageName) string {
 		return ""
 	}
 	return strings.ToUpper(string(stage[:1])) + string(stage[1:])
+}
+
+// isCriticalStage returns true if the stage is critical and cannot be skipped.
+// Critical stages: planner, visualizer
+// Non-critical stages (can be degraded): retriever, stylist, critic
+func isCriticalStage(stage domainagent.StageName) bool {
+	switch stage {
+	case domainagent.StagePlanner, domainagent.StageVisualizer:
+		return true
+	case domainagent.StageRetriever, domainagent.StageStylist, domainagent.StageCritic:
+		return false
+	default:
+		return true
+	}
+}
+
+// fallbackOutputForStage returns a fallback output when a non-critical stage fails.
+func fallbackOutputForStage(stage domainagent.StageName, input domainagent.AgentInput) domainagent.AgentOutput {
+	output := domainagent.AgentOutput{
+		Stage:        stage,
+		VisualIntent: input.VisualIntent,
+		Prompt:       input.Prompt,
+		Metadata: map[string]string{
+			"degraded":   "true",
+			"stage":      string(stage),
+			"fallback":   "true",
+		},
+	}
+
+	switch stage {
+	case domainagent.StageRetriever:
+		// No references - planner will work without examples
+		output.RetrievedReferences = nil
+		output.Metadata["reason"] = "retriever_failed_no_references"
+	case domainagent.StageStylist:
+		// Pass through the planner output unchanged
+		output.Content = input.Content
+		output.GeneratedArtifacts = input.GeneratedArtifacts
+		output.Metadata["reason"] = "stylist_failed_passthrough"
+	case domainagent.StageCritic:
+		// Accept the visualizer output as-is
+		output.Content = "No critique performed due to critic stage failure."
+		output.Metadata["reason"] = "critic_failed_no_critique"
+	}
+
+	return output
 }
 
 type eventPublisher struct {

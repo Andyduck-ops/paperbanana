@@ -1,0 +1,57 @@
+id: GD-UI-002-M-fail-at-critic
+priority: P1
+layer: ui
+title: UI Visibility On Critic Failure With Generated Artifact
+source: mutation
+operator: fail-at-critic
+parent: GD-UI-002
+intent: When critic fails after successful artifact generation, the UI must show the artifact as accessible while indicating the validation failure.
+
+input:
+  ui_scenario: task has failed at the critic stage after artifact generation
+  system_state:
+    session_status: failed
+    failed_stage: critic
+    stages_completed:
+      - retriever
+      - planner
+      - stylist
+      - visualizer
+    stages_not_run: []
+    artifact_available: true
+    artifact_url: "/artifacts/session-123/diagram.png"
+
+expected:
+  ui_must_show:
+    - failed status indicator
+    - critic as the failed stage name
+    - all four prior stages shown as completed
+    - accessible artifact preview or download option
+    - clear indication that validation did not complete
+  ui_must_not_show:
+    - completed badge
+    - quality score or critic output
+    - running spinner
+  interaction_contract:
+    - user can view and download the generated artifact
+    - user understands validation did not complete
+    - user can choose to retry critic or accept artifact as-is
+
+anti_patterns:
+  - artifact not shown despite being available
+  - all stages shown as completed (hiding critic failure)
+  - critic failure shown as "generation failed"
+  - artifact deleted or inaccessible due to critic failure
+  - UI shows success state with small error notice
+
+notes:
+  - This is the only failure scenario with an accessible artifact.
+  - The UI must balance showing failure while allowing artifact access.
+  - User should understand the artifact is usable but not validated.
+
+tags:
+  - mutation
+  - failure-location
+  - critic
+  - ui-visibility
+  - artifact-access

@@ -51,6 +51,36 @@ func (c *CachedClient) Generate(ctx context.Context, req domainllm.GenerateReque
 	return resp, nil
 }
 
+func (c *CachedClient) GenerateImage(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	imageClient, ok := c.wrapped.(domainllm.ImageGenerator)
+	if !ok {
+		return c.wrapped.Generate(ctx, req)
+	}
+
+	model := domainllm.ResolveModel(req.Model, c.defaultModel)
+	cacheReq := req
+	cacheReq.PromptVersion = req.PromptVersion + ":image"
+
+	cached, ok, err := c.cache.Get(ctx, c.provider, model, cacheReq)
+	if err != nil {
+		return nil, fmt.Errorf("read llm cache: %w", err)
+	}
+	if ok {
+		return cached, nil
+	}
+
+	resp, err := imageClient.GenerateImage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.cache.Set(ctx, c.provider, model, cacheReq, resp); err != nil {
+		return nil, fmt.Errorf("write llm cache: %w", err)
+	}
+
+	return resp, nil
+}
+
 func (c *CachedClient) GenerateStream(ctx context.Context, req domainllm.GenerateRequest) (<-chan domainllm.StreamChunk, <-chan error) {
 	return c.wrapped.GenerateStream(ctx, req)
 }

@@ -132,7 +132,7 @@ func (c *RuntimeClient) resolveClient(ctx context.Context, req domainllm.Generat
 		return client, req, nil
 	}
 
-	provider, err := c.resolveDefaultProvider()
+	provider, err := c.resolvePurposeProvider()
 	switch {
 	case err == nil:
 		model := strings.TrimSpace(req.Model)
@@ -145,6 +145,32 @@ func (c *RuntimeClient) resolveClient(ctx context.Context, req domainllm.Generat
 		}
 		req.Model = model
 		return client, req, nil
+	case errors.Is(err, errPurposeProviderNotFound):
+		provider, err = c.resolveDefaultProvider()
+		switch {
+		case err == nil:
+			model := strings.TrimSpace(req.Model)
+			if model == "" {
+				model = c.providerModel(provider)
+			}
+			client, buildErr := c.buildProviderClient(ctx, provider, model)
+			if buildErr != nil {
+				return nil, req, buildErr
+			}
+			req.Model = model
+			return client, req, nil
+		case errors.Is(err, errDefaultProviderNotFound):
+			client, buildErr := c.buildStartupClient(req.Model)
+			if buildErr != nil {
+				return nil, req, buildErr
+			}
+			if strings.TrimSpace(req.Model) == "" {
+				req.Model = c.startupConfig.Model
+			}
+			return client, req, nil
+		default:
+			return nil, req, err
+		}
 	case errors.Is(err, errDefaultProviderNotFound):
 		client, buildErr := c.buildStartupClient(req.Model)
 		if buildErr != nil {
@@ -160,6 +186,39 @@ func (c *RuntimeClient) resolveClient(ctx context.Context, req domainllm.Generat
 }
 
 var errDefaultProviderNotFound = errors.New("runtime llm: default provider not found")
+var errPurposeProviderNotFound = errors.New("runtime llm: purpose provider not found")
+
+func (c *RuntimeClient) resolvePurposeProvider() (*domainconfig.Provider, error) {
+	if c.providerRepo == nil {
+		return nil, errPurposeProviderNotFound
+	}
+
+	providers, err := c.providerRepo.ListEnabled()
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []*domainconfig.Provider
+	for _, provider := range providers {
+		if provider == nil {
+			continue
+		}
+		if strings.TrimSpace(c.assignedPurposeModel(provider)) == "" {
+			continue
+		}
+		matches = append(matches, provider)
+	}
+
+	if len(matches) == 0 {
+		return nil, errPurposeProviderNotFound
+	}
+	for _, provider := range matches {
+		if provider.IsDefault {
+			return provider, nil
+		}
+	}
+	return matches[0], nil
+}
 
 func (c *RuntimeClient) resolveDefaultProvider() (*domainconfig.Provider, error) {
 	if c.providerRepo == nil {
@@ -171,6 +230,16 @@ func (c *RuntimeClient) resolveDefaultProvider() (*domainconfig.Provider, error)
 		return nil, errDefaultProviderNotFound
 	}
 	return provider, nil
+}
+
+func (c *RuntimeClient) assignedPurposeModel(provider *domainconfig.Provider) string {
+	if provider == nil {
+		return ""
+	}
+	if c.purpose == RuntimePurposeGen {
+		return strings.TrimSpace(provider.GenModel)
+	}
+	return strings.TrimSpace(provider.QueryModel)
 }
 
 func (c *RuntimeClient) lookupProvider(value string) (*domainconfig.Provider, error) {
@@ -259,8 +328,11 @@ func splitProviderModel(value string) (string, string) {
 	}
 
 	index := strings.Index(value, ":")
-	if index <= 0 || index >= len(value)-1 {
+	if index <= 0 {
 		return "", value
+	}
+	if index == len(value)-1 {
+		return strings.TrimSpace(value[:index]), ""
 	}
 	return strings.TrimSpace(value[:index]), strings.TrimSpace(value[index+1:])
 }

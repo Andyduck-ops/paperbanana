@@ -73,6 +73,7 @@ describe('SSE Integration Tests', () => {
   describe('Event Type Alignment', () => {
     it('should handle all backend event types', async () => {
       const backendEventTypes: SSEEventType[] = [
+        'run_started',
         'stage_started',
         'stage_completed',
         'stage_failed',
@@ -86,13 +87,14 @@ describe('SSE Integration Tests', () => {
       const mockResponse = createMockSSEResponse(
         backendEventTypes.map(type => ({
           type,
-          data: { stage: 'test', status: 'running' },
+          data: { stage: 'test', status: 'running', session_id: 'test-session' },
         }))
       );
 
       vi.spyOn(global, 'fetch').mockResolvedValue(mockResponse as Response);
 
       await streamGenerate({ prompt: 'test' } as GenerateRequest, {
+        onRunStarted: () => receivedTypes.push('run_started'),
         onStageStart: () => receivedTypes.push('stage_started'),
         onStageComplete: () => receivedTypes.push('stage_completed'),
         onError: () => {
@@ -103,6 +105,7 @@ describe('SSE Integration Tests', () => {
       });
 
       // Verify we handled at least the core event types
+      expect(receivedTypes).toContain('run_started');
       expect(receivedTypes).toContain('stage_started');
       expect(receivedTypes).toContain('stage_completed');
     });

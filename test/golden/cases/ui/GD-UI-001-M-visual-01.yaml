@@ -1,0 +1,61 @@
+id: GD-UI-001-M-visual-01
+priority: P1
+layer: ui
+title: Stage Status Color Consistency Across States
+source: mutation
+operator: visual-color-inconsistency
+parent: GD-UI-001
+intent: When different stage cards show 'complete' status with slightly different green shades, users wonder "Are these different types of completion? Why is this green slightly different from that one?" and lose confidence in the status system's reliability.
+
+input:
+  ui_scenario: multiple stage cards display complete status with slightly different green shades
+  system_state:
+    stages:
+      - stage: retriever
+        status: complete
+        expected_color: 'bg-green-500/20 text-green-600'
+      - stage: planner
+        status: complete
+        expected_color: 'bg-green-500/20 text-green-600'
+      - stage: stylist
+        status: complete
+        expected_color: 'bg-green-500/20 text-green-600'
+      - stage: visualizer
+        status: complete
+        expected_color: 'bg-green-500/20 text-green-600'
+    visual_tokens:
+      complete_green: 'oklch(0.60 0.15 145)'
+      success_green: 'oklch(0.60 0.15 145)'
+
+expected:
+  ui_must_show:
+    - identical green color for all complete stages
+    - consistent background opacity (20%) for all complete status badges
+    - consistent text color for all complete status indicators
+  ui_must_not_show:
+    - retriever showing bg-green-400 while planner shows bg-green-500
+    - inconsistent text shades (green-500 vs green-600)
+    - different opacity levels between complete badges
+  interaction_contract:
+    - user can reliably identify complete status by color alone
+    - color does not vary between components or themes
+    - green color matches semantic 'success' meaning
+
+anti_patterns:
+  - Retriever uses bg-green-400, planner uses bg-green-500
+  - Text color varies between green-500 and green-600 across stages
+  - Background opacity differs (10% vs 20% vs 30%)
+  - Evolution timeline shows different green shade than StageCard
+  - ResultPanel completed badge uses different green than ProgressPanel
+
+notes:
+  - Tests color consistency across StageCard, EvolutionTimeline, ResultPanel.
+  - CSS custom properties should define single source of truth for status colors.
+  - All components must use same token variables.
+
+tags:
+  - mutation
+  - visual-design
+  - color-consistency
+  - status-indicator
+  - brand-identity

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,7 +24,7 @@ import (
 func TestVisualizerExecute(t *testing.T) {
 	t.Run("diagram", func(t *testing.T) {
 		client := &fakeLLMClient{
-			response: &domainllm.GenerateResponse{
+			imageResponse: &domainllm.GenerateResponse{
 				Parts: []domainllm.Part{
 					domainllm.InlineImagePart("image/png", []byte("diagram-image")),
 				},
@@ -36,9 +37,10 @@ func TestVisualizerExecute(t *testing.T) {
 
 		output, err := agent.Execute(context.Background(), testInput(domainagent.VisualModeDiagram))
 		require.NoError(t, err)
-		require.Len(t, client.requests, 1)
+		require.Len(t, client.imageRequests, 1)
+		assert.Empty(t, client.requests)
 
-		req := client.requests[0]
+		req := client.imageRequests[0]
 		assert.Equal(t, "visualizer-model", req.Model)
 		assert.Equal(t, 0.2, req.Temperature)
 		assert.Equal(t, PromptVersion, req.PromptVersion)
@@ -69,6 +71,7 @@ func TestVisualizerExecute(t *testing.T) {
 			Model:        "plot-model",
 			Temperature:  0.6,
 			PlotExecutor: fakePlotExecutor{result: PlotExecutionResult{Bytes: []byte("plot-image"), MIMEType: "image/jpeg"}},
+			PlotEnabled:  true,
 		})
 
 		output, err := agent.Execute(context.Background(), testInput(domainagent.VisualModePlot))
@@ -200,10 +203,45 @@ custom_nodes:
 	assert.Equal(t, "image/png", output.GeneratedArtifacts[1].MIMEType)
 }
 
+func TestVisualizerRetriesTransientDiagramFailures(t *testing.T) {
+	client := &fakeLLMClient{
+		imageErrQueue: []error{
+			errors.New(`openai image generation failed: Post "https://lx.lxsummer.cloud/v1/images/generations": retryable status: 502`),
+			errors.New(`openai image generation failed: Post "https://lx.lxsummer.cloud/v1/images/generations": retryable status: 502`),
+		},
+		imageResponse: &domainllm.GenerateResponse{
+			Parts: []domainllm.Part{
+				domainllm.InlineImagePart("image/png", []byte("diagram-image")),
+			},
+		},
+	}
+	agent := NewAgent(client, Config{})
+
+	output, err := agent.Execute(context.Background(), testInput(domainagent.VisualModeDiagram))
+	require.NoError(t, err)
+	require.Len(t, client.imageRequests, 3)
+	assert.Equal(t, "3", output.Metadata["attempt_count"])
+	assert.Equal(t, "true", output.Metadata["retry_used"])
+}
+
+func TestVisualizerDoesNotRetryPermanentDiagramFailures(t *testing.T) {
+	client := &fakeLLMClient{
+		err: errors.New(`openai image generation failed: 400 bad request`),
+	}
+	agent := NewAgent(client, Config{})
+
+	_, err := agent.Execute(context.Background(), testInput(domainagent.VisualModeDiagram))
+	require.Error(t, err)
+	require.Len(t, client.imageRequests, 1)
+}
+
 type fakeLLMClient struct {
-	requests []domainllm.GenerateRequest
-	response *domainllm.GenerateResponse
-	err      error
+	requests      []domainllm.GenerateRequest
+	imageRequests []domainllm.GenerateRequest
+	response      *domainllm.GenerateResponse
+	imageResponse *domainllm.GenerateResponse
+	imageErrQueue []error
+	err           error
 }
 
 func (f *fakeLLMClient) Generate(_ context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
@@ -213,6 +251,22 @@ func (f *fakeLLMClient) Generate(_ context.Context, req domainllm.GenerateReques
 	}
 	if f.response != nil {
 		return f.response, nil
+	}
+	return &domainllm.GenerateResponse{}, nil
+}
+
+func (f *fakeLLMClient) GenerateImage(_ context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	f.imageRequests = append(f.imageRequests, req)
+	if len(f.imageErrQueue) > 0 {
+		err := f.imageErrQueue[0]
+		f.imageErrQueue = f.imageErrQueue[1:]
+		return nil, err
+	}
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.imageResponse != nil {
+		return f.imageResponse, nil
 	}
 	return &domainllm.GenerateResponse{}, nil
 }
@@ -232,6 +286,10 @@ type fakePlotExecutor struct {
 
 func (f fakePlotExecutor) Execute(context.Context, string) (PlotExecutionResult, error) {
 	return f.result, f.err
+}
+
+func (f fakePlotExecutor) Cleanup(context.Context) error {
+	return nil
 }
 
 func testInput(mode domainagent.VisualMode) domainagent.AgentInput {

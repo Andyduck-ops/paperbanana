@@ -1,0 +1,62 @@
+id: GD-UI-001-M-consistency-02
+priority: P1
+layer: ui
+title: Cross-Tab State Divergence
+source: mutation
+operator: consistency-cross-tab-drift
+parent: GD-UI-001
+intent: Multiple browser tabs viewing the same session must maintain consistent state, preventing user confusion from divergent views.
+
+input:
+  ui_scenario: user has two tabs open for same session, state updates arrive in only one tab
+  system_state:
+    session_id: session-cross-tab-001
+    backend_status: completed
+    backend_current_stage: visualizer
+    backend_final_artifact: artifact-xyz
+    tab_a_state:
+      status: completed
+      current_stage: visualizer
+      artifact_visible: true
+      last_update: t5
+    tab_b_state:
+      status: running
+      current_stage: planner
+      artifact_visible: false
+      last_update: t2
+    storage_mechanism: localStorage
+    broadcast_channel_active: true
+
+expected:
+  ui_must_show:
+    - consistent state across both tabs after sync
+    - both tabs showing completed status
+    - both tabs displaying the final artifact
+  ui_must_not_show:
+    - tab_a_state.status = completed AND tab_b_state.status = running for >500ms after sync
+    - artifact visible in one tab but not the other
+    - user sees contradictory states when switching tabs
+  interaction_contract:
+    - state changes propagate to all tabs within 500ms
+    - user sees consistent state regardless of which tab is active
+    - cross-tab sync is automatic and transparent
+
+anti_patterns:
+  - Tab B remains on "running" after completion
+  - No cross-tab communication mechanism
+  - localStorage updates not triggering tab refresh
+  - User must manually refresh to see correct state
+  - BroadcastChannel messages ignored or dropped
+
+notes:
+  - Tests cross-tab state synchronization.
+  - BroadcastChannel API should be used for real-time sync.
+  - localStorage events as fallback for older browsers.
+  - Polling should be avoided due to latency.
+
+tags:
+  - mutation
+  - state-consistency
+  - cross-tab
+  - multi-window
+  - broadcast-channel

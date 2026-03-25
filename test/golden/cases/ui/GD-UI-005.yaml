@@ -1,0 +1,53 @@
+id: GD-UI-005
+priority: P1
+layer: ui
+title: Batch Per-Task Status Visible
+source: seed
+intent: When running a batch of generation tasks, the UI must show per-task status so the user can track individual task progress without the batch collapsing into a single opaque indicator.
+
+input:
+  ui_scenario: batch of three tasks in mixed states
+  system_state:
+    batch_tasks:
+      - id: task-001
+        session_status: completed
+        must_have_final_artifact: true
+      - id: task-002
+        session_status: running
+        current_stage: visualizer
+      - id: task-003
+        session_status: failed
+        failed_stage: planner
+
+expected:
+  ui_must_show:
+    - task-001 as completed with artifact available
+    - task-002 as running with current stage visible
+    - task-003 as failed with failed stage visible
+    - batch-level summary showing mixed states
+  ui_must_not_show:
+    - single unified spinner for the entire batch
+    - all tasks shown as the same status
+    - failed task hidden behind a generic batch error
+  interaction_contract:
+    - user can distinguish each task's individual status
+    - user can act on completed tasks while others are still running
+    - batch summary reflects actual task state distribution
+
+anti_patterns:
+  - batch shows only overall progress percentage with no per-task breakdown
+  - one failed task collapses entire batch view into error state
+  - completed tasks not accessible until entire batch finishes
+  - per-task status updates are batched and delayed causing stale display
+
+notes:
+  - This case is P1 because batch is a secondary feature surface.
+  - It becomes P0 if batch becomes the primary generation entrypoint.
+  - Wire against the batch runner state consumer and per-task status hooks.
+
+tags:
+  - ui
+  - batch
+  - per-task-status
+  - batch-visibility
+  - mixed-states

@@ -1,0 +1,61 @@
+id: GD-UI-002-M-ui-completed-with-artifact
+priority: P1
+layer: ui
+title: Completed State Shows Artifact Presence
+source: mutation
+operator: ui-completed-with-artifact
+parent: GD-UI-003
+intent: When task completes, UI must render the artifact area showing actual artifact, not a placeholder, ensuring artifact bytes are present and displayable.
+
+input:
+  ui_scenario: task has completed with artifact
+  system_state:
+    session_status: completed
+    current_stage: critic
+    stages_completed:
+      - retriever
+      - planner
+      - stylist
+      - visualizer
+      - critic
+    final_artifact:
+      kind: rendered_figure
+      mime_type: image/png
+      uri: memory://visualizer/current
+      bytes_present: true
+      byte_count: 245678
+
+expected:
+  ui_must_show:
+    - completed status indicator
+    - artifact rendered as image, not placeholder icon
+    - artifact byte count or file size indication
+    - download action that produces valid file
+  ui_must_not_show:
+    - placeholder image or "no preview available"
+    - loading spinner in artifact area after completion
+    - broken image icon
+    - artifact area collapsed or hidden
+  interaction_contract:
+    - user can visually verify artifact exists and is not empty
+    - user can download artifact and receive valid PNG file
+    - completed state includes artifact presence verification
+
+anti_patterns:
+  - completed badge shown but artifact area shows placeholder
+  - UI shows "artifact generated" but image is 0 bytes
+  - download action exists but produces empty or corrupted file
+  - artifact shown as icon only with no visual preview
+  - byte count shown as 0 or missing despite valid artifact
+
+notes:
+  - Tests the artifact visibility contract at completion.
+  - Artifact must be visually confirmed, not just indicated by text.
+  - This catches cases where session says artifact exists but UI cannot render.
+
+tags:
+  - mutation
+  - ui-state
+  - completed-state
+  - artifact-visibility
+  - artifact-rendering

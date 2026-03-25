@@ -1,0 +1,56 @@
+id: GD-002-M-cognitive-error-message-misleading
+priority: P1
+layer: orchestration
+title: Misleading Error Message Points To Wrong Cause
+source: mutation
+operator: cognitive-error-message-misleading
+parent: GD-002
+intent: Error messages must accurately identify the root cause of failure. If the system blames the user's prompt when the real cause is an internal error, users will waste time fixing the wrong thing and lose trust.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a secure authentication flow"
+  retrieval_mode: auto
+  inject_failure:
+    stage: stylist
+    type: internal_resource_exhaustion
+    error_message_override: "prompt too complex, please simplify"
+
+expected:
+  final_status: failed
+  failed_stage: stylist
+  error_message_must_contain:
+    - "stylist"
+    - "resource"
+  error_message_must_not_contain:
+    - "prompt too complex"
+    - "simplify"
+  session_metadata_must_include:
+    - key: failure_type
+      value: "internal_resource_exhaustion"
+
+anti_patterns:
+  - error says "prompt too complex" when cause is memory exhaustion
+  - user is told to simplify prompt when issue is backend resource limit
+  - error message is generic with no connection to actual failure
+  - technical details hidden from user who needs to report bug
+  - system blames user input for what is actually a system failure
+  - error does not identify which stage failed
+  - user retries with simpler prompt but same failure occurs
+
+notes:
+  - Misleading errors cause users to waste effort on wrong solutions.
+  - Trust is broken when user realizes their "fix" didn't help.
+  - Error messages must be honest about internal failures.
+  - Consider showing "internal error at [stage]: [details]" to user.
+  - Technical details should be available for support/debugging.
+  - Verification: error message contains actual stage name and root cause.
+  - Verification: error message does not contain misleading "prompt" blame.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - misleading-error
+  - blame-misattribution
+  - error-transparency
+  - trust-violation

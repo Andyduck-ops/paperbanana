@@ -1,0 +1,57 @@
+id: GD-UI-002-M-emotional-03
+priority: P1
+layer: ui
+title: Error Message Must Show Empathy Not Technical Jargon
+source: mutation
+operator: emotional-error-empathy
+parent: GD-UI-002
+intent: When a task fails, error messages must communicate with empathy and clarity. Users should feel supported, not blamed or confused by technical stack traces and error codes.
+
+input:
+  ui_scenario: task fails during planner stage due to API rate limit
+  system_state:
+    session_status: failed
+    failed_stage: planner
+    error_code: RATE_LIMIT_EXCEEDED
+    technical_error: "HTTP 429: Rate limit exceeded for model gpt-4"
+    stages_completed:
+      - retriever
+
+expected:
+  ui_must_show:
+    - human-readable explanation of what happened
+    - empathy for the user's situation ("We hit a temporary limit")
+    - clear guidance on what to do next (retry in X minutes)
+    - reassurance that their work is not lost
+  ui_must_not_show:
+    - raw error codes or HTTP status numbers
+    - technical stack traces
+    - language that implies user fault ("You exceeded rate limit")
+    - cold, robotic tone
+  interaction_contract:
+    - user understands what went wrong without technical knowledge
+    - user feels the system is on their side
+    - user knows exactly how to proceed
+
+anti_patterns:
+  - displaying "Error: HTTP 429 Rate Limit Exceeded"
+  - showing raw API error JSON to user
+  - message "Request failed" with no context or empathy
+  - implying user made a mistake
+  - no actionable next step provided
+  - error message that creates panic or confusion
+  - "Something went wrong" with no explanation
+
+notes:
+  - Errors are emotional moments - users are frustrated and anxious.
+  - Empathy reduces negative emotional impact.
+  - Consider: "We're a bit busy right now. Please try again in a minute."
+  - Always pair failure with recovery path.
+
+tags:
+  - mutation
+  - emotional-design
+  - error-handling
+  - empathy
+  - user-support
+  - communication

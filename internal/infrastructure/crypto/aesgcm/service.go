@@ -16,6 +16,9 @@ import (
 	"github.com/paperbanana/paperbanana/internal/infrastructure/crypto/keyderivation"
 )
 
+// DevelopmentKeyWarning is a constant for development key warnings.
+const DevelopmentKeyWarning = "Development encryption key in use - NOT SUITABLE FOR PRODUCTION"
+
 const nonceLength = 12
 const defaultDevKeyPath = ".paperbanana/dev-encryption.key"
 
@@ -108,6 +111,12 @@ func MaskAPIKey(key string) string {
 	return key[:6] + "****" + key[len(key)-4:]
 }
 
+// IsUsingDevKey returns true if the service is using a development key.
+// This can be used to warn about production deployment risks.
+func IsUsingDevKey() bool {
+	return os.Getenv("PAPERBANANA_ENCRYPTION_KEY") == ""
+}
+
 func generateDevKey() string {
 	key := make([]byte, 32)
 	_, _ = rand.Read(key)
@@ -123,21 +132,23 @@ func loadOrCreateDevKey() (string, error) {
 	if data, err := os.ReadFile(path); err == nil {
 		key := strings.TrimSpace(string(data))
 		if key != "" {
-			fmt.Printf("WARNING: PAPERBANANA_ENCRYPTION_KEY not set, using persisted development key at %s\n", path)
+			// Log warning without exposing key path details in production logs
+			fmt.Fprintln(os.Stderr, "WARNING: Using development encryption key - NOT SUITABLE FOR PRODUCTION. Set PAPERBANANA_ENCRYPTION_KEY environment variable for production deployments.")
 			return key, nil
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("failed to read development encryption key %s: %w", path, err)
+		return "", fmt.Errorf("failed to read development encryption key: %w", err)
 	}
 
 	key := generateDevKey()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return "", fmt.Errorf("failed to create development key directory for %s: %w", path, err)
+		return "", fmt.Errorf("failed to create development key directory: %w", err)
 	}
 	if err := os.WriteFile(path, []byte(key+"\n"), 0o600); err != nil {
-		return "", fmt.Errorf("failed to persist development encryption key %s: %w", path, err)
+		return "", fmt.Errorf("failed to persist development encryption key: %w", err)
 	}
 
-	fmt.Printf("WARNING: PAPERBANANA_ENCRYPTION_KEY not set, created persisted development key at %s\n", path)
+	// Log warning without exposing key path details in production logs
+	fmt.Fprintln(os.Stderr, "WARNING: Generated new development encryption key - NOT SUITABLE FOR PRODUCTION. Set PAPERBANANA_ENCRYPTION_KEY environment variable for production deployments.")
 	return key, nil
 }

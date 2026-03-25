@@ -1,0 +1,59 @@
+id: GD-UI-007
+priority: P1
+layer: ui
+title: Iterative Refinement Progress
+source: requirement
+intent: 精修图片功能必须支持多轮迭代，每轮展示 Before/After 对比和改动说明。
+
+input:
+  ui_scenario: user refining an image iteratively
+  system_state:
+    session_status: running
+    refine_mode: iterative
+    iterations_total: 3
+    iterations_completed: 1
+    current_iteration: 2
+    iterations:
+      - round: 1
+        prompt: "增强色彩对比度"
+        before_image: "memory://refine/before-1"
+        after_image: "memory://refine/after-1"
+        changes: "提升了蓝绿色调的饱和度，增强了整体对比度"
+        status: completed
+      - round: 2
+        prompt: "优化标注可读性"
+        status: running
+      - round: 3
+        prompt: "最终润色"
+        status: pending
+
+expected:
+  ui_must_show:
+    - 当前迭代轮数 (如 "第 2/3 轮")
+    - 当前轮次的精修指令
+    - 迭代进度条或时间线
+    - 已完成轮次的 Before/After 对比缩略图
+    - 当前运行状态指示
+  ui_must_not_show:
+    - 巨大的进度卡片堆砌
+    - 隐藏历史迭代结果
+  interaction_contract:
+    - 用户可以查看任意已完成轮次的对比
+    - 用户可以在任意轮次停止
+    - 用户可以在完成后继续追加迭代
+
+anti_patterns:
+  - 只显示最终结果，不显示迭代过程
+  - 无法回看之前轮次的效果
+  - 迭代轮数不可配置
+  - 停止后无法继续
+
+notes:
+  - 迭代时间线样式参考设计稿
+  - Before/After 对比使用滑块或并排
+
+tags:
+  - ui
+  - refinement
+  - iteration
+  - before-after

@@ -1,0 +1,46 @@
+id: GD-UI-006-M-a11y-04
+priority: P1
+layer: ui
+title: Animations Respect Reduced Motion Preference
+source: mutation
+operator: a11y-reduced-motion
+parent: GD-UI-001
+intent: The UI must respect the user's prefers-reduced-motion system preference. Users with vestibular disorders or motion sensitivity must not be subjected to animations that could cause nausea or distraction. All progress animations must have a reduced-motion alternative.
+wcag_criterion: WCAG 2.1 2.3.3 Animation from Interactions (Level AAA)
+
+input:
+  ui_scenario: user has prefers-reduced-motion enabled in system settings
+  system_state:
+    session_status: running
+    current_stage: planner
+    prefers_reduced_motion: true
+
+expected:
+  animations_must_be_disabled_or_reduced: true
+  progress_spinner_must_use_static_indicator: true
+  stage_transitions_must_be_instant: true
+  no_parallax_or_moving_backgrounds: true
+  essential_animations_only_with_user_consent: true
+
+anti_patterns:
+  - spinner continues spinning when reduced motion is enabled
+  - stage transition has fade/slide animation regardless of preference
+  - background has subtle movement that cannot be disabled
+  - progress bar animates width continuously
+  - no media query check for prefers-reduced-motion
+  - reduced motion setting ignored for "essential" animations
+  - animation used purely for decoration not respecting preference
+
+notes:
+  - Use CSS media query: @media (prefers-reduced-motion: reduce).
+  - Replace animations with instant state changes or static indicators.
+  - Progress can be shown with static percentage text instead of animated bar.
+  - Document which animations are "essential" vs decorative.
+
+tags:
+  - mutation
+  - accessibility
+  - motion-sensitivity
+  - wcag-2.3.3
+  - prefers-reduced-motion
+  - vestibular-disorder

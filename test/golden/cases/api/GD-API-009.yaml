@@ -1,0 +1,42 @@
+id: GD-API-009
+priority: P1
+layer: api
+title: Session Update Atomicity
+source: mutation
+operator: session-created-on-start
+parent: GD-001
+intent: Session updates during pipeline execution must be atomic and preserve consistency.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram testing session update atomicity."
+  retrieval_mode: auto
+
+expected:
+  session_created_at_start: true
+  session_updated_after_each_stage: true
+  session_fields_consistent:
+    - status
+    - current_stage
+    - updated_at
+    - snapshot.stage_states
+  no_partial_updates: true
+  concurrent_update_safety: true
+
+anti_patterns:
+  - session status updated but current_stage is stale
+  - snapshot updated but session record not
+  - race condition causes lost updates
+  - update succeeds but snapshot is corrupted
+
+notes:
+  - Tests transactional integrity of session updates.
+  - Each stage completion must atomically update session state.
+  - The updated_at timestamp must change on each update.
+
+tags:
+  - mutation
+  - persistence
+  - api
+  - atomicity
+  - consistency

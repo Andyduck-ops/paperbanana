@@ -1,0 +1,60 @@
+id: GD-UI-008-M-interaction-04
+priority: P0
+layer: ui
+title: Failed Task Shows Retry Button Not Dead-End
+source: mutation
+operator: interaction-error-recovery-path
+parent: GD-UI-002
+intent: When a task fails, the UI must offer a clear recovery path with retry option. Showing only an error message with no action creates user frustration and dead-end experience.
+
+input:
+  ui_scenario: task fails during execution
+  system_state:
+    session_status: failed
+    current_stage: stylist
+    error_message: "Style transfer failed: model timeout"
+    error_code: STYLE_TRANSFER_TIMEOUT
+    retry_possible: true
+
+expected:
+  ui_must_show:
+    - clear error message explaining what went wrong
+    - prominent "Retry" button as primary action
+    - optional "View details" for technical information
+    - visual separation between error and recovery action
+  ui_must_not_show:
+    - error message with no recovery action
+    - only "Dismiss" or "OK" button that closes the error
+    - generic "Something went wrong" with no context
+    - retry button hidden or hard to find
+  interaction_contract:
+    - retry_button_must_exist: true
+    - retry_must_restart_from_failure_point: true
+    - error_message_must_be_human_readable: true
+  recovery_actions:
+    primary: retry_from_failure_point
+    secondary: start_over
+    tertiary: view_technical_details
+
+anti_patterns:
+  - Error shows "Task failed" with only "Close" button
+  - user must refresh page to retry
+  - no indication whether retry is possible
+  - retry starts from beginning instead of failure point
+  - error message is technical stack trace, not user-friendly
+  - retry button is styled as secondary action, hard to see
+  - multiple error messages stacked with no clear action
+
+notes:
+  - Every error must have a clear recovery path.
+  - Retry should resume from failure point when possible.
+  - Error messages should be actionable, not just descriptive.
+  - Primary action should always be the most helpful recovery.
+
+tags:
+  - mutation
+  - interaction-design
+  - error-recovery
+  - retry-action
+  - dead-end-prevention
+  - user-recovery

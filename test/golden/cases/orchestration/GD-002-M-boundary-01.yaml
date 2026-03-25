@@ -1,0 +1,53 @@
+id: GD-002-M-boundary-01
+priority: P1
+layer: orchestration
+title: User Cancellation During Persistence Mid-Write
+source: mutation
+operators:
+  - user-cancellation-mid-stage
+  - persistence-mid-write
+parent: GD-002
+intent: When user cancels during artifact persistence mid-write, the system must handle partial file writes correctly without corrupting storage or leaving orphaned files.
+
+input:
+  mode: diagram
+  prompt: "Create a flowchart of user authentication process."
+  retrieval_mode: auto
+  cancellation_timing:
+    stage: critic
+    during_persistence: true
+    persistence_target: final_artifact
+    bytes_written_before_cancel: partial
+
+expected:
+  final_status: cancelled
+  cancelled_stage: critic
+  cancellation_source: user
+  partial_persistence_handling:
+    - orphaned_partial_file_must_be_cleaned: true
+    - session_state_must_reflect_cancelled: true
+    - no_corrupted_artifacts_in_storage: true
+  ui_must_show:
+    - cancellation confirmation
+    - no partially written artifact exposed
+  resume_from_cancelled_state_possible: false
+
+anti_patterns:
+  - partially written file exposed as artifact
+  - orphaned files accumulate in storage
+  - session state shows failed instead of cancelled
+  - persistence lock not released after cancellation
+  - resume attempts to continue from corrupted partial write
+
+notes:
+  - Tests the boundary between user control and data integrity.
+  - Partial writes must be atomic - either complete or rolled back.
+  - Cancellation during I/O is a critical edge case.
+
+tags:
+  - mutation
+  - boundary-combination
+  - user-cancellation-mid-stage
+  - persistence-mid-write
+  - atomicity
+  - cancellation-handling

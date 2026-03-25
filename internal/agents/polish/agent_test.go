@@ -11,14 +11,31 @@ import (
 
 // mockLLMClient implements domainllm.LLMClient for testing
 type mockLLMClient struct {
-	generateFunc func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error)
+	generateFunc       func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error)
+	generateImageFunc  func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error)
+	generateCalls      int
+	generateImageCalls int
 }
 
 func (m *mockLLMClient) Generate(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	m.generateCalls++
 	if m.generateFunc != nil {
 		return m.generateFunc(ctx, req)
 	}
 	return &domainllm.GenerateResponse{Content: "test response"}, nil
+}
+
+func (m *mockLLMClient) GenerateImage(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	m.generateImageCalls++
+	if m.generateImageFunc != nil {
+		return m.generateImageFunc(ctx, req)
+	}
+	return &domainllm.GenerateResponse{
+		Content: "refined image",
+		Parts: []domainllm.Part{
+			domainllm.InlineImagePart("image/png", []byte("refined-image")),
+		},
+	}, nil
 }
 
 func (m *mockLLMClient) GenerateStream(ctx context.Context, req domainllm.GenerateRequest) (<-chan domainllm.StreamChunk, <-chan error) {
@@ -67,14 +84,19 @@ func TestPolishAgent_Execute_AcceptsImageAndInstructions(t *testing.T) {
 	var receivedPrompt string
 	var receivedParts []domainllm.Part
 	mockClient := &mockLLMClient{
-		generateFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+		generateImageFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
 			if len(req.Messages) > 0 {
 				receivedParts = req.Messages[0].Parts
 				if len(receivedParts) > 0 {
 					receivedPrompt = receivedParts[0].Text
 				}
 			}
-			return &domainllm.GenerateResponse{Content: "enhanced code"}, nil
+			return &domainllm.GenerateResponse{
+				Content: "refined image",
+				Parts: []domainllm.Part{
+					domainllm.InlineImagePart("image/webp", []byte("refined-image")),
+				},
+			}, nil
 		},
 	}
 
@@ -120,19 +142,39 @@ func TestPolishAgent_Execute_AcceptsImageAndInstructions(t *testing.T) {
 	if output.Stage != domainagent.StagePolish {
 		t.Errorf("expected stage %s, got %s", domainagent.StagePolish, output.Stage)
 	}
-	if output.Content != "enhanced code" {
-		t.Errorf("expected content 'enhanced code', got %s", output.Content)
+	if output.Content != "refined image" {
+		t.Errorf("expected content 'refined image', got %s", output.Content)
+	}
+	if len(output.GeneratedArtifacts) != 1 {
+		t.Fatalf("expected 1 generated artifact, got %d", len(output.GeneratedArtifacts))
+	}
+	if output.GeneratedArtifacts[0].Kind != domainagent.ArtifactKindPolishedImage {
+		t.Errorf("expected artifact kind %s, got %s", domainagent.ArtifactKindPolishedImage, output.GeneratedArtifacts[0].Kind)
+	}
+	if output.GeneratedArtifacts[0].MIMEType != "image/webp" {
+		t.Errorf("expected artifact mime type image/webp, got %s", output.GeneratedArtifacts[0].MIMEType)
+	}
+	if mockClient.generateCalls != 0 {
+		t.Errorf("expected text generation path not to be used, got %d calls", mockClient.generateCalls)
+	}
+	if mockClient.generateImageCalls != 1 {
+		t.Errorf("expected image generation path to be used once, got %d", mockClient.generateImageCalls)
 	}
 }
 
-// Test 3: Execute returns enhanced image content
-func TestPolishAgent_Execute_ReturnsEnhancedContent(t *testing.T) {
+// Test 3: Execute returns a polished image artifact
+func TestPolishAgent_Execute_ReturnsPolishedImageArtifact(t *testing.T) {
 	logger := zap.NewNop()
 
-	expectedContent := "```python\nimport matplotlib.pyplot as plt\n# Enhanced visualization code\n```"
+	expectedContent := "refined image ready"
 	mockClient := &mockLLMClient{
-		generateFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
-			return &domainllm.GenerateResponse{Content: expectedContent}, nil
+		generateImageFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+			return &domainllm.GenerateResponse{
+				Content: expectedContent,
+				Parts: []domainllm.Part{
+					domainllm.InlineImagePart("image/png", []byte("refined-image-bytes")),
+				},
+			}, nil
 		},
 	}
 
@@ -156,6 +198,15 @@ func TestPolishAgent_Execute_ReturnsEnhancedContent(t *testing.T) {
 	if output.Content != expectedContent {
 		t.Errorf("expected content '%s', got '%s'", expectedContent, output.Content)
 	}
+	if len(output.GeneratedArtifacts) != 1 {
+		t.Fatalf("expected 1 artifact, got %d", len(output.GeneratedArtifacts))
+	}
+	if output.GeneratedArtifacts[0].Kind != domainagent.ArtifactKindPolishedImage {
+		t.Errorf("expected polished artifact kind, got %s", output.GeneratedArtifacts[0].Kind)
+	}
+	if string(output.GeneratedArtifacts[0].Bytes) != "refined-image-bytes" {
+		t.Errorf("expected refined image bytes, got %q", string(output.GeneratedArtifacts[0].Bytes))
+	}
 
 	// Verify state is completed
 	state := agent.GetState()
@@ -170,11 +221,16 @@ func TestPolishAgent_Execute_ResolutionAffectsPrompt(t *testing.T) {
 
 	var receivedPrompt string
 	mockClient := &mockLLMClient{
-		generateFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+		generateImageFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
 			if len(req.Messages) > 0 && len(req.Messages[0].Parts) > 0 {
 				receivedPrompt = req.Messages[0].Parts[0].Text
 			}
-			return &domainllm.GenerateResponse{Content: "enhanced"}, nil
+			return &domainllm.GenerateResponse{
+				Content: "enhanced",
+				Parts: []domainllm.Part{
+					domainllm.InlineImagePart("image/png", []byte("refined-image")),
+				},
+			}, nil
 		},
 	}
 
@@ -198,6 +254,9 @@ func TestPolishAgent_Execute_ResolutionAffectsPrompt(t *testing.T) {
 	if !containsSubstring(receivedPrompt, "4K") || !containsSubstring(receivedPrompt, "3840x2160") {
 		t.Errorf("expected 4K resolution hint in prompt, got: %s", receivedPrompt)
 	}
+	if containsSubstring(receivedPrompt, "Generate the enhanced visualization code") {
+		t.Errorf("prompt should no longer request code output, got: %s", receivedPrompt)
+	}
 
 	// Test 2K resolution
 	config2K := Config{
@@ -219,7 +278,7 @@ func TestPolishAgent_Execute_LLMError(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockClient := &mockLLMClient{
-		generateFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+		generateImageFunc: func(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
 			return nil, context.DeadlineExceeded
 		},
 	}

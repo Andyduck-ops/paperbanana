@@ -1,0 +1,57 @@
+id: GD-UI-003-M-responsive-01
+priority: P1
+layer: ui
+title: Mobile Artifact Preview Scaling
+source: mutation
+operator: responsive-artifact-scaling
+parent: GD-UI-003
+intent: Generated artifacts must be properly scaled and viewable on mobile viewports without requiring pinch-zoom or horizontal scroll.
+
+input:
+  ui_scenario: user views completed artifact on mobile device
+  system_state:
+    session_status: completed
+    artifact:
+      type: image
+      width: 1024
+      height: 1024
+      format: png
+    viewport:
+      width: 375px
+      height: 667px
+    breakpoint: mobile
+
+expected:
+  ui_must_show:
+    - artifact scaled to fit viewport width
+    - maintain aspect ratio (no distortion)
+    - zoom controls accessible for detail viewing
+    - download button with 44x44px touch target
+  ui_must_not_show:
+    - artifact exceeding viewport width requiring horizontal scroll
+    - artifact distorted to fit viewport
+    - artifact so small it is unrecognizable
+    - zoom controls that require precision touch
+  interaction_contract:
+    - user can view full artifact without horizontal scroll
+    - user can zoom in to see details
+    - user can download artifact easily
+
+anti_patterns:
+  - Artifact displays at full 1024px width causing horizontal scroll
+  - Artifact scaled down to 100px making details invisible
+  - No zoom capability for detail viewing
+  - Download button 24x24px touch target
+  - Aspect ratio changed to 1:1.5 to fit viewport
+
+notes:
+  - Tests artifact rendering at mobile viewport.
+  - Balance between overview visibility and detail access.
+  - Zoom/pan controls are essential for detail work.
+
+tags:
+  - mutation
+  - responsive-design
+  - artifact-display
+  - image-scaling
+  - mobile-layout

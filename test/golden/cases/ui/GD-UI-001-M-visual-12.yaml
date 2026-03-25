@@ -1,0 +1,67 @@
+id: GD-UI-001-M-visual-12
+priority: P1
+layer: ui
+title: Toast Notification Visual Hierarchy
+source: mutation
+operator: visual-toast-hierarchy-break
+parent: GD-UI-001
+intent: When an error toast appears behind a modal dialog, users never see the error message and assume the operation succeeded, then discover later that something actually failed.
+
+input:
+  ui_scenario: Toast notifications have inconsistent styling and z-index issues
+  system_state:
+    toast_types:
+      - type: error
+        background: 'bg-red-600'
+        text: 'text-white'
+        expected_z_index: 'z-50'
+      - type: success
+        background: 'bg-green-600'
+        text: 'text-white'
+        expected_z_index: 'z-50'
+      - type: info
+        background: 'bg-primary'
+        text: 'text-background'
+        expected_z_index: 'z-50'
+    toast_properties:
+      position: 'fixed bottom-4 right-4'
+      min_width: 'min-w-64'
+      padding: 'px-4 py-3'
+      gap: 'gap-3'
+
+expected:
+  ui_must_show:
+    - clear color distinction between toast types
+    - z-index above all other UI elements (z-50)
+    - consistent positioning and sizing
+    - readable text with proper contrast
+  ui_must_not_show:
+    - toast hidden behind modal or other elements
+    - error and success toast using same color
+    - toast overlapping incorrectly when multiple appear
+    - toast too narrow to read message
+  interaction_contract:
+    - user can immediately identify toast type by color
+    - toast does not block critical UI interactions
+    - multiple toasts stack properly
+    - dismiss button is visible and clickable
+
+anti_patterns:
+  - Toast z-index lower than modal (toast hidden)
+  - Error toast uses same green as success toast
+  - Info toast invisible against background
+  - Multiple toasts overlap instead of stacking
+  - Dismiss button too small or hidden
+  - Toast width varies unpredictably
+
+notes:
+  - Tests Toast component visual hierarchy.
+  - z-50 should ensure toasts appear above everything.
+  - Color coding must be distinct and accessible.
+
+tags:
+  - mutation
+  - visual-design
+  - toast
+  - z-index
+  - visual-hierarchy

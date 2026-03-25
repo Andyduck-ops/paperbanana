@@ -1,0 +1,60 @@
+id: GD-UI-001-M-consistency-09
+priority: P2
+layer: ui
+title: Progress Percentage Exceeds 100 Percent
+source: mutation
+operator: consistency-progress-overflow
+parent: GD-UI-001
+intent: Progress percentage must be bounded and consistent with actual stage progress, never exceeding logical limits due to state bugs.
+
+input:
+  ui_scenario: bug causes progress calculation to show 120% complete
+  system_state:
+    session_id: session-progress-overflow-001
+    session_status: running
+    current_stage: stylist
+    stage_progress:
+      retriever: completed
+      planner: completed
+      stylist: in_progress
+      visualizer: pending
+    progress_calculation:
+      completed_stages: 2
+      total_stages: 4
+      expected_percentage: 50
+      actual_percentage: 120
+    bug_cause: "retry counter incremented total_stages incorrectly"
+
+expected:
+  ui_must_show:
+    - progress percentage clamped to valid range
+    - maximum 100% even with calculation errors
+    - actual stage progress as primary indicator
+  ui_must_not_show:
+    - progress bar showing 120%
+    - progress exceeding visual bounds
+    - NaN or undefined progress
+  interaction_contract:
+    - progress always shows meaningful value
+    - stage indicators are accurate backup
+    - calculation errors do not break UI
+
+anti_patterns:
+  - Progress bar overflows container showing 120%
+  - No bounds checking on progress calculation
+  - Visual artifacts from overflow percentage
+  - No fallback to stage count when percentage fails
+  - NaN displayed when calculation has error
+
+notes:
+  - Tests defensive bounds on derived state.
+  - Progress is calculated, not stored.
+  - Must handle edge cases in calculation.
+  - Stage indicators are always more reliable.
+
+tags:
+  - mutation
+  - state-consistency
+  - progress-overflow
+  - derived-state
+  - defensive-bounds

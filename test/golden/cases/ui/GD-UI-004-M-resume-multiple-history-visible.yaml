@@ -1,0 +1,66 @@
+id: GD-UI-004-M-resume-multiple-history-visible
+priority: P1
+layer: ui
+title: Multiple Resumes Show Complete History In UI
+source: mutation
+operator: resume-after-planner
+parent: GD-UI-004
+intent: When a task has been resumed multiple times, the UI must show the complete resume history so users understand the full execution timeline.
+
+input:
+  ui_scenario: task was resumed twice at different boundaries
+  system_state:
+    session_status: completed
+    resume_history:
+      - resume_number: 1
+        resumed_from: planner
+        resumed_at: "2024-01-15T10:00:00Z"
+        completed_before_resume: [retriever, planner]
+      - resume_number: 2
+        resumed_from: visualizer
+        resumed_at: "2024-01-15T11:30:00Z"
+        completed_before_resume: [stylist, visualizer]
+      - final_run:
+        completed_stages: [critic]
+    stages_all_completed:
+      - retriever
+      - planner
+      - stylist
+      - visualizer
+      - critic
+
+expected:
+  ui_must_show:
+    - indication that this session was resumed twice
+    - timestamps or timeline showing when each resume occurred
+    - which stages were completed in each run segment
+    - final completed status with full history accessible
+  ui_must_not_show:
+    - only the most recent resume information
+    - no indication that multiple resumes occurred
+    - timeline that appears to be a single continuous run
+    - resume history hidden behind a detail view with no discoverability
+  interaction_contract:
+    - user can see the session has a complex execution history
+    - user can access detailed resume timeline if needed
+    - user understands why timestamps may differ across stages
+
+anti_patterns:
+  - UI shows only final state with no resume history
+  - resume_count field not displayed in UI
+  - stages appear to have been completed in a single session
+  - no way to see when interruptions occurred
+  - timestamps confusing because spans multiple sessions
+
+notes:
+  - Tests UI transparency for complex resume scenarios.
+  - Multiple resumes create complex timeline that needs visibility.
+  - Enables debugging of long-running or problematic generations.
+  - Supports user understanding of session lifecycle.
+
+tags:
+  - mutation
+  - resume-boundary
+  - ui-resume-history
+  - multiple-resume
+  - timeline-visibility

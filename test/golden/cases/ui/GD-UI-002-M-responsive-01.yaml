@@ -1,0 +1,54 @@
+id: GD-UI-002-M-responsive-01
+priority: P1
+layer: ui
+title: Mobile Error Message Truncation Prevention
+source: mutation
+operator: responsive-error-truncation
+parent: GD-UI-002
+intent: Error messages must remain fully readable on mobile viewports without truncation, ensuring users can understand and act on failure information.
+
+input:
+  ui_scenario: task fails with error message visible on mobile device
+  system_state:
+    session_status: failed
+    failed_stage: stylist
+    error_message: "Style transfer failed: the input image dimensions (4096x4096) exceed maximum supported resolution (2048x2048). Please reduce image size and retry."
+    viewport:
+      width: 375px
+      height: 667px
+    breakpoint: mobile
+
+expected:
+  ui_must_show:
+    - complete error message without truncation
+    - error message wraps appropriately for viewport width
+    - stage where error occurred clearly visible
+    - retry button with adequate touch target
+  ui_must_not_show:
+    - error message truncated with ellipsis
+    - error text requiring horizontal scroll
+    - error message hidden behind expand button
+    - critical error details cut off
+  interaction_contract:
+    - user can read complete error without interaction
+    - error is actionable with clear retry option
+    - user understands what went wrong
+
+anti_patterns:
+  - Error truncated to "Style transfer failed: the input image..."
+  - User must tap to expand full error message
+  - Horizontal scroll required to read error
+  - Error code visible but explanatory text hidden
+  - Retry button too small or too close to dismiss
+
+notes:
+  - Tests error message visibility at 375px viewport.
+  - Full error context is essential for user recovery.
+  - Wrap text instead of truncating on mobile.
+
+tags:
+  - mutation
+  - responsive-design
+  - error-display
+  - mobile-layout
+  - text-truncation

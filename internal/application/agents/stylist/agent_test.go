@@ -254,6 +254,45 @@ func TestStylistAgentGeneratesPlanArtifact(t *testing.T) {
 	assert.Contains(t, stylistPlan.URI, "stylist")
 }
 
+func TestStylistAgentFallsBackToResponseParts(t *testing.T) {
+	client := &fakeLLMClient{
+		response: &domainllm.GenerateResponse{
+			Parts: []domainllm.Part{
+				domainllm.TextPart("Enhanced plan from parts"),
+			},
+		},
+	}
+	agent := NewAgent(client, Config{Model: "stylist-model"})
+
+	input := domainagent.AgentInput{
+		Content: "Original plan",
+		VisualIntent: domainagent.VisualIntent{
+			Mode: domainagent.VisualModeDiagram,
+		},
+	}
+
+	output, err := agent.Execute(context.Background(), input)
+	require.NoError(t, err)
+	assert.Equal(t, "Enhanced plan from parts", output.Content)
+}
+
+func TestStylistAgentRejectsFullyEmptyResponse(t *testing.T) {
+	agent := NewAgent(&fakeLLMClient{
+		response: &domainllm.GenerateResponse{},
+	}, Config{Model: "stylist-model"})
+
+	input := domainagent.AgentInput{
+		Content: "Original plan",
+		VisualIntent: domainagent.VisualIntent{
+			Mode: domainagent.VisualModeDiagram,
+		},
+	}
+
+	_, err := agent.Execute(context.Background(), input)
+	require.Error(t, err)
+	assert.EqualError(t, err, "stylist returned empty content")
+}
+
 // fakeLLMClient implements domainllm.LLMClient for testing
 type fakeLLMClient struct {
 	requests []domainllm.GenerateRequest

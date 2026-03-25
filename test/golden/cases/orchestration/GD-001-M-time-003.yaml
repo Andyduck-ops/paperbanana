@@ -1,0 +1,49 @@
+id: GD-001-M-time-003
+priority: P1
+layer: orchestration
+title: Stale Session State After Expiration
+source: mutation
+operator: stale-state
+parent: GD-001
+intent: When a user returns after their session has expired, the system must not show cached "running" state but indicate session expiration.
+
+input:
+  mode: plot
+  prompt: "Create a bar chart of population by continent."
+  retrieval_mode: auto
+  expiration_scenario:
+    session_start_time: T0
+    session_ttl_seconds: 3600
+    user_return_time: T0_plus_7200
+    frontend_cached_state: running
+    backend_session_status: expired
+
+expected:
+  frontend_state_must_be: expired
+  frontend_state_must_not_be: running
+  error_message_must_contain:
+    - "expired"
+    - "session"
+  user_must_be_prompted_to: start_new_session
+
+anti_patterns:
+  - UI shows "running" state from cache even though session expired
+  - user clicks "view results" on a running session that is actually expired
+  - API returns stale progress percentage for expired session
+  - system attempts to resume expired session instead of creating new
+  - error message is generic without indicating session expiration
+
+notes:
+  - Tests frontend-backend state synchronization after TTL.
+  - Session TTL is typically 1 hour; this tests 2 hour gap.
+  - Frontend must invalidate cache on TTL boundary.
+  - Critical for users who leave tabs open overnight.
+  - Verification: frontend shows "expired" state, not cached "running".
+  - Verification: error message indicates session expiration.
+
+tags:
+  - mutation
+  - time-sensitive
+  - session-expiration
+  - stale-cache
+  - state-synchronization

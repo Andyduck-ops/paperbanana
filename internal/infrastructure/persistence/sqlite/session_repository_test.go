@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	"github.com/paperbanana/paperbanana/internal/domain/workspace"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,12 +51,12 @@ func TestSessionRepository_RoundTripsSessionState(t *testing.T) {
 	// Create a session with full SessionState payload
 	now := time.Now().UTC()
 	session := &workspace.SessionRecord{
-		ID:            sessionID,
-		ProjectID:     projectID,
+		ID:              sessionID,
+		ProjectID:       projectID,
 		VisualizationID: &vizID,
-		Status:        string(domainagent.StatusCompleted),
-		CurrentStage:  string(domainagent.StageCritic),
-		SchemaVersion: "1.0.0",
+		Status:          string(domainagent.StatusCompleted),
+		CurrentStage:    string(domainagent.StageCritic),
+		SchemaVersion:   "1.0.0",
 		Snapshot: &domainagent.SessionState{
 			SchemaVersion: "1.0.0",
 			SessionID:     sessionID,
@@ -187,6 +187,99 @@ func TestSessionRepository_GetByVisualization(t *testing.T) {
 	// Verify ordering (most recent first)
 	assert.True(t, sessions[0].CreatedAt.After(sessions[1].CreatedAt))
 	assert.True(t, sessions[1].CreatedAt.After(sessions[2].CreatedAt))
+}
+
+func TestSessionRepository_ListRecent(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+
+	result, err := Bootstrap(ctx, BootstrapConfig{
+		DatabasePath:      dbPath,
+		EnableForeignKeys: true,
+		BusyTimeoutMs:     5000,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	defer Close(result.DB)
+
+	projectOneID := uuid.NewString()
+	projectTwoID := uuid.NewString()
+
+	for _, projectID := range []string{projectOneID, projectTwoID} {
+		require.NoError(t, result.DB.Create(&ProjectModel{
+			ID:        projectID,
+			Name:      "Test Project",
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		}).Error)
+	}
+
+	repo := NewSessionRepository(result.DB)
+	now := time.Now().UTC()
+
+	sessions := []*workspace.SessionRecord{
+		{
+			ID:            uuid.NewString(),
+			ProjectID:     projectOneID,
+			Status:        string(domainagent.StatusCompleted),
+			CurrentStage:  string(domainagent.StageCritic),
+			SchemaVersion: "1.0.0",
+			Snapshot: &domainagent.SessionState{
+				SchemaVersion: "1.0.0",
+				SessionID:     uuid.NewString(),
+				Status:        domainagent.StatusCompleted,
+				CurrentStage:  domainagent.StageCritic,
+				StartedAt:     now,
+				UpdatedAt:     now,
+			},
+			CreatedAt: now.Add(-2 * time.Hour),
+			UpdatedAt: now.Add(-2 * time.Hour),
+		},
+		{
+			ID:            uuid.NewString(),
+			ProjectID:     projectTwoID,
+			Status:        string(domainagent.StatusRunning),
+			CurrentStage:  string(domainagent.StageVisualizer),
+			SchemaVersion: "1.0.0",
+			Snapshot: &domainagent.SessionState{
+				SchemaVersion: "1.0.0",
+				SessionID:     uuid.NewString(),
+				Status:        domainagent.StatusRunning,
+				CurrentStage:  domainagent.StageVisualizer,
+				StartedAt:     now,
+				UpdatedAt:     now,
+			},
+			CreatedAt: now.Add(-1 * time.Hour),
+			UpdatedAt: now.Add(-1 * time.Hour),
+		},
+		{
+			ID:            uuid.NewString(),
+			ProjectID:     projectOneID,
+			Status:        string(domainagent.StatusCompleted),
+			CurrentStage:  string(domainagent.StageCritic),
+			SchemaVersion: "1.0.0",
+			Snapshot: &domainagent.SessionState{
+				SchemaVersion: "1.0.0",
+				SessionID:     uuid.NewString(),
+				Status:        domainagent.StatusCompleted,
+				CurrentStage:  domainagent.StageCritic,
+				StartedAt:     now,
+				UpdatedAt:     now,
+			},
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+	}
+
+	for _, session := range sessions {
+		require.NoError(t, repo.Create(ctx, session))
+	}
+
+	recent, err := repo.ListRecent(ctx, 2)
+	require.NoError(t, err)
+	require.Len(t, recent, 2)
+	assert.Equal(t, sessions[2].ID, recent[0].ID)
+	assert.Equal(t, sessions[1].ID, recent[1].ID)
 }
 
 func TestSessionRepository_Update(t *testing.T) {

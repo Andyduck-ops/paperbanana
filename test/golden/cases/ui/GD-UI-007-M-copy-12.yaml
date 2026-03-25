@@ -1,0 +1,59 @@
+id: GD-UI-007-M-copy-12
+priority: P1
+layer: ui
+title: Rate Limit Messages Must Show When User Can Retry
+source: mutation
+operator: copy-rate-limit-no-time
+parent: GD-UI-002
+intent: Rate limit error messages must tell users when they can retry, not just that they are rate limited. Users need specific timing to decide whether to wait or come back later.
+
+input:
+  ui_scenario: user hits rate limit during API operations
+  system_state:
+    rate_limit_contexts:
+      - limit_type: requests_per_minute
+        retry_after: 45 seconds
+      - limit_type: requests_per_hour
+        retry_after: 12 minutes
+      - limit_type: requests_per_day
+        retry_after: 6 hours
+      - limit_type: concurrent_requests
+        retry_after: until_current_completes
+
+expected:
+  ui_must_show:
+    - clear explanation of rate limit type
+    - specific time until limit resets
+    - optional: progress indicator or countdown
+  ui_must_not_show:
+    - generic "Rate limit exceeded" without timing
+    - technical error codes like "HTTP 429"
+    - vague timing like "Please wait a while"
+    - rate limit message that doesn't update as time passes
+  interaction_contract:
+    - user knows exact time they can retry
+    - time estimate is accurate (not rounded excessively)
+    - countdown updates in real-time for long waits
+
+anti_patterns:
+  - Error "Rate limit exceeded. Please try again later." (no timing)
+  - Error "429 Too Many Requests" (technical, no timing)
+  - Error "You have exceeded your quota" without saying when it resets
+  - "Please wait a few minutes" when actual wait is 1 hour
+  - Rate limit message that never updates countdown
+  - "Try again soon" without defining "soon"
+  - Time shown as absolute timestamp instead of relative "in 5 minutes"
+
+notes:
+  - Pattern: "Rate limit reached. Try again in [X] minutes."
+  - Example: "Too many requests. Please wait 45 seconds before retrying."
+  - Show relative time (in 5 minutes) not absolute (at 14:30).
+  - Consider: "Upgrade plan" link for persistent limits.
+
+tags:
+  - mutation
+  - ux-writing
+  - rate-limit
+  - error-messages
+  - timing-clarity
+  - user-expectations

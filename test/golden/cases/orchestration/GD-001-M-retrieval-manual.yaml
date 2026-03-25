@@ -1,0 +1,55 @@
+id: GD-001-M-retrieval-manual
+priority: P1
+layer: orchestration
+title: Happy Path With Manual Reference Injection
+source: mutation
+operator: retrieval-manual
+parent: GD-001
+intent: Pipeline must complete with manually injected references, ensuring manual injection path works correctly through all stages.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  retrieval_mode: manual
+  injected_references:
+    - id: ref_workflow_diagram
+      summary: "Multi-agent orchestration workflow pattern"
+      content: "Pattern showing coordinator, retriever, planner, and executor agents collaborating."
+      path_to_gt_image: "ref_workflow_diagram.png"
+
+expected:
+  final_status: completed
+  stage_order:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+    - critic
+  retriever_must_produce_bundle: true
+  planner_must_receive_bundle: true
+  retriever_artifact_must_contain:
+    - "ref_workflow_diagram"
+  plan_artifact_must_contain:
+    - "Multi-agent"
+    - "orchestration"
+  must_expose_progress: true
+  must_have_final_artifact: true
+
+anti_patterns:
+  - manual references are ignored by retriever
+  - retriever drops injected references and returns empty bundle
+  - planner receives bundle but plan shows no evidence of reference usage
+  - injected reference causes crash or validation error
+
+notes:
+  - Manual injection is the most deterministic retrieval mode.
+  - Tests that manually provided references flow correctly through pipeline.
+  - Validates the injection mechanism used in GD-004 seed case.
+  - Verification: retriever_artifact contains injected reference id.
+  - Verification: plan_artifact contains keywords from injected reference content.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-manual
+  - deterministic-injection

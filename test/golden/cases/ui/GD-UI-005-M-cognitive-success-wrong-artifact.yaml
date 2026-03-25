@@ -1,0 +1,46 @@
+id: GD-UI-005-M-cognitive-success-wrong-artifact
+priority: P1
+layer: ui
+title: Success Notification For Wrong Artifact Version
+source: mutation
+operator: cognitive-success-wrong-artifact
+parent: GD-UI-003
+intent: When a user re-runs a task or has multiple tasks, success notifications must link to the correct artifact. Notifying success with a link to an older artifact version causes users to use outdated content.
+
+input:
+  ui_scenario: user runs task twice, second run completes
+  system_state:
+    first_run_artifact: "artifact_v1.png"
+    second_run_artifact: "artifact_v2.png"
+    notification_shows_link_to: "artifact_v1.png"
+    latest_run_status: completed
+
+expected:
+  notification_must_link_to_latest_artifact: true
+  must_track_artifact_version_per_session: true
+  must_not_show_stale_artifact_link: true
+  must_update_notification_target_dynamically: true
+
+anti_patterns:
+  - success notification links to first run artifact when second is latest
+  - notification contains hardcoded artifact link from session start
+  - user clicks "view result" and sees outdated version
+  - multiple runs in same session share same notification link
+  - no indication which run produced which artifact
+  - user downloads wrong version based on notification link
+  - artifact list shows v2 but notification links to v1
+
+notes:
+  - Notification links must be dynamic and point to latest artifact.
+  - Users trust notifications to show current results.
+  - Version confusion leads to using wrong content.
+  - Consider including run timestamp or version in notification.
+  - Artifact list should clearly mark which is latest.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - notification-mismatch
+  - artifact-version
+  - stale-link
+  - wrong-result

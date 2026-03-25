@@ -1,0 +1,70 @@
+id: GD-UI-BATCH-002
+priority: P1
+layer: ui
+title: Batch Partial Failure UI Attribution
+source: mutation
+operator: batch-partial-failure
+parent: GD-UI-005
+intent: When some batch candidates fail, the UI must clearly distinguish failed from successful candidates and show failure details per candidate.
+
+input:
+  ui_scenario: batch completed with partial failures
+  system_state:
+    batch_id: batch-def456
+    batch_status: completed
+    successful: 2
+    failed: 1
+    candidates:
+      - candidate_id: 0
+        status: completed
+        artifacts:
+          - id: artifact-0
+            kind: rendered_figure
+      - candidate_id: 1
+        status: failed
+        failed_stage: planner
+        error:
+          message: "Planner could not parse request"
+      - candidate_id: 2
+        status: completed
+        artifacts:
+          - id: artifact-2
+            kind: rendered_figure
+
+expected:
+  ui_must_show:
+    - candidate 0 marked as completed with artifact preview/download
+    - candidate 1 marked as failed with error message visible
+    - candidate 2 marked as completed with artifact preview/download
+    - batch summary showing "2 successful, 1 failed"
+    - download button enabled for successful artifacts
+  ui_must_not_show:
+    - entire batch shown as failed
+    - failed candidate error hidden
+    - download button disabled for entire batch
+    - failed candidate artifacts attempted to download
+  interaction_contract:
+    - user can download artifacts from successful candidates
+    - user can see exact error message for failed candidate
+    - user can understand partial success outcome
+
+anti_patterns:
+  - UI shows batch failed entirely due to 1 failure
+  - error message truncated or missing for failed candidate
+  - download button hidden because of partial failure
+  - failed candidate shown as "pending" or "running"
+  - no visual distinction between completed and failed candidates
+
+notes:
+  - Tests partial failure visibility in BatchProgressPanel
+  - Key contract: partial success should still be actionable
+  - User should be able to download what succeeded
+  - Error details must be surfaced, not hidden
+
+tags:
+  - mutation
+  - batch
+  - batch-partial-failure
+  - ui
+  - failure-attribution
+  - partial-success

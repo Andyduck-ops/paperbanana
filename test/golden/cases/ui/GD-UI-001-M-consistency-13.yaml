@@ -1,0 +1,60 @@
+id: GD-UI-001-M-consistency-13
+priority: P2
+layer: ui
+title: Concurrent Session Modification Detection
+source: mutation
+operator: consistency-concurrent-mod
+parent: GD-UI-004
+intent: When same session is modified from another client, UI must detect and handle concurrent modification conflicts.
+
+input:
+  ui_scenario: user A resumes session, user B also resumes same session and completes it
+  system_state:
+    session_id: session-concurrent-001
+    user_a_view:
+      status: running
+      current_stage: planner
+      last_known_version: v3
+      resumed_at: t1
+    user_b_view:
+      status: completed
+      current_stage: visualizer
+      last_known_version: v5
+      resumed_at: t1_plus_5min
+      completed_at: t2
+    backend_current_version: v5
+    conflict_type: "stale view"
+
+expected:
+  ui_must_show:
+    - notification that session was modified elsewhere
+    - option to refresh to current state or continue with stale view
+    - clear indication of conflict
+  ui_must_not_show:
+    - user_a_view.last_known_version < backend_current_version with no stale warning
+    - save conflicts causing data loss
+    - both users unaware of each other
+  interaction_contract:
+    - user A is notified of concurrent modification
+    - user A can choose to refresh or continue
+    - no silent data loss
+
+anti_patterns:
+  - User A works on stale state unknowingly
+  - No version checking on resume
+  - Optimistic concurrency control missing
+  - user_a save succeeds despite version conflict, overwriting user_b changes with no conflict log
+  - No notification of concurrent access
+
+notes:
+  - Tests optimistic concurrency control.
+  - Version number should be checked on each state fetch.
+  - Concurrent modification is expected in workspace scenarios.
+  - UX should be collaborative, not destructive.
+
+tags:
+  - mutation
+  - state-consistency
+  - concurrent-modification
+  - optimistic-locking
+  - multi-client

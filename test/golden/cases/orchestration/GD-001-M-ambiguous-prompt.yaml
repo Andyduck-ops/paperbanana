@@ -1,0 +1,45 @@
+id: GD-001-M-ambiguous-prompt
+priority: P1
+layer: orchestration
+title: Vague Prompt Must Not Cause Silent Pipeline Failure
+source: mutation
+operator: ambiguous-prompt
+parent: GD-001
+intent: When a user provides an underspecified prompt, the system must either produce a reasonable interpretation or fail explicitly with a helpful error message, not hang or produce garbage output silently.
+
+input:
+  mode: diagram
+  prompt: "make something"
+  retrieval_mode: auto
+
+expected:
+  one_of:
+    - final_status: completed
+      must_have_final_artifact: true
+      artifact_must_be_valid: true
+    - final_status: failed
+      must_emit_user_error: true
+      error_message_must_be_actionable: true
+  must_expose_progress: true
+  must_not_hang: true
+  must_not_produce_invalid_artifact: true
+
+anti_patterns:
+  - pipeline runs indefinitely with no stage progress for an underspecified prompt
+  - system produces a broken artifact with no indication of poor input quality
+  - final_status is completed but artifact is corrupted or uninterpretable
+  - error message is generic like "generation failed" with no guidance on prompt improvement
+  - retriever returns empty results and planner proceeds with zero context silently
+
+notes:
+  - This tests graceful degradation for the most extreme underspecification case.
+  - The system should detect that "make something" lacks semantic content for diagram generation.
+  - A good system would either use default heuristics or ask for clarification.
+  - A failing system would hang, crash, or produce meaningless output.
+
+tags:
+  - mutation
+  - input-ambiguity
+  - ambiguous-prompt
+  - underspecified
+  - graceful-degradation

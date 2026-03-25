@@ -1,0 +1,58 @@
+id: GD-UI-005-M-batch-partial-failure+ui-failed-with-location
+priority: P1
+layer: ui
+title: Batch Partial Failure Shows Individual Failure Location
+source: mutation
+operators:
+  - batch-partial-failure
+  - ui-failed-with-location
+parent: GD-UI-005
+intent: In a batch where some tasks fail, the UI must show each failed task's specific failure stage rather than a generic batch error.
+
+input:
+  ui_scenario: batch of four tasks with partial failure
+  system_state:
+    batch_tasks:
+      - id: task-001
+        session_status: completed
+        current_stage: critic
+      - id: task-002
+        session_status: running
+        current_stage: stylist
+      - id: task-003
+        session_status: failed
+        failed_stage: planner
+      - id: task-004
+        session_status: failed
+        failed_stage: visualizer
+
+expected:
+  ui_must_show:
+    - task-001 as completed with artifact available
+    - task-002 as running with current stage visible
+    - task-003 as failed at planner with stage visible
+    - task-004 as failed at visualizer with stage visible
+    - each failed task shows its specific failed_stage
+    - batch summary reflects 1 completed, 1 running, 2 failed
+  ui_must_not_show:
+    - single batch error hiding individual failures
+    - all failed tasks shown with same failure stage
+    - failed tasks hidden behind running task indicator
+
+anti_patterns:
+  - batch shows "2 tasks failed" with no per-task breakdown
+  - both failed tasks show same generic "generation failed" message
+  - failed_stage is empty or "unknown" for either task
+  - completed task not accessible while other tasks are in progress
+
+notes:
+  - High-value combination for batch operation reliability.
+  - Users need to know which specific stage failed per task to diagnose issues.
+  - Tests that batch UI surfaces granular failure information.
+
+tags:
+  - mutation
+  - combined
+  - batch-partial-failure
+  - ui-failed-with-location
+  - batch-visibility

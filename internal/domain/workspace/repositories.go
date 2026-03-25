@@ -57,6 +57,7 @@ type VersionRepository interface {
 type SessionRepository interface {
 	Create(ctx context.Context, session *SessionRecord) error
 	GetByID(ctx context.Context, id string) (*SessionRecord, error)
+	ListRecent(ctx context.Context, limit int) ([]*SessionRecord, error)
 	GetByProject(ctx context.Context, projectID string, limit int) ([]*SessionRecord, error)
 	GetByVisualization(ctx context.Context, projectID, visualizationID string, limit int) ([]*SessionRecord, error)
 	Update(ctx context.Context, session *SessionRecord) error

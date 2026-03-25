@@ -1,0 +1,51 @@
+id: GD-001-M-resume-interrupted-mid-planner
+priority: P1
+layer: orchestration
+title: Resume After Context Cancellation Mid-Planner
+source: mutation
+operator: resume-after-planner
+parent: GD-001
+intent: When a run is cancelled mid-planner execution, resuming must not re-execute the planner partially and must either restart planner cleanly or resume from retriever snapshot.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a generative adversarial network discriminator-generator architecture."
+  retrieval_mode: auto
+  interruption_scenario:
+    type: context_cancellation
+    stage_interrupted: planner
+    planner_status_at_interrupt: running
+    retriever_status_at_interrupt: completed
+    snapshot_exists_for: retriever
+
+expected:
+  stages_rerun:
+    - planner
+  stages_continued:
+    - stylist
+    - visualizer
+    - critic
+  final_status: completed
+  must_have_final_artifact: true
+  retriever_must_not_rerun: true
+  planner_must_complete_fresh: true
+
+anti_patterns:
+  - planner state is partially restored from incomplete execution
+  - retriever reruns despite having a valid snapshot
+  - system attempts to continue from corrupted planner state
+  - resume fails because planner snapshot is invalid/incomplete
+  - session ends up in unrecoverable state
+
+notes:
+  - Tests handling of interrupted stage vs completed stage snapshots.
+  - The runner should find retriever as the last valid completed snapshot.
+  - Planner must execute fresh, not resume from partial state.
+  - Cancellation during a stage should not create a valid snapshot for that stage.
+
+tags:
+  - mutation
+  - resume-boundary
+  - interruption
+  - cancellation
+  - partial-stage-recovery

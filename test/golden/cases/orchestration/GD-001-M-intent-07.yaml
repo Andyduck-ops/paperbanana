@@ -1,0 +1,46 @@
+id: GD-001-M-intent-07
+priority: P1
+layer: orchestration
+title: Multiple Valid Interpretations Must Prompt Clarification Or Document Choice
+source: mutation
+operator: intent-multiple-interpretations
+parent: GD-001
+intent: When a prompt has multiple equally valid interpretations, the system must either ask for clarification or explicitly document which interpretation was chosen and why.
+
+input:
+  mode: diagram
+  prompt: "Draw the network."
+  retrieval_mode: auto
+
+expected:
+  one_of:
+    - final_status: completed
+      interpretation_must_be_documented: true
+      interpretation_rationale_must_be_provided: true
+      artifact_must_be_valid_network_diagram: true
+    - final_status: failed
+      error_must_indicate_ambiguity: true
+      error_must_list_possible_interpretations: true
+      error_must_ask_for_clarification: true
+  must_detect_ambiguity: true
+  must_not_produce_random_artifact_without_documenting_interpretation: true
+
+anti_patterns:
+  - system produces a computer network diagram without considering other interpretations
+  - system produces a social network diagram without considering other interpretations
+  - system produces neural network architecture without considering other interpretations
+  - no acknowledgment that "network" is ambiguous
+  - interpretation choice is not documented
+
+notes:
+  - "Network" could mean: computer network, social network, neural network, transportation network.
+  - Without context, there are multiple valid interpretations.
+  - The system should either pick one and explain, or ask for clarification.
+  - Silent arbitrary selection violates user intent awareness.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-multiple-interpretations
+  - semantic-ambiguity
+  - interpretation-documentation

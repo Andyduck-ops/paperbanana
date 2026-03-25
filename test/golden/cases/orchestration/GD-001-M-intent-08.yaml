@@ -1,0 +1,41 @@
+id: GD-001-M-intent-08
+priority: P1
+layer: orchestration
+title: Intent Inference Failure Must Not Produce Wrong Artifact
+source: mutation
+operator: intent-inference-failure
+parent: GD-001
+intent: When the system cannot confidently infer user intent, it must fail explicitly rather than produce an artifact that may be wrong.
+
+input:
+  mode: diagram
+  prompt: "thing"
+  retrieval_mode: auto
+
+expected:
+  final_status: failed
+  must_detect_uninferrable_intent: true
+  error_must_indicate_intent_inference_failure: true
+  error_must_request_more_specific_input: true
+  must_not_produce_artifact: true
+  must_not_hang: true
+
+anti_patterns:
+  - system produces a random diagram pretending to understand "thing"
+  - system hangs indefinitely trying to process meaningless input
+  - system completes with garbage artifact that has no relation to prompt
+  - error message is generic without mentioning intent inference failure
+  - system uses some default interpretation without user consent
+
+notes:
+  - "thing" provides no actionable intent information.
+  - The system should recognize this as an intent inference failure.
+  - The correct behavior is to fail and ask for clarification.
+  - Producing any artifact would be misleading to the user.
+
+tags:
+  - mutation
+  - user-intent-edge
+  - intent-inference-failure
+  - underspecified-input
+  - explicit-failure-preferred

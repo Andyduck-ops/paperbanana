@@ -12,6 +12,194 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSharedBytesBasic(t *testing.T) {
+	t.Run("creates nil for empty data", func(t *testing.T) {
+		sb := NewSharedBytes(nil)
+		assert.Nil(t, sb)
+
+		sb = NewSharedBytes([]byte{})
+		assert.Nil(t, sb)
+	})
+
+	t.Run("creates and returns data", func(t *testing.T) {
+		data := []byte("hello world")
+		sb := NewSharedBytes(data)
+		require.NotNil(t, sb)
+
+		assert.Equal(t, data, sb.Data())
+		assert.Equal(t, 11, sb.Len())
+		assert.Equal(t, int32(1), sb.RefCount())
+	})
+
+	t.Run("retain increments count", func(t *testing.T) {
+		sb := NewSharedBytes([]byte("test"))
+		require.Equal(t, int32(1), sb.RefCount())
+
+		sb2 := sb.Retain()
+		assert.Same(t, sb, sb2)
+		assert.Equal(t, int32(2), sb.RefCount())
+
+		sb3 := sb.Clone() // Clone is alias for Retain
+		assert.Same(t, sb, sb3)
+		assert.Equal(t, int32(3), sb.RefCount())
+	})
+
+	t.Run("release decrements count", func(t *testing.T) {
+		sb := NewSharedBytes([]byte("test"))
+		sb.Retain()
+		require.Equal(t, int32(2), sb.RefCount())
+
+		released := sb.Release()
+		assert.False(t, released) // Not released yet
+		assert.Equal(t, int32(1), sb.RefCount())
+		assert.Equal(t, []byte("test"), sb.Data()) // Data still available
+	})
+
+	t.Run("release clears data when count reaches zero", func(t *testing.T) {
+		sb := NewSharedBytes([]byte("test"))
+		released := sb.Release()
+		assert.True(t, released)
+		assert.Equal(t, int32(0), sb.RefCount())
+		assert.Nil(t, sb.Data())
+	})
+
+	t.Run("nil shared bytes operations", func(t *testing.T) {
+		var sb *SharedBytes
+		assert.Nil(t, sb.Retain())
+		assert.False(t, sb.Release())
+		assert.Nil(t, sb.Data())
+		assert.Equal(t, 0, sb.Len())
+		assert.Equal(t, int32(0), sb.RefCount())
+	})
+}
+
+func TestArtifactClone(t *testing.T) {
+	t.Run("clones artifact with shared bytes", func(t *testing.T) {
+		data := []byte("image data here")
+		original := Artifact{
+			ID:       "test-1",
+			Kind:     ArtifactKindRenderedFigure,
+			MIMEType: "image/png",
+			URI:      "memory://test/1",
+			Metadata: map[string]string{"dpi": "300"},
+		}
+		original.SetBytes(data)
+
+		require.NotNil(t, original.Shared)
+		require.Equal(t, int32(1), original.Shared.RefCount())
+
+		cloned := original.Clone()
+
+		// Clone should share the same SharedBytes
+		assert.Same(t, original.Shared, cloned.Shared)
+		assert.Equal(t, int32(2), original.Shared.RefCount())
+		assert.Equal(t, data, cloned.GetBytes())
+
+		// Metadata should be copied
+		assert.Equal(t, original.Metadata, cloned.Metadata)
+		assert.NotSame(t, original.Metadata, cloned.Metadata)
+	})
+
+	t.Run("clones artifact with legacy bytes", func(t *testing.T) {
+		data := []byte("legacy data")
+		original := Artifact{
+			ID:       "test-2",
+			Kind:     ArtifactKindRenderedFigure,
+			MIMEType: "image/png",
+			URI:      "memory://test/2",
+			Bytes:    data,
+			Metadata: map[string]string{"version": "1"},
+		}
+
+		cloned := original.Clone()
+
+		// Legacy Bytes should be deep copied (Shared is nil)
+		assert.Nil(t, original.Shared)
+		assert.Equal(t, data, cloned.Bytes)
+		assert.NotSame(t, &original.Bytes[0], &cloned.Bytes[0]) // Different underlying arrays
+	})
+
+	t.Run("nil metadata handling", func(t *testing.T) {
+		original := Artifact{
+			ID:   "test-3",
+			Kind: ArtifactKindPlan,
+		}
+		original.SetBytes([]byte("test"))
+
+		cloned := original.Clone()
+		assert.Nil(t, cloned.Metadata)
+	})
+
+	t.Run("empty metadata handling", func(t *testing.T) {
+		original := Artifact{
+			ID:       "test-4",
+			Kind:     ArtifactKindPlan,
+			Metadata: map[string]string{},
+		}
+		original.SetBytes([]byte("test"))
+
+		cloned := original.Clone()
+		assert.Nil(t, cloned.Metadata) // cloneStringMap returns nil for empty maps
+	})
+}
+
+func TestArtifactGetBytesSetBytes(t *testing.T) {
+	t.Run("GetBytes prefers SharedBytes", func(t *testing.T) {
+		a := Artifact{
+			ID:    "test",
+			Bytes: []byte("legacy"),
+		}
+		a.SetBytes([]byte("new shared"))
+
+		// GetBytes should return SharedBytes data, not legacy
+		assert.Equal(t, []byte("new shared"), a.GetBytes())
+		assert.Equal(t, []byte("legacy"), a.Bytes) // Legacy is preserved
+	})
+
+	t.Run("GetBytes falls back to legacy Bytes", func(t *testing.T) {
+		a := Artifact{
+			ID:    "test",
+			Bytes: []byte("legacy"),
+		}
+
+		assert.Equal(t, []byte("legacy"), a.GetBytes())
+	})
+
+	t.Run("SetBytes syncs both fields", func(t *testing.T) {
+		a := Artifact{}
+		a.SetBytes([]byte("test"))
+
+		assert.NotNil(t, a.Shared)
+		assert.Equal(t, []byte("test"), a.Bytes)
+		assert.Equal(t, []byte("test"), a.Shared.Data())
+	})
+}
+
+func TestSharedBytesJSONCompatibility(t *testing.T) {
+	t.Run("artifact with SharedBytes serializes via Bytes field", func(t *testing.T) {
+		data := []byte("binary data")
+		original := Artifact{
+			ID:       "test-json",
+			Kind:     ArtifactKindRenderedFigure,
+			MIMEType: "image/png",
+			URI:      "memory://test/json",
+		}
+		original.SetBytes(data)
+
+		encoded, err := json.Marshal(original)
+		require.NoError(t, err)
+
+		var restored Artifact
+		require.NoError(t, json.Unmarshal(encoded, &restored))
+
+		// JSON restores to Bytes field (SharedBytes is not serialized)
+		assert.Equal(t, data, restored.Bytes)
+		assert.Equal(t, original.ID, restored.ID)
+		assert.Equal(t, original.Kind, restored.Kind)
+		assert.Equal(t, original.MIMEType, restored.MIMEType)
+	})
+}
+
 func TestBaseAgentLifecycle(t *testing.T) {
 	contract := reflect.TypeOf((*BaseAgent)(nil)).Elem()
 	ctxType := reflect.TypeOf((*context.Context)(nil)).Elem()

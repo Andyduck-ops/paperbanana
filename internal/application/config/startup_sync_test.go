@@ -61,7 +61,7 @@ func TestSyncStartupProvidersSyncsModelsAndDefault(t *testing.T) {
 	assert.Equal(t, "https://lx.example.com/v1", provider.APIHost)
 	assert.True(t, provider.Enabled)
 	assert.Equal(t, "grok-4.1-fast", provider.QueryModel)
-	assert.Equal(t, "grok-4.1-fast", provider.GenModel)
+	assert.Equal(t, "grok-imagine-1.0", provider.GenModel)
 	assert.Equal(t, "p1", providers.defaultID)
 	assert.Len(t, provider.Models, 2)
 	require.Len(t, keys.active["p1"], 1)

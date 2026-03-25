@@ -1,0 +1,44 @@
+id: GD-API-007
+priority: P1
+layer: api
+title: Failed Session Persists Error Context
+source: mutation
+operator: session-created-on-start
+parent: GD-005
+intent: A failed session must persist the error context and stage where failure occurred.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram with intentionally triggering failure at visualizer stage."
+  retrieval_mode: auto
+  inject_failure_at: visualizer
+
+expected:
+  session_record_created: true
+  final_status: failed
+  failed_stage_persisted: true
+  error_context_persisted: true
+  session_fields_on_failure:
+    - id
+    - status
+    - current_stage
+    - snapshot.error
+  session_queryable_after_failure: true
+
+anti_patterns:
+  - failed session not persisted at all
+  - failed session has status running
+  - error field is null or empty
+  - failed_stage is empty or generic
+
+notes:
+  - Failed sessions must be persisted for debugging and retry.
+  - The snapshot must contain the ErrorDetail with message and stage.
+  - Tests the error persistence contract in SessionSnapshotPayload.
+
+tags:
+  - mutation
+  - persistence
+  - api
+  - error-handling
+  - failure-context

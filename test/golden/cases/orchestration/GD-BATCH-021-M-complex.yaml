@@ -1,0 +1,65 @@
+id: GD-BATCH-021
+priority: P1
+layer: orchestration
+title: Batch Event Ordering Guarantee
+source: mutation
+operator: batch-event-ordering
+parent: GD-002
+intent: When a batch executes, events must be emitted in a valid causal order, with batch_start before candidate_starts and batch_complete after all candidates finish.
+
+input:
+  mode: diagram
+  batch_size: 3
+  prompts:
+    - "Create a diagram of an encoder-decoder architecture"
+    - "Create a diagram of a sequence-to-sequence model"
+    - "Create a diagram of a beam search process"
+  retrieval_mode: shared
+  event_recording: enabled
+
+expected:
+  batch_final_status: completed
+  per_task_status:
+    - candidate_id: 0
+      status: completed
+    - candidate_id: 1
+      status: completed
+    - candidate_id: 2
+      status: completed
+  event_order_constraints:
+    - event: batch_start
+      must_be_first: true
+    - event: candidate_start
+      after: batch_start
+      for_each_candidate: true
+    - event: candidate_complete
+      after: candidate_start
+      for_each_candidate: true
+    - event: batch_complete
+      must_be_last: true
+      after_all: candidate_complete
+  no_orphan_events: true
+  no_out_of_order_events: true
+  all_candidates_have_start_complete_pair: true
+
+anti_patterns:
+  - candidate_complete before candidate_start
+  - batch_complete before all candidates complete
+  - batch_start not first event
+  - missing candidate_start for some candidates
+  - events from different batches interleaved
+
+notes:
+  - Tests causal ordering of batch events
+  - batch_start must be first event
+  - batch_complete must be last event
+  - Each candidate must have start/complete pair
+  - No orphan or out-of-order events
+
+tags:
+  - mutation
+  - batch
+  - batch-complexity
+  - event-ordering
+  - causal-order
+  - orchestration

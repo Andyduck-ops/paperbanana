@@ -1,0 +1,51 @@
+id: GD-UI-006-M-a11y-05
+priority: P0
+layer: ui
+title: Generated Artifact Has Meaningful Alt Text
+source: mutation
+operator: a11y-artifact-alt-text
+parent: GD-UI-003
+intent: Generated image artifacts must have meaningful alternative text that describes the content. Screen reader users must understand what was generated without seeing the image. The alt text should convey the purpose and key content of the generated artifact.
+wcag_criterion: WCAG 2.1 1.1.1 Non-text Content (Level A)
+
+input:
+  ui_scenario: task completed with image artifact, screen reader user viewing result
+  system_state:
+    session_status: completed
+    artifact_type: image
+    artifact_path: /artifacts/generated-image.png
+    prompt: "Generate a bar chart showing monthly sales data"
+
+expected:
+  artifact_img_must_have_alt_attribute: true
+  alt_text_must_contain_keywords:
+    - "bar chart"
+    - "sales"
+  alt_text_length_must_be: "> 10"
+  decorative_images_must_have_empty_alt: true
+
+anti_patterns:
+  - generated image has alt="" (empty, treated as decorative)
+  - alt text is generic like "generated image" or "artifact"
+  - alt text is missing entirely
+  - alt text is filename like "image-001.png"
+  - no description available for screen reader users
+  - complex data visualization has no text alternative
+  - alt text does not match what the image actually shows
+
+notes:
+  - Alt text should describe: "Bar chart generated from 'monthly sales data' showing Q1-Q4 trends."
+  - For complex visualizations, provide data table alternative.
+  - Use aria-describedby to link to longer descriptions when needed.
+  - Consider using figcaption for visible descriptions.
+  - Verification: img element has non-empty alt attribute.
+  - Verification: alt text contains relevant keywords from prompt.
+
+tags:
+  - mutation
+  - accessibility
+  - alt-text
+  - wcag-1.1.1
+  - artifact-visibility
+  - screen-reader
+  - non-text-content

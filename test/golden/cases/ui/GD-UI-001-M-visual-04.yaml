@@ -1,0 +1,63 @@
+id: GD-UI-001-M-visual-04
+priority: P1
+layer: ui
+title: Text Contrast Ratio on Status Badges
+source: mutation
+operator: visual-contrast-failure
+parent: GD-UI-001
+intent: Users with low vision or in bright lighting conditions squint and struggle to read status badge text that has insufficient contrast against its background, unable to tell if a stage is complete or still running.
+
+input:
+  ui_scenario: status badge text has insufficient contrast against colored backgrounds
+  system_state:
+    status_badges:
+      - status: complete
+        background: 'bg-green-500/20'
+        text_color: 'text-green-600'
+        min_contrast_ratio: 4.5
+      - status: error
+        background: 'bg-red-500/20'
+        text_color: 'text-red-600'
+        min_contrast_ratio: 4.5
+      - status: running
+        background: 'bg-primary/20'
+        text_color: 'text-primary'
+        min_contrast_ratio: 4.5
+    themes:
+      - pop-art
+      - classical-chinese
+      - minimalist-bw
+
+expected:
+  ui_must_show:
+    - text contrast ratio >= 4.5:1 for all status badges in all themes
+    - readable text on all colored backgrounds
+    - sufficient contrast maintained across theme changes
+  ui_must_not_show:
+    - green-400 text on green-500/20 background (contrast ~2.8:1)
+    - red-400 text on red-500/20 background (contrast ~3.1:1)
+    - low contrast text in minimalist-bw theme
+    - text that becomes unreadable with theme switch
+  interaction_contract:
+    - users with low vision can read all status text
+    - contrast does not degrade when switching themes
+    - WCAG AA compliance maintained universally
+
+anti_patterns:
+  - Using text-green-400 on bg-green-500/20 (contrast below 4.5:1)
+  - Using text-red-400 on bg-red-500/20 (contrast below 4.5:1)
+  - Primary color text on primary/20 background without contrast check
+  - Theme-specific contrast failures (e.g., pop-art vibrant colors)
+  - Running state text color not verified against animated background
+
+notes:
+  - Tests WCAG AA contrast compliance for status indicators.
+  - Use contrast checker tool for verification.
+  - Consider both normal and large text requirements.
+
+tags:
+  - mutation
+  - visual-design
+  - accessibility
+  - contrast
+  - wcag-aa

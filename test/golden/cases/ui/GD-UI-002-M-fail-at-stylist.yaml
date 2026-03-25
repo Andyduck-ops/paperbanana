@@ -1,0 +1,56 @@
+id: GD-UI-002-M-fail-at-stylist
+priority: P1
+layer: ui
+title: UI Visibility On Stylist Failure With Partial Progress
+source: mutation
+operator: fail-at-stylist
+parent: GD-UI-002
+intent: When stylist fails, the UI must show retriever and planner as completed, stylist as failed, and visualizer/critic as not run.
+
+input:
+  ui_scenario: task has failed at the stylist stage
+  system_state:
+    session_status: failed
+    failed_stage: stylist
+    stages_completed:
+      - retriever
+      - planner
+    stages_not_run:
+      - visualizer
+      - critic
+
+expected:
+  ui_must_show:
+    - failed status indicator
+    - stylist as the failed stage name
+    - retriever and planner shown as completed
+    - visualizer and critic shown as not run
+    - clear distinction between three stage states: completed, failed, not-run
+  ui_must_not_show:
+    - completed badge
+    - final artifact
+    - running spinner
+    - visualizer or critic shown as failed
+  interaction_contract:
+    - user can identify exactly where the run stopped
+    - user understands two stages completed successfully
+    - user can decide whether to retry from stylist or restart
+
+anti_patterns:
+  - all completed stages shown the same as not-run stages
+  - stylist failure shown as "rendering error" without stage name
+  - visualizer shown as failed when it did not run
+  - no visual distinction between failed and not-run stages
+  - retry button not visible or not functional
+
+notes:
+  - This tests three-state UI rendering for stages.
+  - The UI must distinguish: completed, failed, not-run.
+  - User should have clear mental model of execution progress.
+
+tags:
+  - mutation
+  - failure-location
+  - stylist
+  - ui-visibility
+  - three-state-rendering

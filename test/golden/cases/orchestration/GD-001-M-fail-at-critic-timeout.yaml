@@ -1,0 +1,47 @@
+id: GD-001-M-fail-at-critic-timeout
+priority: P1
+layer: orchestration
+title: Critic Timeout With Artifact Preservation
+source: mutation
+operator: fail-at-critic
+parent: GD-001
+intent: When the critic stage times out after artifact generation, the system must preserve the artifact and allow user access despite validation failure.
+
+input:
+  mode: plot
+  prompt: "Create a scatter plot showing correlation between education and income."
+  retrieval_mode: auto
+  inject_failure_at: critic
+  failure_type: timeout
+
+expected:
+  final_status: failed
+  failed_stage: critic
+  must_expose_progress: true
+  must_have_final_artifact: true
+  artifact_must_be_accessible: true
+  stages_completed_before_failure:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+  error_must_indicate: timeout
+
+anti_patterns:
+  - artifact not accessible due to critic timeout
+  - system marks entire task as "timed out" without stage attribution
+  - visualizer shown as failed when critic timed out
+  - artifact deleted during cleanup of failed session
+  - UI shows no artifact even though generation succeeded
+
+notes:
+  - Critic timeout tests the boundary between generation and validation.
+  - The artifact is valid even if validation did not complete.
+  - User should be able to view and download the artifact.
+
+tags:
+  - mutation
+  - failure-location
+  - critic
+  - timeout
+  - artifact-preservation

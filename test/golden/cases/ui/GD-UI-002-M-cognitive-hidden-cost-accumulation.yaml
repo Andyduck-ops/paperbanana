@@ -1,0 +1,53 @@
+id: GD-UI-002-M-cognitive-hidden-cost-accumulation
+priority: P1
+layer: ui
+title: Hidden Cost Accumulation During Batch Processing
+source: mutation
+operator: cognitive-hidden-cost-accumulation
+parent: GD-UI-BATCH-001
+intent: During batch processing, users must be able to see accumulated costs/tokens as tasks progress. Hiding cost until batch completion causes "bill shock" and prevents users from stopping early to control costs.
+
+input:
+  ui_scenario: batch task running with accumulating costs
+  system_state:
+    batch_size: 10
+    completed_candidates: 5
+    accumulated_tokens: 50000
+    ui_shows: running_no_cost_display
+
+expected:
+  batch_ui_must_show_during_execution:
+    - key: accumulated_tokens
+      value_type: number
+      updates: per_candidate_completion
+    - key: completed_count
+      value_type: number
+    - key: remaining_count
+      value_type: number
+  must_allow_cost_based_cancel: true
+
+anti_patterns:
+  - batch processes 10 tasks but user only sees cost after all complete
+  - no running total of tokens used during batch execution
+  - user cannot cancel batch midway to control costs
+  - cost display is buried in settings, not visible during execution
+  - no warning when approaching token/cost budget thresholds
+  - batch summary shows total cost with no per-task breakdown
+  - user assumes each task has same cost but variance is significant
+
+notes:
+  - Cost transparency is critical for user trust and budget control.
+  - Users should see "5/10 done, 50K tokens used so far".
+  - Real-time cost enables informed decisions about continuing.
+  - Consider showing estimated remaining cost based on progress.
+  - Allow cancellation at any point with "what you have so far".
+  - Verification: accumulated_tokens updates after each candidate completes.
+  - Verification: UI shows completed_count and remaining_count.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - hidden-cost
+  - bill-shock
+  - cost-transparency
+  - batch-control

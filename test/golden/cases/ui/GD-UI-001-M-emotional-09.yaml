@@ -1,0 +1,55 @@
+id: GD-UI-001-M-emotional-09
+priority: P1
+layer: ui
+title: Input Validation Must Guide Not Criticize
+source: mutation
+operator: emotional-validation-guidance
+parent: GD-UI-001
+intent: When user input has issues, validation messages must guide constructively rather than criticize. Users should feel helped, not judged or frustrated by their input being rejected.
+
+input:
+  ui_scenario: user submits prompt that is too vague for generation
+  system_state:
+    input_status: validation_failed
+    validation_issue: prompt_too_vague
+    user_prompt: "make a chart"
+    suggestions_available: true
+
+expected:
+  ui_must_show:
+    - helpful guidance on what makes a good prompt
+    - specific examples of improved prompts
+    - encouraging tone that doesn't make user feel inadequate
+    - clear path to fix and resubmit
+  ui_must_not_show:
+    - error message that implies user made a mistake
+    - technical validation error code
+    - rejection without constructive guidance
+    - language that criticizes the user's input
+  interaction_contract:
+    - user feels helped, not rejected
+    - user knows exactly how to improve their input
+    - validation becomes a learning moment, not a barrier
+
+anti_patterns:
+  - "Invalid prompt. Please be more specific." with no examples
+    - "Error: Prompt must contain at least 10 words"
+    - red error styling that feels like scolding
+    - no suggestions or examples provided
+    - user must figure out what "vague" means alone
+    - validation blocks submission with no guidance
+    - tone implies user should have known better
+
+notes:
+  - Validation is a teaching opportunity, not a rejection.
+  - Consider: "Your prompt could be more specific. Try: 'Create a bar chart comparing..."
+  - Examples are more helpful than rules.
+  - Positive framing: "To get the best results, try adding..."
+
+tags:
+  - mutation
+  - emotional-design
+  - input-validation
+  - guidance
+  - constructive-feedback
+  - learning-moment

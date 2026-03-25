@@ -1,0 +1,44 @@
+id: GD-002-M-fail-at-visualizer
+priority: P1
+layer: orchestration
+title: Visualizer Stage Failure Attribution
+source: mutation
+operator: fail-at-visualizer
+parent: GD-002
+intent: When the visualizer stage fails, the system must record the exact failure boundary, show retriever/planner/stylist as completed, and block critic from running.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing the carbon cycle in an ecosystem."
+  retrieval_mode: auto
+  inject_failure_at: visualizer
+
+expected:
+  final_status: failed
+  failed_stage: visualizer
+  must_expose_progress: true
+  must_have_final_artifact: false
+  stages_completed_before_failure:
+    - retriever
+    - planner
+    - stylist
+  downstream_stages_must_not_run:
+    - critic
+
+anti_patterns:
+  - critic runs despite visualizer failure
+  - failed_stage reported as "generation error" instead of visualizer
+  - stylist shown as failed when only visualizer failed
+  - UI shows generic "failed to create image" without stage context
+  - artifact URL generated despite failure
+
+notes:
+  - Visualizer failure tests late-pipeline error handling.
+  - Three stages must be recorded as completed before the failure.
+  - This is the closest-to-success failure point.
+
+tags:
+  - mutation
+  - failure-location
+  - visualizer
+  - late-failure

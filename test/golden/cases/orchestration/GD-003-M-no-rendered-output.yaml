@@ -1,0 +1,43 @@
+id: GD-003-M-no-rendered-output
+priority: P1
+layer: orchestration
+title: Visualizer Produces No Image Bytes
+source: mutation
+operator: no-rendered-output
+parent: GD-001
+intent: System must detect when visualizer completes but produces no image bytes, failing with clear attribution rather than showing an empty artifact.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a database schema."
+  retrieval_mode: auto
+  inject_visualizer_result: empty_render
+
+expected:
+  final_status: failed
+  must_handle_gracefully: true
+  failed_stage: visualizer
+  failure_reason_must_include: no rendered output
+  critic_must_not_run: true
+  must_emit_visualizer_output_error: true
+  must_not_show_empty_artifact: true
+
+anti_patterns:
+  - critic runs and evaluates null or empty artifact
+  - final_status shows completed with zero-byte artifact
+  - UI renders broken image placeholder without failure indication
+  - visualizer stage marked as completed despite no output
+  - error message points to critic instead of visualizer
+
+notes:
+  - Tests the artifact presence boundary at the visualizer stage.
+  - Visualizer must produce non-zero bytes to be considered successful.
+  - This is distinct from visualizer crash; visualizer ran but produced nothing.
+  - Critic should never receive empty artifact to evaluate.
+
+tags:
+  - mutation
+  - artifact-presence
+  - no-render
+  - visualizer
+  - output-validation

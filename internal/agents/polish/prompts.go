@@ -17,7 +17,7 @@ func buildPolishPrompt(input domainagent.AgentInput, resolution string) string {
 
 	return fmt.Sprintf(`You are an expert at enhancing and refining visualizations for academic publications.
 
-Your task is to improve the provided image according to the following instructions.
+Your task is to improve the provided image according to the following instructions and return a polished image.
 
 ## Target Resolution: %s
 
@@ -31,7 +31,7 @@ Your task is to improve the provided image according to the following instructio
 4. Maintain the original semantic content and meaning
 5. Apply NeurIPS 2025 style guidelines where appropriate
 
-Generate the enhanced visualization code:`,
+Return only the refined image. Do not output code blocks or textual explanations.`,
 		resolutionHint,
 		input.Content)
 }

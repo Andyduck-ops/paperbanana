@@ -1,0 +1,48 @@
+id: GD-003-M-cognitive-artifact-mismatch
+priority: P1
+layer: orchestration
+title: Artifact Mismatch Between UI Display And Backend Storage
+source: mutation
+operator: cognitive-artifact-mismatch
+parent: GD-003
+intent: The artifact shown in the UI preview must match exactly what is stored in the backend. If they differ, users may download or use incorrect content, leading to data integrity issues and loss of trust.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram of a Kubernetes deployment architecture"
+  retrieval_mode: auto
+  inject_race_condition:
+    type: artifact_overwrite_during_preview
+    timing: between_preview_and_download
+
+expected:
+  must_ensure_artifact_consistency: true
+  preview_must_match_download: true
+  must_use_immutable_artifact_uris: true
+  must_detect_version_mismatch: true
+  must_warn_user_on_version_change: true
+  must_preserve_original_version: true
+
+anti_patterns:
+  - UI preview shows artifact A but download returns artifact B
+  - artifact is regenerated between preview and download with different content
+  - no version identifier to detect staleness in cached preview
+  - user downloads artifact that differs from what they reviewed
+  - no checksum or hash verification for artifact integrity
+  - session shows one artifact but storage has different content
+  - artifact URI is mutable and gets overwritten by another task
+
+notes:
+  - This is a serious trust issue: users make decisions based on previews.
+  - If the downloaded artifact differs from preview, user trust is broken.
+  - Artifact URIs should be content-addressed or versioned.
+  - Consider checksums to verify preview matches download.
+  - This is especially critical for production workflows.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - artifact-integrity
+  - preview-download-mismatch
+  - data-consistency
+  - version-control

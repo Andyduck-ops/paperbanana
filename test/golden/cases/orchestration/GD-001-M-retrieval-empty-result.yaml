@@ -1,0 +1,53 @@
+id: GD-001-M-retrieval-empty-result
+priority: P1
+layer: orchestration
+title: Happy Path With Empty Retrieval Result
+source: mutation
+operator: retrieval-empty-result
+parent: GD-001
+intent: Pipeline must complete successfully when retrieval produces no results, regardless of cause (user disabled retrieval OR bench corpus empty). Tests graceful degradation ensuring retrieval is a soft enhancement, not a hard requirement.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow for scientific figure generation."
+  # Two scenarios covered by this single test:
+  # Scenario A: retrieval_mode: none (user explicitly disables)
+  # Scenario B: retrieval_mode: auto + bench empty (user expects retrieval but corpus is empty)
+  retrieval_mode: parametric  # test harness should run both scenarios
+
+expected:
+  final_status: completed
+  stage_order:
+    - retriever
+    - planner
+    - stylist
+    - visualizer
+    - critic
+  retriever_must_produce_empty_bundle: true
+  planner_must_receive_empty_references: true
+  must_expose_progress: true
+  must_have_final_artifact: true
+  must_persist_session: true
+
+anti_patterns:
+  - pipeline fails or stalls when retrieval produces no results
+  - retriever stage is skipped entirely, breaking stage_order invariant
+  - retriever throws exception or timeout on empty bench
+  - planner rejects empty reference bundle as an error
+  - final_status is failed due to empty retrieval result
+
+notes:
+  - Consolidates two previously separate tests:
+    - retrieval-none: user actively chooses to disable retrieval
+    - retrieval-empty-corpus: user expects retrieval but bench is empty
+  - Both scenarios produce the same outcome: retriever returns empty bundle, pipeline continues.
+  - Retriever stage still runs but produces empty bundle (not skipped).
+  - Planner should generate plan using only prompt, without reference support.
+  - Critical for new installations without reference data.
+
+tags:
+  - mutation
+  - retrieval-variation
+  - retrieval-empty-result
+  - graceful-degradation
+  - parametric

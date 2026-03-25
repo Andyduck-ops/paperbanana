@@ -1,0 +1,57 @@
+id: GD-UI-008-M-interaction-11
+priority: P1
+layer: ui
+title: Prompt Input Shows Character Count And Limit
+source: mutation
+operator: interaction-input-character-limit
+parent: GD-UI-001
+intent: The prompt input field must display character count and enforce maximum limit with clear feedback. Users need to know how much they can type before hitting limit.
+
+input:
+  ui_scenario: user types prompt approaching character limit
+  system_state:
+    session_status: idle
+    prompt_input_max_chars: 2000
+    current_char_count: 1950
+    remaining_chars: 50
+
+expected:
+  ui_must_show:
+    - character count display (e.g., "1950/2000")
+    - visual warning as user approaches limit
+    - clear error when limit is reached
+    - prevents typing beyond limit or shows truncation warning
+  ui_must_not_show:
+    - no indication of character limit
+    - user can type beyond limit and loses content
+    - silent truncation without warning
+  interaction_contract:
+    - character_count_visible: true
+    - limit_enforced_with_feedback: true
+    - warning_at_percent_remaining: 20
+  feedback_stages:
+    normal: count shown in neutral color
+    warning: count shown in warning color at 20% remaining
+    error: count shown in error color at 0% remaining
+
+anti_patterns:
+  - no character count displayed anywhere
+  - input.value.length > max_chars with no warning and content truncated server-side
+  - limit error only shown after submit attempt
+  - no warning before hitting limit
+  - character count requires hover or focus to see
+  - count display is so small it's easily missed
+
+notes:
+  - Character count should be always visible, not just on hover.
+  - Warning state helps users edit before hitting limit.
+  - Either prevent typing at limit or show clear truncation warning.
+  - Consider word count as alternative or supplement.
+
+tags:
+  - mutation
+  - interaction-design
+  - input-feedback
+  - character-limit
+  - form-validation
+  - user-guidance

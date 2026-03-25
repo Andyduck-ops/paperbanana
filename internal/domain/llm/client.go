@@ -12,6 +12,11 @@ type LLMClient interface {
 	Provider() string
 }
 
+// ImageGenerator is implemented by providers that can return generated image bytes.
+type ImageGenerator interface {
+	GenerateImage(ctx context.Context, req GenerateRequest) (*GenerateResponse, error)
+}
+
 type Role string
 
 const (

@@ -1,0 +1,47 @@
+id: GD-001-M-time-009
+priority: P1
+layer: orchestration
+title: Timeout Compensation After Clock Adjustment
+source: mutation
+operator: clock-adjustment
+parent: GD-001
+intent: When system clock is adjusted (NTP sync, DST change) during execution, timeouts must still work correctly.
+
+input:
+  mode: plot
+  prompt: "Create a bar chart of GDP by country."
+  retrieval_mode: auto
+  clock_adjustment_scenario:
+    stage_starts_at_wall_clock: "2024-01-15T10:00:00Z"
+    stage_timeout_ms: 30000
+    clock_adjustment_at: "2024-01-15T10:00:15Z"
+    clock_adjustment: plus_60_seconds
+    wall_clock_after_adjustment: "2024-01-15T10:01:15Z"
+    monotonic_clock_unchanged: true
+
+expected:
+  timeout_must_use_monotonic_clock: true
+  timeout_fires_at_correct_elapsed_time: true
+  actual_elapsed_before_timeout_ms: 30000
+  wall_clock_time_jump_must_not_affect: timeout_accuracy
+  final_status: completed_or_failed_normally
+
+anti_patterns:
+  - timeout fires immediately after clock jump (appears to fire early)
+  - timeout never fires because clock moved backward
+  - timeout fires 60 seconds late due to clock adjustment
+  - elapsed time calculation uses wall clock instead of monotonic
+  - system becomes unstable after clock adjustment
+
+notes:
+  - Tests robustness to NTP sync and daylight saving time changes.
+  - Must use monotonic clock for timeout measurement.
+  - Wall clock changes should not affect running operations.
+  - Common issue in long-running server processes.
+
+tags:
+  - mutation
+  - time-sensitive
+  - clock-adjustment
+  - monotonic-clock
+  - ntp-sync

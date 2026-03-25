@@ -1,0 +1,59 @@
+id: GD-UI-007-M-copy-09
+priority: P2
+layer: ui
+title: Placeholder Text Must Show Example Not Instruction
+source: mutation
+operator: copy-placeholder-not-example
+parent: GD-UI-001
+intent: Placeholder text should show an example of expected input, not instructions. Instructions should be in labels or helper text. Placeholders disappear when users start typing, so critical instructions must not be in placeholders.
+
+input:
+  ui_scenario: user is filling out input fields
+  system_state:
+    placeholder_contexts:
+      - field: search_query
+        purpose: show example query
+      - field: document_title
+        purpose: show example title
+      - field: api_endpoint
+        purpose: show example URL
+      - field: tags_input
+        purpose: show example tags
+
+expected:
+  ui_must_show:
+    - concrete example of expected input format
+    - realistic example that matches actual use case
+    - example that disappears when typing begins
+  ui_must_not_show:
+    - instruction text like "Enter your query here"
+    - required field indicators in placeholder
+    - critical instructions that disappear on focus
+    - placeholder that looks like pre-filled data
+  interaction_contract:
+    - user understands expected format from example
+    - example is clearly an example, not pre-filled data
+    - critical instructions are in visible label, not placeholder
+
+anti_patterns:
+  - Search field placeholder "Enter your search query" (instruction, not example)
+  - Title field placeholder "Please enter a title" (instruction)
+  - URL field placeholder "Type URL here" instead of "https://api.example.com/v1"
+  - Placeholder "Required field" for required inputs
+  - Placeholder with instructions that vanish when focused
+  - Placeholder that looks like actual data user might not change
+  - Long placeholder that gets truncated and is unreadable
+
+notes:
+  - Placeholders are for examples, labels are for instructions.
+  - Example: Search field placeholder "quarterly sales report 2024"
+  - Critical info like "Required" must be in label, not placeholder.
+  - Consider helper text below field for detailed guidance.
+
+tags:
+  - mutation
+  - ux-writing
+  - placeholder-text
+  - form-design
+  - input-examples
+  - label-vs-placeholder

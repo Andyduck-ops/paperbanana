@@ -1,0 +1,64 @@
+id: GD-UI-M-motion-14
+priority: P1
+title: Modal And Dialog Entrance Animation
+layer: ui
+source: motion-design
+operator: motion-modal-entrance
+parent: GD-UI-001
+intent: Modals and dialogs must animate entrance with scale and fade, providing context for the overlay and preventing jarring appearance that could startle users.
+
+input:
+  ui_scenario: modal or dialog appears over the main interface
+  system_state:
+    modal_state:
+      type: dialog
+      trigger: user_action_or_error
+      animation:
+        type: scale_fade
+        initial_scale: 0.95
+        final_scale: 1.0
+        duration_ms: 200-300
+        backdrop_fade_ms: 150-200
+    backdrop:
+      type: dim_overlay
+      opacity: 0.5
+
+expected:
+  ui_must_show:
+    - modal scales from slightly smaller to full size
+    - fade-in animation synchronized with scale
+    - backdrop dims the background with fade animation
+    - animation completes before user is expected to interact
+  ui_must_not_show:
+    - modal appears instantly with no animation
+    - animation takes over 500ms creating perceived delay
+    - modal slides in from side (unexpected direction)
+    - backdrop appears instantly or not at all
+  interaction_contract:
+    - user perceives modal as an overlay, not a new page
+    - animation provides visual context for the overlay
+    - modal is interactive immediately after animation
+  motion_contract:
+    - entrance_duration_ms: 200-300
+    - scale_range: 0.95 -> 1.0
+    - backdrop_duration_ms: 150-200
+    - purpose: overlay_context_and_smooth_transition
+
+anti_patterns:
+  - modal appears instantly with no animation
+  - modal animation takes 1 second
+  - modal slides in from off-screen
+  - no backdrop dim or backdrop appears instantly
+  - animation is chaotic or bouncy
+
+notes:
+  - Tests modal entrance animation for context and smoothness.
+  - Scale+fade is standard pattern for overlay context.
+  - Must not be so slow that it delays interaction.
+
+tags:
+  - motion-design
+  - modal-animation
+  - dialog-animation
+  - entrance-animation
+  - overlay-motion

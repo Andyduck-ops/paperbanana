@@ -1,0 +1,50 @@
+id: GD-UI-001-M-ui-stuck-running-state
+priority: P1
+layer: ui
+title: Running State Detects Stale Progress
+source: mutation
+operator: ui-running-state
+parent: GD-UI-001
+intent: UI must detect and indicate when running state becomes stale due to backend silence, preventing frozen perception.
+
+input:
+  ui_scenario: task shows running but no progress updates received
+  system_state:
+    session_status: running
+    current_stage: planner
+    last_update_received:
+      stage: planner
+      timestamp: 30_seconds_ago
+    expected_heartbeat_interval_ms: 5000
+    stale_threshold_ms: 30000
+
+expected:
+  ui_must_show:
+    - running state with stale indicator
+    - indication that progress updates have stopped
+    - suggestion to refresh or check connection
+  ui_must_not_show:
+    - unchanged running state as if everything is normal
+    - no indication of potential connection issue
+  interaction_contract:
+    - user is aware the UI may not reflect current state
+    - user has action to refresh or reconnect
+
+anti_patterns:
+  - UI shows status=running for >30s after last_update_received with no stale_indicator
+  - no visual change after 30 seconds of silence
+  - UI shows status=running when backend may be dead with no stale warning
+  - no option to refresh or check actual status
+  - stale state visually identical to active state
+
+notes:
+  - Tests UI resilience to backend silence.
+  - Backend may crash, disconnect, or hang without proper failure.
+  - Stale detection provides user awareness and recovery options.
+
+tags:
+  - mutation
+  - ui-state
+  - running-state
+  - stale-detection
+  - connection-resilience

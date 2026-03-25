@@ -1,0 +1,56 @@
+id: GD-003-M-corrupted-snapshot-schema-mismatch
+priority: P1
+layer: orchestration
+title: Corrupted Snapshot Schema Version Mismatch
+source: mutation
+operator: resume-with-corrupted-snapshot
+parent: GD-003
+intent: A resumed session with a snapshot schema version mismatch must fail with a clear schema compatibility error.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing a retrieval-augmented generation pipeline."
+  retrieval_mode: auto
+  snapshot_corruption:
+    type: schema_version_mismatch
+    expected_version: "agent-stage-store/v1"
+    actual_version: "agent-stage-store/v0"
+    description: "Snapshot was created with incompatible older schema"
+  resume_from: stylist
+  resume_context:
+    snapshot_file_exists: true
+    schema_version_incompatible: true
+
+expected:
+  final_status: failed
+  error_type: ErrInvalidSnapshot
+  error_message_must_contain:
+    - "schema version mismatch"
+    - "agent-stage-store/v1"
+    - "agent-stage-store/v0"
+  stages_must_not_run:
+    - stylist
+    - visualizer
+    - critic
+  must_not_attempt_schema_migration: true
+  must_preserve_original_snapshot_intact: true
+
+anti_patterns:
+  - system attempts to auto-migrate incompatible schema
+  - error message does not include version numbers
+  - system proceeds with wrong field mappings
+  - snapshot is silently corrupted during failed migration attempt
+  - generic "snapshot not found" error masks the real issue
+
+notes:
+  - Tests schema version validation during snapshot restore.
+  - Schema migration is explicitly out of scope - fail fast.
+  - Clear error message enables manual intervention.
+  - Protects against data corruption from version mismatches.
+
+tags:
+  - mutation
+  - resume-boundary
+  - corrupted-snapshot
+  - schema-version
+  - compatibility

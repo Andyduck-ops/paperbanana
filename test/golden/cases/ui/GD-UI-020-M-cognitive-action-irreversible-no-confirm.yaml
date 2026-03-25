@@ -1,0 +1,53 @@
+id: GD-UI-020-M-cognitive-action-irreversible-no-confirm
+priority: P1
+layer: ui
+title: Destructive Action Without Confirmation
+source: mutation
+operator: cognitive-action-irreversible-no-confirm
+parent: GD-UI-005
+intent: Destructive actions (delete, clear, reset) must require explicit confirmation. Immediate execution of irreversible actions causes data loss and user regret.
+
+input:
+  ui_scenario: user clicks delete on completed task
+  system_state:
+    action: delete_session
+    session_has_artifact: true
+    ui_behavior: immediate_delete_no_confirm
+    result: artifact_permanently_lost
+
+expected:
+  destructive_actions_must_require_confirmation:
+    - action: delete_session
+      requires_dialog: true
+      dialog_must_show:
+        - session_name_or_id
+        - artifact_count
+        - warning_text: "cannot be undone"
+  must_require_explicit_acknowledgment: true
+  must_allow_undo_for_short_period: true
+
+anti_patterns:
+  - clicking delete immediately removes session and artifact
+  - no confirmation dialog before destructive action
+  - no indication that action is irreversible
+  - delete button looks same as non-destructive buttons
+  - no undo or grace period after deletion
+  - bulk delete executes without showing what will be deleted
+  - no warning about attached artifacts
+
+notes:
+  - Always confirm: "Delete this session? This cannot be undone."
+  - Show what will be lost: "1 artifact will be permanently deleted."
+  - Require typing confirmation for bulk actions.
+  - Consider 30-second undo window.
+  - Use red/danger styling for destructive buttons.
+  - Verification: delete action shows confirmation dialog before execution.
+  - Verification: dialog displays session id and artifact count.
+
+tags:
+  - mutation
+  - user-cognitive-trap
+  - destructive-action
+  - no-confirmation
+  - irreversible-loss
+  - accidental-deletion

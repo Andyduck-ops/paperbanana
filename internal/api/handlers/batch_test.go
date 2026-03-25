@@ -127,6 +127,7 @@ func TestBatchHandler_BuildInputs(t *testing.T) {
 		assert.Equal(t, "node1", input.Metadata["visualizer.node_name"])
 		assert.Equal(t, "true", input.Metadata["config.runtime_managed_models"])
 		assert.Equal(t, string(rune('0'+i)), input.Metadata["batch.candidate_id"])
+		assert.Equal(t, "test-session", input.Metadata["batch.group_id"])
 	}
 
 	// All session IDs should be unique

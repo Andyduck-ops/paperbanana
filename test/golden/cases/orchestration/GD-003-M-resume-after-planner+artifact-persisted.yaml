@@ -1,0 +1,50 @@
+id: GD-003-M-resume-after-planner+artifact-persisted
+priority: P1
+layer: orchestration
+title: Artifacts Survive Resume Boundary After Planner
+source: mutation
+operators:
+  - resume-after-planner
+  - artifact-persisted
+parent: GD-003
+intent: When resuming from after planner, the planner's output artifact must be persisted and available to stylist without regeneration.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram showing microservices communication patterns."
+  retrieval_mode: auto
+  snapshot_captured_after: planner
+  resume_from: stylist
+
+expected:
+  final_status: completed
+  stages_must_not_rerun:
+    - retriever
+    - planner
+  stages_continued:
+    - stylist
+    - visualizer
+    - critic
+  must_have_final_artifact: true
+  planner_artifact_persisted: true
+  planner_artifact_accessible_to_stylist: true
+  artifact_chain_intact_after_resume: true
+
+anti_patterns:
+  - planner output is lost after resume causing stylist to receive empty input
+  - retriever reruns despite valid snapshot
+  - planner artifact exists in database but is not loaded into stylist input
+  - resume creates duplicate artifacts instead of reusing persisted ones
+  - artifact metadata shows wrong session or version after resume
+
+notes:
+  - Tests persistence boundary at planner-to-stylist transition.
+  - Critical for resume correctness: artifacts must survive across session boundaries.
+  - Validates that HistoryService.SaveSession captures artifacts correctly at each stage.
+
+tags:
+  - mutation
+  - combined
+  - resume-after-planner
+  - artifact-persisted
+  - state-preservation

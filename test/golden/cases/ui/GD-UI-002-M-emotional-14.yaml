@@ -1,0 +1,60 @@
+id: GD-UI-002-M-emotional-14
+priority: P1
+layer: ui
+title: Partial Failure Must Highlight Successes Not Just Problems
+source: mutation
+operator: emotional-partial-success-acknowledgment
+parent: GD-UI-002
+intent: When a task fails partially (some stages completed), the UI must acknowledge what succeeded before discussing the failure. Users should feel progress was made, not that everything was lost.
+
+input:
+  ui_scenario: task fails at visualizer stage after 4 successful stages
+  system_state:
+    session_status: failed
+    failed_stage: visualizer
+    stages_completed:
+      - retriever
+      - planner
+      - stylist
+    stages_not_run:
+      - critic
+    partial_artifacts_available: true
+
+expected:
+  ui_must_show:
+    - acknowledgment of completed stages and their value
+    - failure context without negating progress
+    - access to partial artifacts that were generated
+    - positive framing: "4 of 5 stages completed"
+  ui_must_not_show:
+    - failure message that ignores completed work
+    - treating partial success as total failure
+    - hiding partial artifacts from user
+    - focusing only on what went wrong
+  interaction_contract:
+    - user feels progress was made despite failure
+    - user can access and use partial results
+    - failure is contextualized within overall progress
+
+anti_patterns:
+  - "Generation failed" with no mention of 4 successful stages
+    - hiding partial artifacts as if nothing was generated
+    - visual treatment that implies 100% failure
+    - no access to work completed before failure
+    - "0 of 5 stages completed" when 4 actually succeeded
+    - failure styling on the entire pipeline
+    - no distinction between failed and completed stages
+
+notes:
+  - Partial success is still success; celebrate it.
+  - Consider: "Great progress! 4 stages completed before we hit a snag."
+  - Partial artifacts have value and should be accessible.
+  - Visual distinction between completed and failed stages.
+
+tags:
+  - mutation
+  - emotional-design
+  - partial-success
+  - failure-context
+  - progress-acknowledgment
+  - optimism

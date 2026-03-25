@@ -1,0 +1,62 @@
+id: GD-UI-M-motion-05
+priority: P0
+title: Reduced Motion Accessibility Compliance
+layer: ui
+source: motion-design
+operator: motion-reduced-motion-compliance
+parent: GD-UI-001
+intent: All animations must respect the prefers-reduced-motion media query, stopping or simplifying motion for users who have indicated motion sensitivity preferences.
+
+input:
+  ui_scenario: user has enabled prefers-reduced-motion setting
+  system_state:
+    user_preference:
+      prefers_reduced_motion: true
+    session_status: running
+    stage_transitions:
+      - from: retriever
+        to: planner
+        animation_expected: false_or_simplified
+    completion_animation:
+      trigger: completion_event
+      animation_expected: false_or_simplified
+
+expected:
+  ui_must_show:
+    - no animations or instant transitions when reduced-motion is enabled
+    - alternative feedback for motion-dependent states (color, icon changes)
+    - completion still clearly indicated without celebratory animation
+    - failure still clearly indicated without motion-based feedback
+  ui_must_not_show:
+    - any animation that continues despite reduced-motion preference
+    - state changes that lose meaning without animation (provide alternative)
+    - motion that ignores system accessibility settings
+    - reduced-motion that removes ALL feedback (use static alternatives)
+  interaction_contract:
+    - motion-sensitive users receive equivalent information through non-motion means
+    - state changes are still perceptible without animation
+    - accessibility preference is respected immediately without page reload
+  motion_contract:
+    - prefers_reduced_motion: true -> animations_disabled_or_simplified
+    - alternative_feedback: color_change, icon_change, text_change
+    - no_motion_duration_ms: 0
+    - equivalence: information_content_preserved
+
+anti_patterns:
+  - animations continue despite prefers-reduced-motion=true
+  - completion state is unclear without animation
+  - user must reload page for preference to take effect
+  - reduced-motion setting is detected but ignored
+  - all feedback is removed including static alternatives
+
+notes:
+  - Tests WCAG 2.3.3 compliance for motion sensitivity.
+  - Must use CSS media query detection at render time.
+  - Provide static alternatives: color, icon, border changes.
+
+tags:
+  - motion-design
+  - accessibility
+  - reduced-motion
+  - prefers-reduced-motion
+  - wcag-compliance

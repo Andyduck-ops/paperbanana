@@ -1,0 +1,46 @@
+id: GD-API-003
+priority: P1
+layer: api
+title: Artifact Bytes Persisted with Metadata
+source: mutation
+operator: artifact-persisted
+parent: GD-001
+intent: Final artifact bytes and metadata must survive persistence and be retrievable via the asset API.
+
+input:
+  mode: diagram
+  prompt: "Create a diagram explaining a multi-agent workflow."
+  retrieval_mode: auto
+
+expected:
+  session_record_created: true
+  version_created_on_completion: true
+  artifact_persisted: true
+  artifact_fields:
+    - id
+    - project_id
+    - visualization_id
+    - mime_type
+    - storage_key
+    - byte_size
+    - checksum_sha256
+  artifact_bytes_retrievable: true
+  artifact_checksum_matches: true
+
+anti_patterns:
+  - asset metadata persisted but bytes missing from storage
+  - asset bytes persisted but metadata missing from database
+  - storage_key generated but file not written
+  - checksum computed but does not match actual bytes
+
+notes:
+  - Tests the full asset persistence pipeline: metadata + blob storage.
+  - The checksum_sha256 must match the actual SHA-256 of the stored bytes.
+  - Asset must be downloadable via GET /api/v1/assets/:asset_id.
+
+tags:
+  - mutation
+  - persistence
+  - api
+  - artifact
+  - integrity

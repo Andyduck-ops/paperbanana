@@ -1,0 +1,64 @@
+id: GD-UI-M-motion-12
+priority: P1
+title: Resume State Transition Animation
+layer: ui
+source: motion-design
+operator: motion-resume-transition
+parent: GD-UI-004
+intent: Resumed task must animate transition from snapshot state to running state, showing inherited stages and distinguishing resumed execution from fresh start.
+
+input:
+  ui_scenario: user resumes task from snapshot
+  system_state:
+    previous_status: paused_or_stopped
+    current_status: running
+    resume_source: snapshot
+    inherited_stages:
+      completed: [retriever, planner]
+      current: stylist
+      pending: [visualizer, critic]
+    resume_animation:
+      type: continuation
+      trigger: resume_action
+      duration_ms: 300-500
+      show_inherited: true
+
+expected:
+  ui_must_show:
+    - animation that shows inherited stages as already completed
+    - transition from paused state to running with motion
+    - visual distinction between inherited (already done) and fresh work
+    - running animation starts at resumed stage, not beginning
+  ui_must_not_show:
+    - instant state change with no animation
+    - animation that suggests task is starting from scratch
+    - inherited stages shown as pending then animating to complete
+    - resume looks identical to new task start
+  interaction_contract:
+    - user understands task is continuing, not restarting
+    - inherited work is immediately visible and distinct
+    - resume animation provides continuity from snapshot
+  motion_contract:
+    - resume_animation_ms: 300-500
+    - inherited_stages: visible_immediately_as_completed
+    - purpose: continuation_indication
+    - distinction: resume_vs_new_start
+
+anti_patterns:
+  - resume has no animation, just instant state change
+  - all stages animate from pending to completed
+  - resume animation identical to new task start
+  - inherited stages not shown, work appears to restart
+  - animation suggests task is starting over
+
+notes:
+  - Tests that resume has distinct animation from new start.
+  - User must perceive continuation, not restart.
+  - Inherited stages should be shown without re-animating.
+
+tags:
+  - motion-design
+  - resume-animation
+  - continuation-motion
+  - inherited-state
+  - snapshot-resume

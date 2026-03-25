@@ -1,0 +1,56 @@
+id: GD-UI-006-M-a11y-13
+priority: P1
+layer: ui
+title: Batch Task Status Accessible via Keyboard Navigation
+source: mutation
+operator: a11y-batch-keyboard-navigation
+parent: GD-UI-005
+intent: In batch task view, users must be able to navigate between tasks using keyboard. Each task status must be accessible, and users must be able to expand task details or navigate to individual task views without a mouse.
+wcag_criterion: WCAG 2.1 2.1.1 Keyboard (Level A)
+
+input:
+  ui_scenario: keyboard user navigating batch of 5 running tasks
+  system_state:
+    session_status: batch_running
+    batch_size: 5
+    tasks:
+      - id: task-1
+        status: completed
+      - id: task-2
+        status: running
+      - id: task-3
+        status: running
+      - id: task-4
+        status: failed
+      - id: task-5
+        status: pending
+
+expected:
+  each_task_must_be_keyboard_focusable: true
+  task_list_must_support_arrow_key_navigation: true
+  task_details_must_expand_via_keyboard: true
+  navigation_to_individual_task_must_work: true
+  batch_summary_must_be_accessible: true
+
+anti_patterns:
+  - task list items are not focusable
+  - user cannot navigate between tasks without mouse
+  - expanding task details requires click
+  - no way to jump to failed task from batch view
+  - task status is only indicated by color
+  - screen reader cannot distinguish between tasks
+  - focus order skips tasks randomly
+
+notes:
+  - Implement roving tabindex or aria-activedescendant pattern.
+  - Arrow keys should move between tasks, Enter to expand.
+  - Provide shortcut to jump to first failed task.
+  - Ensure each task has unique accessible name.
+
+tags:
+  - mutation
+  - accessibility
+  - keyboard-navigation
+  - wcag-2.1.1
+  - batch-operations
+  - list-navigation
