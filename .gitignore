@@ -4,6 +4,11 @@
 PaperBanana/
 agentsdk-go/
 
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
 node_modules/
 dist/
 web/node_modules/
@@ -21,6 +26,7 @@ web/tsconfig.tsbuildinfo
 /orchestrator.test
 /configs/config.yaml
 /configs/custom_nodes.yaml
+!configs/config.yaml.example
 /data/PaperBananaBench.zip
 /data/PaperBananaBench/diagram/images/
 /data/PaperBananaBench/plot/images/
