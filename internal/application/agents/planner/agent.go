@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	defaultMaxOutputTokens = 50000
+	defaultMaxOutputTokens = 4000
 	defaultExamplesRoot    = "data/PaperBananaBench"
 )
 
@@ -96,6 +96,7 @@ func (a *Agent) Execute(ctx context.Context, input domainagent.AgentInput) (doma
 		}
 		return domainagent.AgentOutput{}, err
 	}
+	examples = limitExamplesForPlanning(examples)
 
 	messages, err := buildMessages(input, examples, a.cfg.LoadExampleImage)
 	if err != nil {

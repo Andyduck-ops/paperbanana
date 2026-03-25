@@ -9,7 +9,14 @@ import (
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 )
 
-const PromptVersion = "planner-v1"
+const PromptVersion = "planner-v2"
+
+const (
+	planningExampleLimit      = 4
+	planningImageExampleLimit = 2
+	planningTargetCharLimit   = 3000
+	planningExampleCharLimit  = 1600
+)
 
 type promptSpec struct {
 	systemPrompt   string
@@ -46,7 +53,7 @@ func buildMessages(input domainagent.AgentInput, examples []referenceExample, lo
 	for idx, example := range examples {
 		parts = append(parts, domainllm.TextPart(buildExamplePrompt(spec, idx+1, example)))
 
-		if example.PathToGTImage == "" {
+		if idx >= planningImageExampleLimit || example.PathToGTImage == "" {
 			continue
 		}
 
@@ -57,7 +64,7 @@ func buildMessages(input domainagent.AgentInput, examples []referenceExample, lo
 		parts = append(parts, domainllm.InlineImagePart(mimeType, image))
 	}
 
-	parts = append(parts, domainllm.TextPart(buildFinalPrompt(spec, input.Content, input.VisualIntent.Goal)))
+	parts = append(parts, domainllm.TextPart(buildFinalPrompt(spec, truncatePlanningText(input.Content, planningTargetCharLimit), input.VisualIntent.Goal)))
 	return []domainllm.Message{{
 		Role:  domainllm.RoleUser,
 		Parts: parts,
@@ -69,7 +76,7 @@ func buildExamplePrompt(spec promptSpec, index int, example referenceExample) st
 		"Example %d:\n%s: %s\n%s: %s\n%s: ",
 		index,
 		spec.contentLabel,
-		example.ContentString(),
+		truncatePlanningText(example.ContentString(), planningExampleCharLimit),
 		spec.intentLabel,
 		example.VisualIntent,
 		spec.referenceLabel,
@@ -94,6 +101,20 @@ func buildFinalPrompt(spec promptSpec, content, goal string) string {
 	builder.WriteString(spec.noTitleClause)
 	builder.WriteString(":")
 	return builder.String()
+}
+
+func limitExamplesForPlanning(examples []referenceExample) []referenceExample {
+	if len(examples) <= planningExampleLimit {
+		return examples
+	}
+	return examples[:planningExampleLimit]
+}
+
+func truncatePlanningText(value string, limit int) string {
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+	return value[:limit] + " ..."
 }
 
 func promptForMode(mode domainagent.VisualMode) (promptSpec, error) {

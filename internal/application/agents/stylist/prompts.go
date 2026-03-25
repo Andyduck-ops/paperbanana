@@ -6,7 +6,7 @@ import (
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 )
 
-const PromptVersion = "1.0.0"
+const PromptVersion = "1.1.0"
 
 const styleGuideReference = `## NeurIPS 2025 Style Guidelines
 
@@ -58,7 +58,9 @@ func buildMessageContent(input domainagent.AgentInput) string {
 1. Enhance the visual description to align with NeurIPS 2025 style guidelines
 2. Preserve all semantic content - do not change the meaning
 3. Add specific style recommendations (colors, fonts, layout)
-4. Ensure the enhanced plan is clear and actionable for the visualizer
+4. Keep the enhanced plan concise and image-model-friendly
+5. Avoid repeating the same requirement in multiple ways
+6. Do not exceed roughly 500 words unless the source plan is unusually complex
 
 Output the enhanced visualization plan:`, input.VisualIntent.Mode, input.Content)
 }

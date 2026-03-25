@@ -138,7 +138,7 @@ func main() {
 		apiKeyRepo,
 	)
 
-	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot)
+	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot, cfg.StageTimeout)
 	if err != nil {
 		logger.Fatal("failed to build runner", zap.Error(err))
 	}
@@ -221,6 +221,7 @@ func buildRunner(
 	snapshotStore orchestrator.SnapshotStore,
 	nodeCatalog *config.NodeCatalog,
 	benchRoot string,
+	stageTimeouts config.StageTimeoutConfig,
 ) (*orchestrator.Runner, error) {
 	visualizerAgent := visualizeragent.NewAgent(genClient, visualizeragent.Config{
 		Model:       providerConfig.Model,
@@ -247,6 +248,13 @@ func buildRunner(
 		visualizerAgent,
 		criticAgent,
 		orchestrator.WithSnapshotStore(snapshotStore),
+		orchestrator.WithStageTimeouts(orchestrator.StageTimeouts{
+			domainagent.StageRetriever:  stageTimeouts.Retriever,
+			domainagent.StagePlanner:    stageTimeouts.Planner,
+			domainagent.StageStylist:    stageTimeouts.Stylist,
+			domainagent.StageVisualizer: stageTimeouts.Visualizer,
+			domainagent.StageCritic:     stageTimeouts.Critic,
+		}),
 	), nil
 }
 

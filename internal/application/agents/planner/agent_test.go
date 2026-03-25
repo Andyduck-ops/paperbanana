@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -136,6 +137,67 @@ func TestPlannerFallsBackWhenModelReturnsEmptyContent(t *testing.T) {
 	assert.Equal(t, "true", output.Metadata["fallback_used"])
 }
 
+func TestPlannerLimitsExamplesAndImages(t *testing.T) {
+	client := &fakeLLMClient{
+		response: &domainllm.GenerateResponse{Content: "trimmed diagram plan"},
+	}
+
+	var loadedPaths []string
+	agent := NewAgent(client, Config{
+		LoadExampleImage: func(mode domainagent.VisualMode, path string) ([]byte, string, error) {
+			require.Equal(t, domainagent.VisualModeDiagram, mode)
+			loadedPaths = append(loadedPaths, path)
+			return []byte("image:" + path), "image/png", nil
+		},
+	})
+
+	input := testInputWithExampleCount(t, domainagent.VisualModeDiagram, 5)
+	output, err := agent.Execute(context.Background(), input)
+	require.NoError(t, err)
+
+	req := client.requests[0]
+	require.Len(t, req.Messages, 1)
+	require.Len(t, req.Messages[0].Parts, 7)
+	assert.Equal(t, []string{"ref_1.png", "ref_2.png"}, loadedPaths)
+	assert.Contains(t, req.Messages[0].Parts[0].Text, "Example 1:")
+	assert.Contains(t, req.Messages[0].Parts[2].Text, "Example 2:")
+	assert.Contains(t, req.Messages[0].Parts[4].Text, "Example 3:")
+	assert.Contains(t, req.Messages[0].Parts[5].Text, "Example 4:")
+	assert.NotContains(t, req.Messages[0].Parts[5].Text, "Example 5:")
+	assert.Equal(t, "4", output.Metadata["example_count"])
+}
+
+func TestPlannerTruncatesLongPromptContent(t *testing.T) {
+	client := &fakeLLMClient{
+		response: &domainllm.GenerateResponse{Content: "diagram plan"},
+	}
+	agent := NewAgent(client, Config{
+		LoadExampleImage: func(mode domainagent.VisualMode, path string) ([]byte, string, error) {
+			return []byte("image:" + path), "image/png", nil
+		},
+	})
+
+	input := testInputWithExampleCount(t, domainagent.VisualModeDiagram, 1)
+	input.Content = strings.Repeat("methodology ", 400) + "TARGET-END"
+
+	var examples []referenceExample
+	require.NoError(t, json.Unmarshal([]byte(input.GeneratedArtifacts[0].Content), &examples))
+	examples[0].Content = json.RawMessage(`"` + strings.Repeat("example ", 400) + `EXAMPLE-END"`)
+	content, err := json.Marshal(examples)
+	require.NoError(t, err)
+	input.GeneratedArtifacts[0].Content = string(content)
+
+	_, err = agent.Execute(context.Background(), input)
+	require.NoError(t, err)
+
+	req := client.requests[0]
+	require.Len(t, req.Messages, 1)
+	finalPrompt := req.Messages[0].Parts[len(req.Messages[0].Parts)-1].Text
+	examplePrompt := req.Messages[0].Parts[0].Text
+	assert.NotContains(t, finalPrompt, "TARGET-END")
+	assert.NotContains(t, examplePrompt, "EXAMPLE-END")
+}
+
 type fakeLLMClient struct {
 	requests []domainllm.GenerateRequest
 	response *domainllm.GenerateResponse
@@ -164,19 +226,24 @@ func (f *fakeLLMClient) Provider() string {
 func testInput(t *testing.T, mode domainagent.VisualMode) domainagent.AgentInput {
 	t.Helper()
 
-	examples := []referenceExample{
-		{
-			ID:            exampleIDForMode(mode, 1),
-			VisualIntent:  exampleIntentForMode(mode, 1),
-			Content:       exampleContentForMode(mode, 1),
-			PathToGTImage: examplePathForMode(mode, 1),
-		},
-		{
-			ID:            exampleIDForMode(mode, 2),
-			VisualIntent:  exampleIntentForMode(mode, 2),
-			Content:       exampleContentForMode(mode, 2),
-			PathToGTImage: examplePathForMode(mode, 2),
-		},
+	return testInputWithExampleCount(t, mode, 2)
+}
+
+func testInputWithExampleCount(t *testing.T, mode domainagent.VisualMode, count int) domainagent.AgentInput {
+	t.Helper()
+
+	if count <= 0 {
+		count = 1
+	}
+
+	examples := make([]referenceExample, 0, count)
+	for index := 1; index <= count; index++ {
+		examples = append(examples, referenceExample{
+			ID:            exampleIDForMode(mode, index),
+			VisualIntent:  exampleIntentForMode(mode, index),
+			Content:       exampleContentForMode(mode, index),
+			PathToGTImage: examplePathForMode(mode, index),
+		})
 	}
 	content, err := json.Marshal(examples)
 	require.NoError(t, err)
@@ -217,25 +284,22 @@ func loadFixture(t *testing.T, name string) string {
 
 func exampleIDForMode(mode domainagent.VisualMode, index int) string {
 	if mode == domainagent.VisualModePlot {
-		if index == 1 {
+		if index%2 == 1 {
 			return "ref_10"
 		}
 		return "ref_11"
 	}
-	if index == 1 {
-		return "ref_1"
-	}
-	return "ref_2"
+	return "ref_" + strconv.Itoa(index)
 }
 
 func exampleIntentForMode(mode domainagent.VisualMode, index int) string {
 	if mode == domainagent.VisualModePlot {
-		if index == 1 {
+		if index%2 == 1 {
 			return "Grouped bar chart comparing three methods"
 		}
 		return "Scatter plot with confidence bands"
 	}
-	if index == 1 {
+	if index%2 == 1 {
 		return "Agent framework overview"
 	}
 	return "Training pipeline"
@@ -243,12 +307,12 @@ func exampleIntentForMode(mode domainagent.VisualMode, index int) string {
 
 func exampleContentForMode(mode domainagent.VisualMode, index int) json.RawMessage {
 	if mode == domainagent.VisualModePlot {
-		if index == 1 {
+		if index%2 == 1 {
 			return json.RawMessage(`{"series":[1,2,3]}`)
 		}
 		return json.RawMessage(`{"points":[[1,2],[2,3]]}`)
 	}
-	if index == 1 {
+	if index%2 == 1 {
 		return json.RawMessage(`"Method section for agent framework."`)
 	}
 	return json.RawMessage(`"Method section for a training pipeline."`)
@@ -256,15 +320,12 @@ func exampleContentForMode(mode domainagent.VisualMode, index int) json.RawMessa
 
 func examplePathForMode(mode domainagent.VisualMode, index int) string {
 	if mode == domainagent.VisualModePlot {
-		if index == 1 {
+		if index%2 == 1 {
 			return "ref_10.png"
 		}
 		return "ref_11.png"
 	}
-	if index == 1 {
-		return "ref_1.png"
-	}
-	return "ref_2.png"
+	return "ref_" + strconv.Itoa(index) + ".png"
 }
 
 func currentContentForMode(mode domainagent.VisualMode) string {

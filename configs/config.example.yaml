@@ -39,3 +39,10 @@ output:
     - png
     - svg
     - pdf
+
+stage_timeout:
+  retriever: 90s
+  planner: 90s
+  stylist: 60s
+  visualizer: 120s
+  critic: 90s

@@ -10,7 +10,7 @@ import (
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 )
 
-const defaultMaxOutputTokens = 50000
+const defaultMaxOutputTokens = 4000
 
 type Config struct {
 	Model           string
