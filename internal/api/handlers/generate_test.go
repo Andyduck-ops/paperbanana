@@ -86,6 +86,7 @@ func TestGenerateHandlerRunsPipeline(t *testing.T) {
 	assert.Equal(t, "test prompt", captured.Content)
 	assert.Equal(t, domainagent.VisualModeDiagram, captured.VisualIntent.Mode)
 	assert.Equal(t, "test prompt", captured.VisualIntent.Goal)
+	assert.Equal(t, "true", captured.Metadata["config.runtime_managed_models"])
 
 	var resp GenerateResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))

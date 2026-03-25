@@ -228,14 +228,15 @@ func buildAgentInput(req GenerateRequest) (domainagent.AgentInput, error) {
 	requestID := buildID("request")
 
 	metadata := map[string]string{
-		"http.prompt":      req.Prompt,
-		"http.mode":        string(mode),
-		"http.model":       req.Model,
-		"http.temperature": strconv.FormatFloat(req.Temperature, 'f', -1, 64),
-		"http.max_tokens":  strconv.Itoa(req.MaxTokens),
-		"http.session_id":  sessionID,
-		"http.resume":      strconv.FormatBool(req.Resume),
-		"http.project_id":  req.ProjectID,
+		"http.prompt":                   req.Prompt,
+		"http.mode":                     string(mode),
+		"http.model":                    req.Model,
+		"http.temperature":              strconv.FormatFloat(req.Temperature, 'f', -1, 64),
+		"http.max_tokens":               strconv.Itoa(req.MaxTokens),
+		"http.session_id":               sessionID,
+		"http.resume":                   strconv.FormatBool(req.Resume),
+		"http.project_id":               req.ProjectID,
+		"config.runtime_managed_models": "true",
 	}
 	if nodeName := strings.TrimSpace(req.VisualizerNode); nodeName != "" {
 		metadata["http.visualizer_node"] = nodeName

@@ -138,12 +138,6 @@ func (h *ProviderHandler) CreateProvider(c *gin.Context) {
 		if req.DisplayName == "" {
 			req.DisplayName = preset.DisplayName
 		}
-		if req.QueryModel == "" && len(preset.DefaultModels) > 0 {
-			req.QueryModel = preset.DefaultModels[0].ID
-		}
-		if req.GenModel == "" && len(preset.DefaultModels) > 0 {
-			req.GenModel = preset.DefaultModels[0].ID
-		}
 	}
 
 	// Generate name if not provided
@@ -175,12 +169,6 @@ func (h *ProviderHandler) CreateProvider(c *gin.Context) {
 	if len(req.Models) > 0 {
 		provider.Models = req.Models
 	}
-	if provider.QueryModel == "" {
-		provider.QueryModel = firstEnabledModelID(provider.Models)
-	}
-	if provider.GenModel == "" {
-		provider.GenModel = provider.QueryModel
-	}
 
 	// Copy models from preset if available
 	if preset != nil && len(provider.Models) == 0 {
@@ -194,6 +182,12 @@ func (h *ProviderHandler) CreateProvider(c *gin.Context) {
 				Enabled:        m.Enabled,
 			}
 		}
+	}
+	if provider.QueryModel == "" {
+		provider.QueryModel = domainconfig.SelectPreferredQueryModel(req.QueryModel, provider.Models)
+	}
+	if provider.GenModel == "" {
+		provider.GenModel = domainconfig.SelectPreferredGenerationModel(provider.Type, provider.Name, req.GenModel, provider.Models)
 	}
 	if provider.QueryModel == "" {
 		provider.QueryModel = "default"
@@ -267,10 +261,10 @@ func (h *ProviderHandler) UpdateProvider(c *gin.Context) {
 		provider.Models = req.Models
 	}
 	if req.QueryModel == "" && len(req.Models) > 0 && !modelExists(provider.QueryModel, req.Models) {
-		provider.QueryModel = firstEnabledModelID(req.Models)
+		provider.QueryModel = domainconfig.SelectPreferredQueryModel(provider.QueryModel, req.Models)
 	}
 	if req.GenModel == "" && len(req.Models) > 0 && !modelExists(provider.GenModel, req.Models) {
-		provider.GenModel = firstEnabledModelID(req.Models)
+		provider.GenModel = domainconfig.SelectPreferredGenerationModel(provider.Type, provider.Name, provider.GenModel, req.Models)
 		if provider.GenModel == "" {
 			provider.GenModel = provider.QueryModel
 		}

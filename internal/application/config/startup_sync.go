@@ -39,15 +39,16 @@ func (s *Service) SyncStartupProviders(ctx context.Context, specs []StartupProvi
 		if len(models) == 0 {
 			models = ensureModelPresent(nil, spec.DefaultModel)
 		}
-
-		selectedModel := chooseDefaultModel(spec.DefaultModel, models)
+		models = normalizeStartupModels(models)
+		queryModel := domainconfig.SelectPreferredQueryModel(spec.DefaultModel, models)
+		genModel := domainconfig.SelectPreferredGenerationModel(provider.Type, provider.Name, spec.DefaultModel, models)
 		provider.APIHost = strings.TrimSpace(spec.BaseURL)
 		provider.DisplayName = startupDisplayName(provider.DisplayName, spec)
 		provider.Enabled = true
 		provider.TimeoutMs = durationToMilliseconds(spec.Timeout)
 		provider.Models = models
-		provider.QueryModel = selectedModel
-		provider.GenModel = selectedModel
+		provider.QueryModel = queryModel
+		provider.GenModel = genModel
 
 		if err := s.UpdateProvider(provider); err != nil {
 			return err
@@ -170,7 +171,7 @@ func toDomainModels(models []domainllm.ModelInfo) []domainconfig.ModelInfo {
 		})
 	}
 
-	return result
+	return normalizeStartupModels(result)
 }
 
 func ensureModelPresent(models []domainconfig.ModelInfo, modelID string) []domainconfig.ModelInfo {
@@ -190,50 +191,6 @@ func ensureModelPresent(models []domainconfig.ModelInfo, modelID string) []domai
 		Name:    modelID,
 		Enabled: true,
 	})
-}
-
-func chooseDefaultModel(configured string, models []domainconfig.ModelInfo) string {
-	configured = strings.TrimSpace(configured)
-	if configured != "" && hasModel(configured, models) {
-		return configured
-	}
-
-	preferred := []string{
-		"grok-4.1-fast",
-		"grok-4.1-thinking",
-		"grok-4.20-beta",
-		"gpt-5.4",
-		"gpt-5.2",
-		"gemini-3-pro",
-		"gemini-3-flash",
-		"claude-sonnet-4-6",
-	}
-	for _, candidate := range preferred {
-		if hasModel(candidate, models) {
-			return candidate
-		}
-	}
-
-	for _, model := range models {
-		lowerID := strings.ToLower(model.ID)
-		if strings.Contains(lowerID, "embedding") || strings.Contains(lowerID, "video") {
-			continue
-		}
-		if strings.Contains(lowerID, "imagine") || strings.Contains(lowerID, "image") {
-			continue
-		}
-		if model.Enabled {
-			return model.ID
-		}
-	}
-
-	for _, model := range models {
-		if model.Enabled {
-			return model.ID
-		}
-	}
-
-	return configured
 }
 
 func durationToMilliseconds(value time.Duration) int {
@@ -268,4 +225,18 @@ func hasModel(modelID string, models []domainconfig.ModelInfo) bool {
 		}
 	}
 	return false
+}
+
+func normalizeStartupModels(models []domainconfig.ModelInfo) []domainconfig.ModelInfo {
+	if len(models) == 0 {
+		return nil
+	}
+
+	normalized := make([]domainconfig.ModelInfo, len(models))
+	for i, model := range models {
+		model.SupportsVision = model.SupportsVision || domainconfig.SupportsImageGeneration(model.ID)
+		normalized[i] = model
+	}
+
+	return normalized
 }

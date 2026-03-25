@@ -3,11 +3,16 @@ import type { GenerateRequest } from '../types/api';
 const API_BASE = '/api/v1';
 
 // SSE event types from backend runner lifecycle
+// Must match internal/domain/agent/events.go EventType constants
 export type SSEEventType =
-  | 'stage_start'
-  | 'stage_complete'
+  | 'stage_started'
+  | 'stage_completed'
+  | 'stage_failed'
+  | 'run_completed'
+  | 'run_failed'
   | 'result'
-  | 'error';
+  | 'error'
+  | 'resume_start';
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -36,10 +41,20 @@ export interface ResultEvent {
   }>;
 }
 
+// GD-UI-002: Error event includes failed stage and stages that won't run
 export interface ErrorEvent {
   message: string;
   stage?: string;
   error?: string;
+  failed_stage?: string;
+  stages_not_run?: string[];
+}
+
+// GD-UI-004: Resume metadata for resumed tasks
+export interface ResumeStartEvent {
+  resumed_from_stage: string;
+  stages_completed_before_resume: string[];
+  session_id: string;
 }
 
 export interface SSEOptions {
@@ -47,8 +62,95 @@ export interface SSEOptions {
   onStageComplete?: (data: StageCompleteEvent) => void;
   onResult?: (data: ResultEvent) => void;
   onError?: (data: ErrorEvent) => void;
+  onResumeStart?: (data: ResumeStartEvent) => void;
   onOpen?: () => void;
   onClose?: () => void;
+}
+
+function stripSSEFieldPrefix(line: string, field: 'event' | 'data'): string | null {
+  if (!line.startsWith(`${field}:`)) {
+    return null;
+  }
+
+  const rawValue = line.slice(field.length + 1);
+  return rawValue.startsWith(' ') ? rawValue.slice(1) : rawValue;
+}
+
+function dispatchEvent(
+  eventType: SSEEventType,
+  payload: unknown,
+  options: SSEOptions
+) {
+  switch (eventType) {
+    case 'stage_started':
+      options.onStageStart?.(payload as StageStartEvent);
+      break;
+    case 'stage_completed':
+      options.onStageComplete?.(payload as StageCompleteEvent);
+      break;
+    case 'stage_failed': {
+      const errorData = payload as ErrorEvent & { stage?: string; error?: string };
+      options.onError?.({
+        message: errorData.message || errorData.error || 'Stage failed',
+        stage: errorData.stage,
+        error: errorData.error,
+        failed_stage: errorData.failed_stage || errorData.stage,
+        stages_not_run: errorData.stages_not_run,
+      });
+      break;
+    }
+    case 'run_completed':
+    case 'result':
+      options.onResult?.(payload as ResultEvent);
+      break;
+    case 'run_failed':
+    case 'error': {
+      const errorData = payload as ErrorEvent;
+      options.onError?.({
+        ...errorData,
+        message: errorData.message || errorData.error || 'Unknown error',
+      });
+      break;
+    }
+    case 'resume_start':
+      options.onResumeStart?.(payload as ResumeStartEvent);
+      break;
+  }
+}
+
+function parseEventChunk(chunk: string, options: SSEOptions) {
+  const lines = chunk.split('\n');
+  let eventType: SSEEventType | null = null;
+  const dataLines: string[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\r$/, '');
+    if (!line || line.startsWith(':')) {
+      continue;
+    }
+
+    const parsedEventType = stripSSEFieldPrefix(line, 'event');
+    if (parsedEventType) {
+      eventType = parsedEventType.trim() as SSEEventType;
+      continue;
+    }
+
+    const parsedData = stripSSEFieldPrefix(line, 'data');
+    if (parsedData !== null) {
+      dataLines.push(parsedData);
+    }
+  }
+
+  if (!eventType || dataLines.length === 0) {
+    return;
+  }
+
+  try {
+    const payload = JSON.parse(dataLines.join('\n'));
+    dispatchEvent(eventType, payload, options);
+  } catch {
+    // Skip malformed payloads and keep the stream alive.
+  }
 }
 
 export function createSSERequest(data: GenerateRequest): Request {
@@ -90,39 +192,16 @@ export async function streamGenerate(
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop() || '';
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.startsWith('event: ')) {
-          const eventType = line.slice(7).trim() as SSEEventType;
-          const dataLine = lines[i + 1];
-          if (dataLine?.startsWith('data: ')) {
-            const eventData = JSON.parse(dataLine.slice(6));
-
-            switch (eventType) {
-              case 'stage_start':
-                options.onStageStart?.(eventData as StageStartEvent);
-                break;
-              case 'stage_complete':
-                options.onStageComplete?.(eventData as StageCompleteEvent);
-                break;
-              case 'result':
-                options.onResult?.(eventData as ResultEvent);
-                break;
-              case 'error': {
-                const errorData = eventData as ErrorEvent;
-                options.onError?.({
-                  ...errorData,
-                  message: errorData.message || errorData.error || 'Unknown error',
-                });
-                break;
-              }
-            }
-          }
-        }
+      for (const chunk of chunks) {
+        parseEventChunk(chunk, options);
       }
+    }
+
+    if (buffer.trim()) {
+      parseEventChunk(buffer, options);
     }
   } finally {
     reader.releaseLock();

@@ -3,9 +3,10 @@ package modelselection
 import "strings"
 
 const (
-	QueryModelMetadataKey    = "config.query_model"
+	QueryModelMetadataKey      = "config.query_model"
 	GenerationModelMetadataKey = "config.gen_model"
-	RetrievalModeMetadataKey = "config.retrieval_mode"
+	RetrievalModeMetadataKey   = "config.retrieval_mode"
+	RuntimeManagedMetadataKey  = "config.runtime_managed_models"
 )
 
 func QueryModel(metadata map[string]string, fallback string) string {
@@ -29,6 +30,9 @@ func RetrievalMode(metadata map[string]string, fallback string) string {
 func resolve(metadata map[string]string, key, fallback string) string {
 	if value := strings.TrimSpace(metadata[key]); value != "" {
 		return value
+	}
+	if strings.EqualFold(strings.TrimSpace(metadata[RuntimeManagedMetadataKey]), "true") {
+		return ""
 	}
 	return fallback
 }

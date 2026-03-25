@@ -122,6 +122,7 @@ func TestBatchHandler_BuildInputs(t *testing.T) {
 		assert.Equal(t, "test prompt", input.Content)
 		assert.Equal(t, domainagent.VisualModeDiagram, input.VisualIntent.Mode)
 		assert.Equal(t, "node1", input.Metadata["visualizer.node_name"])
+		assert.Equal(t, "true", input.Metadata["config.runtime_managed_models"])
 		assert.Equal(t, string(rune('0'+i)), input.Metadata["batch.candidate_id"])
 	}
 
@@ -161,6 +162,10 @@ func (f *mockBatchAgentFactory) CreateRetriever() domainagent.BaseAgent {
 
 func (f *mockBatchAgentFactory) CreatePlanner() domainagent.BaseAgent {
 	return &mockBatchAgent{stage: domainagent.StagePlanner}
+}
+
+func (f *mockBatchAgentFactory) CreateStylist() domainagent.BaseAgent {
+	return nil // Stylist is optional
 }
 
 func (f *mockBatchAgentFactory) CreateVisualizer() domainagent.BaseAgent {

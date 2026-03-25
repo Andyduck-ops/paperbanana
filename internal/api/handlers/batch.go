@@ -131,12 +131,13 @@ func buildBatchInputs(req dto.BatchGenerateRequest) ([]domainagent.AgentInput, e
 		requestID := buildID("request")
 
 		metadata := map[string]string{
-			"http.prompt":        req.Prompt,
-			"http.mode":          string(mode),
-			"http.model":         req.Model,
-			"http.session_id":    candidateSessionID,
-			"http.project_id":    req.ProjectID,
-			"batch.candidate_id": strconv.Itoa(i),
+			"http.prompt":                   req.Prompt,
+			"http.mode":                     string(mode),
+			"http.model":                    req.Model,
+			"http.session_id":               candidateSessionID,
+			"http.project_id":               req.ProjectID,
+			"batch.candidate_id":            strconv.Itoa(i),
+			"config.runtime_managed_models": "true",
 		}
 		if nodeName := strings.TrimSpace(req.VisualizerNode); nodeName != "" {
 			metadata["http.visualizer_node"] = nodeName
