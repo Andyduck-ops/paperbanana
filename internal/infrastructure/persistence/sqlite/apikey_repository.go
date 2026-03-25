@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -128,9 +129,6 @@ func (r *APIKeyRepository) GetNextKey(ctx interface{}, providerID string) (*doma
 		return nil, "", fmt.Errorf("no active API keys for provider %s", providerID)
 	}
 
-	// Get the first key (least recently used)
-	key := keys[0]
-
 	var encCtx context.Context
 	switch v := ctx.(type) {
 	case context.Context:
@@ -139,16 +137,28 @@ func (r *APIKeyRepository) GetNextKey(ctx interface{}, providerID string) (*doma
 		encCtx = context.Background()
 	}
 
-	// Decrypt the key
-	plaintext, err := r.encrypt.Decrypt(encCtx, key.EncryptedKey)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to decrypt API key: %w", err)
+	var lastErr error
+	for _, key := range keys {
+		plaintext, decryptErr := r.encrypt.Decrypt(encCtx, key.EncryptedKey)
+		if decryptErr != nil {
+			lastErr = decryptErr
+			continue
+		}
+		if strings.TrimSpace(plaintext) == "" {
+			lastErr = fmt.Errorf("decrypted API key %s is empty", key.ID)
+			continue
+		}
+
+		// Mark as used
+		_ = r.MarkUsed(key.ID) // Ignore error, not critical
+
+		return key, plaintext, nil
 	}
 
-	// Mark as used
-	_ = r.MarkUsed(key.ID) // Ignore error, not critical
-
-	return key, plaintext, nil
+	if lastErr != nil {
+		return nil, "", fmt.Errorf("failed to decrypt any active API key for provider %s: %w", providerID, lastErr)
+	}
+	return nil, "", fmt.Errorf("no usable API keys for provider %s", providerID)
 }
 
 // Update updates an API key.

@@ -122,7 +122,10 @@ func (c *RuntimeClient) resolveClient(ctx context.Context, req domainllm.Generat
 	provider, err := c.resolveDefaultProvider()
 	switch {
 	case err == nil:
-		model := c.providerModel(provider)
+		model := strings.TrimSpace(req.Model)
+		if model == "" {
+			model = c.providerModel(provider)
+		}
 		client, buildErr := c.buildProviderClient(ctx, provider, model)
 		if buildErr != nil {
 			return nil, req, buildErr
