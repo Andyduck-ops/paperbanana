@@ -146,7 +146,7 @@ export function useHistory(projectId?: string) {
               artifacts.push({
                 kind: artifact.kind,
                 mimeType: artifact.mime_type,
-                data: artifact.content || artifact.bytes,
+                data: artifact.data || artifact.content,
                 assetId: artifact.id,
                 uri: artifact.uri,
               });
@@ -163,7 +163,7 @@ export function useHistory(projectId?: string) {
             artifacts.push({
               kind: artifact.kind,
               mimeType: artifact.mime_type,
-              data: artifact.content || artifact.bytes,
+              data: artifact.data || artifact.content,
               assetId: artifact.id,
               uri: artifact.uri,
             });

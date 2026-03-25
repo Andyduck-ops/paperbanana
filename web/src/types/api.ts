@@ -140,7 +140,10 @@ export interface Artifact {
   mime_type: string;
   uri?: string;
   content?: string;
-  bytes?: string; // Base64 encoded
+  data?: string; // Base64 encoded image bytes (matches backend json:"data")
+  asset_id?: string;
+  project_id?: string;
+  summary?: string;
   metadata?: Record<string, string>;
 }
 
