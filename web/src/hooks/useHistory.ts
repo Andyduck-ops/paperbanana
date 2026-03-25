@@ -27,6 +27,7 @@ export interface RestoredSession {
     mimeType: string;
     data?: string;
     assetId?: string;
+    projectId?: string;
     uri?: string;
     summary?: string;
   }>;
@@ -54,6 +55,7 @@ export interface RestoredSession {
       mimeType: string;
       data?: string;
       assetId?: string;
+      projectId?: string;
       summary?: string;
     }>;
     error?: string;

@@ -2,8 +2,11 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/paperbanana/paperbanana/internal/api/handlers"
 	"github.com/paperbanana/paperbanana/internal/api/middleware"
 	configservice "github.com/paperbanana/paperbanana/internal/application/config"
@@ -12,6 +15,7 @@ import (
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 	"github.com/paperbanana/paperbanana/internal/domain/workspace"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // PersistenceServices holds the services needed for persistence endpoints.
@@ -54,6 +58,43 @@ type RefineServices struct {
 	SessionSaver handlers.RefineSessionSaver
 }
 
+// HealthChecker provides dependency health check functionality.
+type HealthChecker struct {
+	db *gorm.DB
+}
+
+// NewHealthChecker creates a new HealthChecker.
+func NewHealthChecker(db *gorm.DB) *HealthChecker {
+	return &HealthChecker{db: db}
+}
+
+// CheckDatabase verifies database connectivity.
+func (h *HealthChecker) CheckDatabase(ctx context.Context) error {
+	if h.db == nil {
+		return nil // No database configured, skip check
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	sqlDB, err := h.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.PingContext(ctx)
+}
+
+// HealthStatus represents the health status of a dependency.
+type HealthStatus struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+// HealthResponse represents the health check response.
+type HealthResponse struct {
+	Status   string                  `json:"status"`
+	Database *HealthStatus           `json:"database,omitempty"`
+}
+
 // SetupRouter creates the main router with generate endpoints.
 // For Phase 1-2 compatibility, this only registers the generate endpoints.
 func SetupRouter(runner *orchestrator.Runner, logger *zap.Logger) *gin.Engine {
@@ -61,12 +102,12 @@ func SetupRouter(runner *orchestrator.Runner, logger *zap.Logger) *gin.Engine {
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
 
-	// Health endpoints
+	// Health endpoints (no dependencies to check in basic setup)
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 	router.GET("/ready", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ready"})
+		c.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
 
 	handler := handlers.NewHandler(handlers.NewRunnerAdapter(runner), logger)
@@ -81,16 +122,56 @@ func SetupRouter(runner *orchestrator.Runner, logger *zap.Logger) *gin.Engine {
 // SetupRouterWithPersistence creates the full router with all Phase 3 endpoints.
 // This includes workspace, history, and asset routes alongside generate endpoints.
 func SetupRouterWithPersistence(runner *orchestrator.Runner, services PersistenceServices, logger *zap.Logger) *gin.Engine {
+	return SetupRouterWithPersistenceAndDB(runner, services, nil, logger)
+}
+
+// SetupRouterWithPersistenceAndDB creates the full router with database health check support.
+func SetupRouterWithPersistenceAndDB(runner *orchestrator.Runner, services PersistenceServices, db *gorm.DB, logger *zap.Logger) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
 
-	// Health endpoints
+	healthChecker := NewHealthChecker(db)
+
+	// Health endpoints with dependency checking
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		ctx := c.Request.Context()
+		response := HealthResponse{Status: "ok"}
+
+		if err := healthChecker.CheckDatabase(ctx); err != nil {
+			response.Status = "degraded"
+			response.Database = &HealthStatus{
+				Status:  "unhealthy",
+				Message: err.Error(),
+			}
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+
+		if db != nil {
+			response.Database = &HealthStatus{Status: "healthy"}
+		}
+		c.JSON(http.StatusOK, response)
 	})
+
 	router.GET("/ready", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ready"})
+		ctx := c.Request.Context()
+		response := HealthResponse{Status: "ready"}
+
+		if err := healthChecker.CheckDatabase(ctx); err != nil {
+			response.Status = "not_ready"
+			response.Database = &HealthStatus{
+				Status:  "unhealthy",
+				Message: err.Error(),
+			}
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+
+		if db != nil {
+			response.Database = &HealthStatus{Status: "healthy"}
+		}
+		c.JSON(http.StatusOK, response)
 	})
 
 	// Create asset adapter for both generate handler and asset handler
@@ -135,16 +216,57 @@ func SetupRouterWithPersistence(runner *orchestrator.Runner, services Persistenc
 
 // SetupRouterWithPersistenceWithRegistry creates the full router with session registry for cancellation support.
 func SetupRouterWithPersistenceWithRegistry(runner *orchestrator.Runner, services PersistenceServices, registry *handlers.SessionRegistry, logger *zap.Logger) *gin.Engine {
+	return SetupRouterWithPersistenceWithRegistryAndDB(runner, services, registry, nil, logger)
+}
+
+// SetupRouterWithPersistenceWithRegistryAndDB creates the full router with session registry and database health check.
+func SetupRouterWithPersistenceWithRegistryAndDB(runner *orchestrator.Runner, services PersistenceServices, registry *handlers.SessionRegistry, db *gorm.DB, logger *zap.Logger) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
+	router.Use(middleware.Metrics())
 
-	// Health endpoints
+	healthChecker := NewHealthChecker(db)
+
+	// Health endpoints with dependency checking
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		ctx := c.Request.Context()
+		response := HealthResponse{Status: "ok"}
+
+		if err := healthChecker.CheckDatabase(ctx); err != nil {
+			response.Status = "degraded"
+			response.Database = &HealthStatus{
+				Status:  "unhealthy",
+				Message: err.Error(),
+			}
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+
+		if db != nil {
+			response.Database = &HealthStatus{Status: "healthy"}
+		}
+		c.JSON(http.StatusOK, response)
 	})
+
 	router.GET("/ready", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ready"})
+		ctx := c.Request.Context()
+		response := HealthResponse{Status: "ready"}
+
+		if err := healthChecker.CheckDatabase(ctx); err != nil {
+			response.Status = "not_ready"
+			response.Database = &HealthStatus{
+				Status:  "unhealthy",
+				Message: err.Error(),
+			}
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+
+		if db != nil {
+			response.Database = &HealthStatus{Status: "healthy"}
+		}
+		c.JSON(http.StatusOK, response)
 	})
 
 	// Create asset adapter for both generate handler and asset handler
@@ -189,15 +311,23 @@ func SetupRouterWithPersistenceWithRegistry(runner *orchestrator.Runner, service
 
 // SetupRouterWithConfig creates the full router with all endpoints including config management.
 func SetupRouterWithConfig(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, logger *zap.Logger) *gin.Engine {
-	return SetupRouterWithConfigAndBatch(runner, services, configSvc, nil, nil, logger)
+	return SetupRouterWithConfigAndBatch(runner, services, configSvc, nil, nil, nil, logger)
 }
 
 // SetupRouterWithConfigAndBatch creates the full router with all endpoints including config and batch management.
 func SetupRouterWithConfigAndBatch(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, batchSvc *BatchServices, refineSvc *RefineServices, logger *zap.Logger) *gin.Engine {
+	return SetupRouterWithConfigAndBatchAndDB(runner, services, configSvc, batchSvc, refineSvc, nil, logger)
+}
+
+// SetupRouterWithConfigAndBatchAndDB creates the full router with all endpoints and database health check.
+func SetupRouterWithConfigAndBatchAndDB(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, batchSvc *BatchServices, refineSvc *RefineServices, db *gorm.DB, logger *zap.Logger) *gin.Engine {
 	// Create session registry for cancellation support
 	sessionRegistry := handlers.NewSessionRegistry()
 
-	router := SetupRouterWithPersistenceWithRegistry(runner, services, sessionRegistry, logger)
+	router := SetupRouterWithPersistenceWithRegistryAndDB(runner, services, sessionRegistry, db, logger)
+
+	// Add Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	v1 := router.Group("/api/v1")
 

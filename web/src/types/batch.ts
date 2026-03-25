@@ -2,6 +2,11 @@ export interface BatchArtifact {
   id: string;
   kind: string;
   mimeType: string;
+  data?: string;
+  assetId?: string;
+  projectId?: string;
+  summary?: string;
+  uri?: string;
 }
 
 export interface BatchCandidate {

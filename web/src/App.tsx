@@ -444,6 +444,7 @@ export function App() {
           summary: artifact.summary,
           data: artifact.data,
           assetId: artifact.assetId || artifact.id,
+          projectId: artifact.projectId,
           uri: artifact.uri,
         })
       ),
