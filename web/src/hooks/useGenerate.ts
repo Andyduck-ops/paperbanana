@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { streamGenerate } from '../lib/sse';
 import type { StageStatus } from '../components/StageCard';
 import type { GenerateRequest } from '../types/api';
@@ -31,6 +31,7 @@ export interface GenerateResult {
 
 export interface GenerateState {
   isGenerating: boolean;
+  isCanceled: boolean;
   stages: StageState[];
   result: GenerateResult | null;
   error: string | null;
@@ -66,6 +67,7 @@ interface GenerateOptions {
 function createInitialState(): GenerateState {
   return {
     isGenerating: false,
+    isCanceled: false,
     stages: [],
     result: null,
     error: null,
@@ -89,13 +91,56 @@ function getAgentLabel(stage: string) {
 
 export function useGenerate() {
   const [state, setState] = useState<GenerateState>(createInitialState);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  const cancel = useCallback(async () => {
+    const sessionId = sessionIdRef.current;
+    if (!sessionId) {
+      return;
+    }
+
+    // Call the cancel API endpoint
+    try {
+      await fetch(`/api/v1/sessions/${sessionId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch {
+      // Ignore network errors, abort locally anyway
+    }
+
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Update state to show canceled status
+    setState((prev) => ({
+      ...prev,
+      isGenerating: false,
+      isCanceled: true,
+      error: 'Generation canceled by user',
+    }));
+  }, []);
 
   const generate = useCallback(async (
     prompt: string,
     options?: GenerateOptions
   ) => {
+    // Abort any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setState({
       isGenerating: true,
+      isCanceled: false,
       stages: [],
       result: null,
       error: null,
@@ -137,6 +182,7 @@ export function useGenerate() {
           gen_model: options?.config?.gen_model,
         },
         {
+          signal: abortController.signal,
           onStageStart: (data) => {
             setState((prev) => ({
               ...prev,
@@ -162,6 +208,7 @@ export function useGenerate() {
             }));
           },
           onResult: (data) => {
+            sessionIdRef.current = data.session_id;
             setState((prev) => ({
               ...prev,
               isGenerating: false,
@@ -172,7 +219,8 @@ export function useGenerate() {
                   mimeType: a.mime_type,
                   summary: a.summary,
                   data: a.data,
-                  assetId: (a as { asset_id?: string }).asset_id,
+                  assetId: a.asset_id,
+                  projectId: a.project_id || data.project_id,
                 })),
               },
             }));
@@ -213,6 +261,7 @@ export function useGenerate() {
           },
           onResumeStart: (data) => {
             // GD-UI-004: Handle resumed task - mark completed stages and set resume metadata
+            sessionIdRef.current = data.session_id;
             setState((prev) => ({
               ...prev,
               resumeMetadata: {
@@ -231,6 +280,16 @@ export function useGenerate() {
         }
       );
     } catch (err) {
+      // Check if this was an abort error
+      if (err instanceof Error && err.name === 'AbortError') {
+        setState((prev) => ({
+          ...prev,
+          isGenerating: false,
+          isCanceled: true,
+          error: 'Generation canceled by user',
+        }));
+        return;
+      }
       setState((prev) => ({
         ...prev,
         isGenerating: false,
@@ -249,8 +308,11 @@ export function useGenerate() {
       ...stage,
     }));
 
+    sessionIdRef.current = snapshot.sessionId;
+
     setState({
       isGenerating: false,
+      isCanceled: false,
       stages,
       result: snapshot.artifacts.length > 0
         ? {
@@ -269,6 +331,7 @@ export function useGenerate() {
   return {
     ...state,
     generate,
+    cancel,
     reset,
     restore,
   };

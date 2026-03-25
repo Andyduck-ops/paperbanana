@@ -33,11 +33,14 @@ export interface StageCompleteEvent {
 
 export interface ResultEvent {
   session_id: string;
+  project_id?: string;
   generated_artifacts: Array<{
     kind: string;
     mime_type: string;
     summary: string;
     data?: string;
+    asset_id?: string;
+    project_id?: string;
   }>;
 }
 
@@ -58,6 +61,7 @@ export interface ResumeStartEvent {
 }
 
 export interface SSEOptions {
+  signal?: AbortSignal;
   onStageStart?: (data: StageStartEvent) => void;
   onStageComplete?: (data: StageCompleteEvent) => void;
   onResult?: (data: ResultEvent) => void;
@@ -168,8 +172,9 @@ export async function streamGenerate(
   data: GenerateRequest,
   options: SSEOptions = {}
 ): Promise<void> {
+  const { signal, ...sseCallbacks } = options;
   const request = createSSERequest(data);
-  const response = await fetch(request);
+  const response = await fetch(request, { signal });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { error?: string } | null;
@@ -184,7 +189,7 @@ export async function streamGenerate(
   const decoder = new TextDecoder();
   let buffer = '';
 
-  options.onOpen?.();
+  sseCallbacks.onOpen?.();
 
   try {
     while (true) {
@@ -196,15 +201,15 @@ export async function streamGenerate(
       buffer = chunks.pop() || '';
 
       for (const chunk of chunks) {
-        parseEventChunk(chunk, options);
+        parseEventChunk(chunk, sseCallbacks);
       }
     }
 
     if (buffer.trim()) {
-      parseEventChunk(buffer, options);
+      parseEventChunk(buffer, sseCallbacks);
     }
   } finally {
     reader.releaseLock();
-    options.onClose?.();
+    sseCallbacks.onClose?.();
   }
 }

@@ -16,8 +16,10 @@ import (
 )
 
 type Handler struct {
-	runner Runner
-	logger *zap.Logger
+	runner       Runner
+	logger       *zap.Logger
+	registry     *SessionRegistry // Optional: for session cancellation
+	assetService *AssetServiceAdapter // Optional: for persisting artifacts
 }
 
 type RunHandle interface {
@@ -50,6 +52,16 @@ func NewHandler(runner Runner, logger *zap.Logger) *Handler {
 	return &Handler{runner: runner, logger: logger}
 }
 
+// NewHandlerWithRegistry creates a Handler with session registry for cancellation support.
+func NewHandlerWithRegistry(runner Runner, registry *SessionRegistry, logger *zap.Logger) *Handler {
+	return &Handler{runner: runner, logger: logger, registry: registry}
+}
+
+// NewHandlerWithAssetService creates a Handler with asset persistence support.
+func NewHandlerWithAssetService(runner Runner, registry *SessionRegistry, assetService *AssetServiceAdapter, logger *zap.Logger) *Handler {
+	return &Handler{runner: runner, logger: logger, registry: registry, assetService: assetService}
+}
+
 type GenerateRequest struct {
 	Prompt         string  `json:"prompt"`
 	Content        string  `json:"content"`
@@ -76,6 +88,7 @@ type GenerateRequest struct {
 type GenerateResponse struct {
 	SessionID          string                 `json:"session_id"`
 	RequestID          string                 `json:"request_id"`
+	ProjectID          string                 `json:"project_id,omitempty"`
 	Content            string                 `json:"content"`
 	GeneratedArtifacts []domainagent.Artifact `json:"generated_artifacts,omitempty"`
 	TokensUsed         int                    `json:"tokens_used"`
@@ -110,7 +123,13 @@ func (h *Handler) Generate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, buildGenerateResponse(result))
+	// Persist artifacts if asset service is configured
+	artifacts := result.Session.FinalOutput.GeneratedArtifacts
+	if h.assetService != nil && len(artifacts) > 0 && req.ProjectID != "" {
+		artifacts = h.persistArtifacts(c.Request.Context(), req, artifacts)
+	}
+
+	c.JSON(http.StatusOK, buildGenerateResponseWithArtifacts(result, req.ProjectID, artifacts))
 }
 
 func (h *Handler) StreamGenerate(c *gin.Context) {
@@ -129,7 +148,24 @@ func (h *Handler) StreamGenerate(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
-	handle, input, err := h.startRun(c.Request.Context(), req)
+	// Get session ID for potential cancellation
+	input, err := buildAgentInput(req)
+	if err != nil {
+		h.logger.Error("failed to build agent input", zap.Error(err))
+		c.SSEvent("error", gin.H{"error": err.Error()})
+		c.Writer.Flush()
+		return
+	}
+
+	// Use registry for cancellable context if available
+	ctx := c.Request.Context()
+	var cancel context.CancelFunc
+	if h.registry != nil {
+		ctx, cancel = h.registry.Register(input.SessionID, ctx)
+		defer cancel()
+	}
+
+	handle, err := h.startRunWithInput(ctx, input, req.Resume)
 	if err != nil {
 		h.logger.Error("stream generation failed to start", zap.Error(err))
 		c.SSEvent("error", gin.H{"error": err.Error()})
@@ -145,12 +181,18 @@ func (h *Handler) StreamGenerate(c *gin.Context) {
 	result, err := handle.Wait()
 	if err != nil {
 		h.logger.Error("stream generation failed", zap.Error(err))
-		c.SSEvent("error", gin.H{"error": err.Error(), "session_id": input.SessionID, "request_id": input.RequestID})
+		c.SSEvent("error", buildStreamErrorPayload(err, input, result))
 		c.Writer.Flush()
 		return
 	}
 
-	c.SSEvent("result", buildGenerateResponse(result))
+	// Persist artifacts if asset service is configured
+	artifacts := result.Session.FinalOutput.GeneratedArtifacts
+	if h.assetService != nil && len(artifacts) > 0 && req.ProjectID != "" {
+		artifacts = h.persistArtifacts(c.Request.Context(), req, artifacts)
+	}
+
+	c.SSEvent("result", buildGenerateResponseWithArtifacts(result, req.ProjectID, artifacts))
 	c.Writer.Flush()
 }
 
@@ -160,16 +202,25 @@ func (h *Handler) startRun(ctx context.Context, req GenerateRequest) (RunHandle,
 		return nil, domainagent.AgentInput{}, err
 	}
 
+	handle, err := h.startRunWithInput(ctx, input, req.Resume)
+	if err != nil {
+		return nil, domainagent.AgentInput{}, err
+	}
+	return handle, input, nil
+}
+
+func (h *Handler) startRunWithInput(ctx context.Context, input domainagent.AgentInput, resume bool) (RunHandle, error) {
 	var handle RunHandle
-	if req.Resume {
+	var err error
+	if resume {
 		handle, err = h.runner.Resume(ctx, input)
 	} else {
 		handle, err = h.runner.Start(ctx, input)
 	}
 	if err != nil {
-		return nil, domainagent.AgentInput{}, err
+		return nil, err
 	}
-	return handle, input, nil
+	return handle, nil
 }
 
 func (h *Handler) respondRunError(c *gin.Context, err error) {
@@ -204,15 +255,45 @@ func validateGenerateRequest(req GenerateRequest) error {
 	return nil
 }
 
-func buildGenerateResponse(result orchestrator.RunResult) GenerateResponse {
+func buildGenerateResponse(result orchestrator.RunResult, projectID string) GenerateResponse {
 	return GenerateResponse{
 		SessionID:          result.Session.SessionID,
 		RequestID:          result.Session.RequestID,
+		ProjectID:          projectID,
 		Content:            result.Session.FinalOutput.Content,
-		GeneratedArtifacts: cloneArtifacts(result.Session.FinalOutput.GeneratedArtifacts),
+		GeneratedArtifacts: cloneArtifactsWithProjectID(result.Session.FinalOutput.GeneratedArtifacts, projectID),
 		TokensUsed:         0,
 		FinishReason:       string(result.Session.Status),
 	}
+}
+
+func cloneArtifactsWithProjectID(artifacts []domainagent.Artifact, projectID string) []domainagent.Artifact {
+	if len(artifacts) == 0 {
+		return nil
+	}
+
+	cloned := make([]domainagent.Artifact, len(artifacts))
+	for i, artifact := range artifacts {
+		cloned[i] = artifact
+		if len(artifact.Bytes) > 0 {
+			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
+		}
+		if len(artifact.Metadata) > 0 {
+			cloned[i].Metadata = make(map[string]string, len(artifact.Metadata))
+			for key, value := range artifact.Metadata {
+				cloned[i].Metadata[key] = value
+			}
+		}
+		// Set project_id on each artifact for frontend URL construction
+		if cloned[i].AssetID != "" && cloned[i].Metadata == nil {
+			cloned[i].Metadata = make(map[string]string)
+		}
+		if cloned[i].AssetID != "" {
+			cloned[i].Metadata["project_id"] = projectID
+		}
+	}
+
+	return cloned
 }
 
 func buildAgentInput(req GenerateRequest) (domainagent.AgentInput, error) {
@@ -324,6 +405,33 @@ func parseVisualMode(raw string) (domainagent.VisualMode, error) {
 
 func buildID(prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, time.Now().UTC().UnixNano())
+}
+
+func buildStreamErrorPayload(err error, input domainagent.AgentInput, result orchestrator.RunResult) gin.H {
+	payload := gin.H{
+		"message":    err.Error(),
+		"error":      err.Error(),
+		"session_id": input.SessionID,
+		"request_id": input.RequestID,
+	}
+
+	if detail := result.Session.Error; detail != nil {
+		payload["message"] = detail.Message
+		payload["error"] = detail.Message
+		payload["code"] = detail.Code
+		payload["category"] = detail.Category
+		payload["retryable"] = detail.Retryable
+		payload["suggestion"] = detail.Suggestion
+		if detail.Stage != "" {
+			payload["stage"] = detail.Stage
+		}
+	}
+
+	if result.FailedStage != "" {
+		payload["failed_stage"] = result.FailedStage
+	}
+
+	return payload
 }
 
 func resolvePromptFields(prompt, content, visualIntent string) (string, string, string) {
