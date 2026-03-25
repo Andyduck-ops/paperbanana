@@ -8,6 +8,7 @@ import (
 	"github.com/paperbanana/paperbanana/internal/api/middleware"
 	configservice "github.com/paperbanana/paperbanana/internal/application/config"
 	"github.com/paperbanana/paperbanana/internal/application/orchestrator"
+	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 	"github.com/paperbanana/paperbanana/internal/domain/workspace"
 	"go.uber.org/zap"
