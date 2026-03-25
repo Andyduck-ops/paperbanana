@@ -2,10 +2,10 @@ package models
 
 import (
 	"context"
-	"strings"
+	"sort"
 
-	"github.com/sashabaranov/go-openai"
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
+	"github.com/sashabaranov/go-openai"
 )
 
 // OpenAIModelLister lists models from OpenAI.
@@ -29,21 +29,21 @@ func (l *OpenAIModelLister) ListModels(ctx context.Context) ([]domainllm.ModelIn
 		return nil, err
 	}
 
-	var result []domainllm.ModelInfo
+	result := make([]domainllm.ModelInfo, 0, len(models.Models))
 	for _, m := range models.Models {
-		// Filter to chat models
-		if isChatModel(m.ID) {
-			result = append(result, domainllm.ModelInfo{
-				ID:       m.ID,
-				Name:     m.ID,
-				Provider: "openai",
-			})
+		if m.ID == "" {
+			continue
 		}
+		result = append(result, domainllm.ModelInfo{
+			ID:       m.ID,
+			Name:     m.ID,
+			Provider: "openai",
+		})
 	}
-	return result, nil
-}
 
-func isChatModel(id string) bool {
-	// Filter to GPT models
-	return strings.HasPrefix(id, "gpt") || strings.HasPrefix(id, "chatgpt") || strings.HasPrefix(id, "o1") || strings.HasPrefix(id, "o3")
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
+
+	return result, nil
 }

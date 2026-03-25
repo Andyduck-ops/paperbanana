@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"testing"
 
 	domainconfig "github.com/paperbanana/paperbanana/internal/domain/config"
@@ -78,9 +79,21 @@ func (r *testProviderRepo) InitializeSystemProviders() error {
 
 type testAPIKeyRepo struct {
 	active map[string][]*domainconfig.APIKey
+	plain  map[string]string
 }
 
 func (r *testAPIKeyRepo) Create(ctx interface{}, key *domainconfig.APIKey, plaintext string) error {
+	if key.ID == "" {
+		key.ID = "key-" + plaintext
+	}
+	if r.active == nil {
+		r.active = map[string][]*domainconfig.APIKey{}
+	}
+	if r.plain == nil {
+		r.plain = map[string]string{}
+	}
+	r.active[key.ProviderID] = append(r.active[key.ProviderID], key)
+	r.plain[key.ID] = plaintext
 	return nil
 }
 
@@ -89,7 +102,7 @@ func (r *testAPIKeyRepo) GetByID(id string) (*domainconfig.APIKey, error) {
 }
 
 func (r *testAPIKeyRepo) GetDecrypted(ctx interface{}, id string) (string, error) {
-	return "", nil
+	return r.plain[id], nil
 }
 
 func (r *testAPIKeyRepo) ListByProvider(providerID string) ([]*domainconfig.APIKey, error) {
@@ -109,6 +122,12 @@ func (r *testAPIKeyRepo) GetNextKey(ctx interface{}, providerID string) (*domain
 }
 
 func (r *testAPIKeyRepo) Update(key *domainconfig.APIKey) error {
+	keys := r.active[key.ProviderID]
+	for i := range keys {
+		if keys[i].ID == key.ID {
+			keys[i] = key
+		}
+	}
 	return nil
 }
 
@@ -178,4 +197,20 @@ func TestSetDefaultProviderSucceedsForEnabledConfiguredProvider(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "p1", providers.defaultID)
+}
+
+func TestEnsureAPIKeySkipsDuplicatePlaintext(t *testing.T) {
+	providers := &testProviderRepo{providers: map[string]*domainconfig.Provider{}}
+	keys := &testAPIKeyRepo{
+		active: map[string][]*domainconfig.APIKey{
+			"p1": {{ID: "k1", ProviderID: "p1", IsActive: true}},
+		},
+		plain: map[string]string{"k1": "same-key"},
+	}
+
+	svc := NewService(providers, keys)
+	err := svc.ensureAPIKey(context.Background(), "p1", "same-key")
+
+	require.NoError(t, err)
+	assert.Len(t, keys.active["p1"], 1)
 }

@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/paperbanana/paperbanana/internal/api"
 	criticagent "github.com/paperbanana/paperbanana/internal/application/agents/critic"
@@ -105,6 +109,9 @@ func main() {
 	// Build config service with watcher for hot reload
 	configWatcher := configservice.NewWatcher()
 	configSvc := configservice.NewServiceWithWatcher(providerRepo, apiKeyRepo, configWatcher)
+	if err := syncStartupProviders(context.Background(), cfg, configSvc); err != nil {
+		logger.Warn("failed to sync startup providers into config store", zap.Error(err))
+	}
 
 	// Load node catalog for visualizer
 	nodeCatalog, err := loadNodeCatalog(logger)
@@ -168,9 +175,43 @@ func main() {
 		zap.String("bench_root", benchRoot),
 	)
 
-	if err := router.Run(address); err != nil {
-		logger.Fatal("server stopped", zap.Error(err))
+	// Create HTTP server with graceful shutdown support
+	srv := &http.Server{
+		Addr:         address,
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 120 * time.Second, // Long timeout for generation
+		IdleTimeout:  120 * time.Second,
 	}
+
+	// Start server in a goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("server stopped", zap.Error(err))
+		}
+	}()
+
+	// Wait for interrupt signal for graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("shutting down server...")
+
+	// Give outstanding requests 30 seconds to complete
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("server forced to shutdown", zap.Error(err))
+	}
+
+	// Close database connection
+	if err := sqlite.Close(db); err != nil {
+		logger.Error("failed to close database", zap.Error(err))
+	}
+
+	logger.Info("server exited")
 }
 
 func buildRunner(
@@ -220,6 +261,22 @@ func buildStartupLLMClient(logger *zap.Logger, providerName string, providerConf
 	}
 
 	return llminfra.NewLLMClientWithOptions(providerName, providerConfig, options)
+}
+
+func syncStartupProviders(ctx context.Context, cfg *config.Config, svc *configservice.Service) error {
+	specs := make([]configservice.StartupProviderSpec, 0, len(cfg.LLM.Providers))
+	for name, provider := range cfg.LLM.Providers {
+		specs = append(specs, configservice.StartupProviderSpec{
+			Name:         name,
+			BaseURL:      provider.BaseURL,
+			APIKey:       provider.APIKey,
+			DefaultModel: provider.Model,
+			Timeout:      provider.Timeout,
+			IsDefault:    name == cfg.LLM.Default,
+		})
+	}
+
+	return svc.SyncStartupProviders(ctx, specs)
 }
 
 // agentFactory implements orchestrator.AgentFactory for batch processing.
