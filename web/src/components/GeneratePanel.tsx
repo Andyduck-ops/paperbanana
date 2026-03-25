@@ -7,6 +7,8 @@ import { ConfigPanel, GenerationConfig } from './ConfigPanel';
 export interface GenerateOptions {
   visualizerNode?: string;
   numCandidates?: number;
+  content?: string;
+  visualIntent?: string;
   config?: GenerationConfig;
 }
 
@@ -64,9 +66,13 @@ export function GeneratePanel({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const method = methodContent.trim();
+    const cap = caption.trim();
     const combinedPrompt = buildCombinedPrompt();
     if (combinedPrompt) {
       onGenerate(combinedPrompt, {
+        content: method || undefined,
+        visualIntent: cap || undefined,
         visualizerNode: selectedNode || undefined,
         numCandidates: batchMode ? numCandidates : undefined,
         config,

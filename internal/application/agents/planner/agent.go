@@ -125,14 +125,10 @@ func (a *Agent) Execute(ctx context.Context, input domainagent.AgentInput) (doma
 	}
 
 	content := collectPlanningContent(resp)
+	fallbackUsed := false
 	if content == "" {
-		err = errors.New("planner returned empty content")
-		a.state.Status = domainagent.StatusFailed
-		a.state.Error = &domainagent.ErrorDetail{
-			Message: err.Error(),
-			Stage:   domainagent.StagePlanner,
-		}
-		return domainagent.AgentOutput{}, err
+		content = fallbackPlanningContent(input)
+		fallbackUsed = true
 	}
 
 	output := domainagent.AgentOutput{
@@ -157,6 +153,7 @@ func (a *Agent) Execute(ctx context.Context, input domainagent.AgentInput) (doma
 			"summary":         summarize(content),
 			"example_count":   strconv.Itoa(len(examples)),
 			"retrieved_count": strconv.Itoa(len(input.RetrievedReferences)),
+			"fallback_used":   strconv.FormatBool(fallbackUsed),
 		},
 	}
 
@@ -261,6 +258,26 @@ func summarize(content string) string {
 		return content
 	}
 	return content[:limit]
+}
+
+func fallbackPlanningContent(input domainagent.AgentInput) string {
+	content := strings.TrimSpace(input.Content)
+	goal := strings.TrimSpace(input.VisualIntent.Goal)
+
+	switch input.VisualIntent.Mode {
+	case domainagent.VisualModePlot:
+		return strings.TrimSpace(fmt.Sprintf(
+			"Create a publication-ready statistical plot based on the following raw data and intent.\nRaw data: %s\nVisual intent: %s\nUse a clean academic style, clear axis labeling, restrained colors, legible legends, and explicit mappings from data fields to visual channels.",
+			content,
+			goal,
+		))
+	default:
+		return strings.TrimSpace(fmt.Sprintf(
+			"Create a publication-ready academic diagram that faithfully represents the methodology and target figure brief.\nMethodology context: %s\nTarget figure brief: %s\nUse a calm white or very light background, restrained blue-gray accents, thin connectors, concise labels, balanced whitespace, and a layout that clearly separates major stages while preserving left-to-right logical flow unless the brief requires otherwise.",
+			content,
+			goal,
+		))
+	}
 }
 
 func cloneVisualIntent(intent domainagent.VisualIntent) domainagent.VisualIntent {

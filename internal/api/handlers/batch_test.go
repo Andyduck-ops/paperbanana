@@ -101,6 +101,8 @@ func TestBatchHandler_InvalidRequest(t *testing.T) {
 func TestBatchHandler_BuildInputs(t *testing.T) {
 	req := dto.BatchGenerateRequest{
 		Prompt:         "test prompt",
+		Content:        "paper method content",
+		VisualIntent:   "target figure caption",
 		Mode:           "diagram",
 		Model:          "gpt-4",
 		SessionID:      "test-session",
@@ -119,8 +121,9 @@ func TestBatchHandler_BuildInputs(t *testing.T) {
 		sessionIDs[input.SessionID] = true
 
 		// Verify metadata
-		assert.Equal(t, "test prompt", input.Content)
+		assert.Equal(t, "paper method content", input.Content)
 		assert.Equal(t, domainagent.VisualModeDiagram, input.VisualIntent.Mode)
+		assert.Equal(t, "target figure caption", input.VisualIntent.Goal)
 		assert.Equal(t, "node1", input.Metadata["visualizer.node_name"])
 		assert.Equal(t, "true", input.Metadata["config.runtime_managed_models"])
 		assert.Equal(t, string(rune('0'+i)), input.Metadata["batch.candidate_id"])

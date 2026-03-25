@@ -96,6 +96,20 @@ func TestGenerateHandlerRunsPipeline(t *testing.T) {
 	assert.Equal(t, string(domainagent.StatusCompleted), resp.FinishReason)
 }
 
+func TestBuildAgentInputPrefersSeparatedContentAndVisualIntent(t *testing.T) {
+	input, err := buildAgentInput(GenerateRequest{
+		Content:      "method section",
+		VisualIntent: "draw a narrow workflow figure",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "method section", input.Content)
+	assert.Equal(t, "draw a narrow workflow figure", input.VisualIntent.Goal)
+	assert.Equal(t, "method section", input.Metadata["http.content"])
+	assert.Equal(t, "draw a narrow workflow figure", input.Metadata["http.visual_intent"])
+	assert.Contains(t, input.Metadata["http.prompt"], "Paper Context & References:")
+}
+
 func TestGenerateHandlerReturnsFinalArtifacts(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	logger := zap.NewNop()

@@ -97,8 +97,10 @@ func (h *BatchHandler) StreamBatchGenerate(c *gin.Context) {
 }
 
 func validateBatchRequest(req dto.BatchGenerateRequest) error {
-	if strings.TrimSpace(req.Prompt) == "" {
-		return errors.New("prompt is required")
+	if strings.TrimSpace(req.Prompt) == "" &&
+		strings.TrimSpace(req.Content) == "" &&
+		strings.TrimSpace(req.VisualIntent) == "" {
+		return errors.New("prompt, content, or visual_intent is required")
 	}
 	if req.NumCandidates < 1 {
 		return errors.New("num_candidates must be at least 1")
@@ -124,6 +126,7 @@ func buildBatchInputs(req dto.BatchGenerateRequest) ([]domainagent.AgentInput, e
 	if sessionID == "" {
 		sessionID = buildID("batch")
 	}
+	prompt, content, visualIntent := resolvePromptFields(req.Prompt, req.Content, req.VisualIntent)
 
 	inputs := make([]domainagent.AgentInput, req.NumCandidates)
 	for i := 0; i < req.NumCandidates; i++ {
@@ -131,7 +134,9 @@ func buildBatchInputs(req dto.BatchGenerateRequest) ([]domainagent.AgentInput, e
 		requestID := buildID("request")
 
 		metadata := map[string]string{
-			"http.prompt":                   req.Prompt,
+			"http.prompt":                   prompt,
+			"http.content":                  content,
+			"http.visual_intent":            visualIntent,
 			"http.mode":                     string(mode),
 			"http.model":                    req.Model,
 			"http.session_id":               candidateSessionID,
@@ -171,10 +176,10 @@ func buildBatchInputs(req dto.BatchGenerateRequest) ([]domainagent.AgentInput, e
 		inputs[i] = domainagent.AgentInput{
 			SessionID: candidateSessionID,
 			RequestID: requestID,
-			Content:   req.Prompt,
+			Content:   content,
 			VisualIntent: domainagent.VisualIntent{
 				Mode:             mode,
-				Goal:             req.Prompt,
+				Goal:             visualIntent,
 				Style:            "academic",
 				PreferredOutputs: []string{"png"},
 			},

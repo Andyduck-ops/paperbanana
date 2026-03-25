@@ -79,6 +79,8 @@ export interface RefineResult {
 
 export interface GenerateRequest {
   prompt: string;
+  content?: string;
+  visual_intent?: string;
   mode?: 'diagram' | 'plot';
   model?: string;
   session_id?: string;
@@ -169,10 +171,12 @@ export interface BatchTiming {
 export interface HistorySession {
   id: string;
   project_id: string;
+  visualization_id?: string;
   created_at: string;
   status: 'completed' | 'failed' | 'running';
   current_stage?: string;
   prompt?: string;
+  summary?: string;
 }
 
 // ============================================

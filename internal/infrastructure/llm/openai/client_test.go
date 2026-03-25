@@ -2,6 +2,10 @@ package openai
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -65,4 +69,70 @@ func TestOpenAIGenerate(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Content)
+}
+
+func TestOpenAIGenerateImageUsesImagesEndpointAndDecodesBase64(t *testing.T) {
+	t.Parallel()
+
+	var captured openaisdk.ImageRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/images/generations", r.URL.Path)
+
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&captured))
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(openaisdk.ImageResponse{
+			Data: []openaisdk.ImageResponseDataInner{{
+				B64JSON:       base64.StdEncoding.EncodeToString([]byte("png-image-bytes")),
+				RevisedPrompt: "clean academic diagram",
+			}},
+			Usage: openaisdk.ImageResponseUsage{TotalTokens: 42},
+		}))
+	}))
+	defer server.Close()
+
+	client, err := NewClientWithConfig("test-key", server.URL, "gpt-image-1", 0, server.Client())
+	require.NoError(t, err)
+
+	resp, err := client.GenerateImage(context.Background(), domainllm.GenerateRequest{
+		SystemInstruction: "Render a paper figure.",
+		Model:             "gpt-image-1",
+		Messages: []domainllm.Message{
+			{Role: domainllm.RoleUser, Parts: []domainllm.Part{domainllm.TextPart("Create a clean system diagram.")}},
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "gpt-image-1", captured.Model)
+	assert.Equal(t, openaisdk.CreateImageResponseFormatB64JSON, captured.ResponseFormat)
+	assert.Contains(t, captured.Prompt, "Render a paper figure.")
+	assert.Contains(t, captured.Prompt, "Create a clean system diagram.")
+	assert.Equal(t, "clean academic diagram", resp.Content)
+	assert.Equal(t, 42, resp.TokensUsed)
+	require.Len(t, resp.Parts, 2)
+	assert.Equal(t, domainllm.PartTypeText, resp.Parts[0].Type)
+	assert.Equal(t, domainllm.PartTypeImage, resp.Parts[1].Type)
+	assert.Equal(t, []byte("png-image-bytes"), resp.Parts[1].Data)
+}
+
+func TestBuildResponsePartsUsesMultiContentAndReasoningFallbacks(t *testing.T) {
+	t.Run("multi content text", func(t *testing.T) {
+		parts := buildResponseParts(openaisdk.ChatCompletionMessage{
+			MultiContent: []openaisdk.ChatMessagePart{
+				{Type: openaisdk.ChatMessagePartTypeText, Text: "planner output"},
+			},
+		})
+
+		require.Len(t, parts, 1)
+		assert.Equal(t, "planner output", parts[0].Text)
+	})
+
+	t.Run("reasoning fallback", func(t *testing.T) {
+		parts := buildResponseParts(openaisdk.ChatCompletionMessage{
+			ReasoningContent: "fallback reasoning content",
+		})
+
+		require.Len(t, parts, 1)
+		assert.Equal(t, "fallback reasoning content", parts[0].Text)
+	})
 }

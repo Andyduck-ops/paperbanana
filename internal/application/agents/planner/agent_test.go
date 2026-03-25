@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
@@ -54,11 +55,11 @@ func TestPlannerExecute(t *testing.T) {
 func TestPlannerPromptParity(t *testing.T) {
 	diagramPrompt, err := SystemPrompt(domainagent.VisualModeDiagram)
 	require.NoError(t, err)
-	assert.Equal(t, loadFixture(t, "diagram_system.txt"), diagramPrompt)
+	assert.Equal(t, strings.TrimSpace(loadFixture(t, "diagram_system.txt")), diagramPrompt)
 
 	plotPrompt, err := SystemPrompt(domainagent.VisualModePlot)
 	require.NoError(t, err)
-	assert.Equal(t, loadFixture(t, "plot_system.txt"), plotPrompt)
+	assert.Equal(t, strings.TrimSpace(loadFixture(t, "plot_system.txt")), plotPrompt)
 }
 
 func TestPlannerBuildsMultimodalRequest(t *testing.T) {
@@ -115,6 +116,24 @@ func TestPlannerBuildsMultimodalRequest(t *testing.T) {
 		assert.Contains(t, req.Messages[0].Parts[4].Text, "Detailed description of the target figure to be generated:")
 		assert.NotContains(t, req.Messages[0].Parts[4].Text, "do not include figure titles")
 	})
+}
+
+func TestPlannerFallsBackWhenModelReturnsEmptyContent(t *testing.T) {
+	client := &fakeLLMClient{
+		response: &domainllm.GenerateResponse{},
+	}
+	agent := NewAgent(client, Config{
+		LoadExampleImage: func(mode domainagent.VisualMode, path string) ([]byte, string, error) {
+			return []byte("fallback-image:" + path), "image/png", nil
+		},
+	})
+
+	output, err := agent.Execute(context.Background(), testInput(t, domainagent.VisualModeDiagram))
+	require.NoError(t, err)
+
+	assert.Contains(t, output.Content, "Target figure brief:")
+	assert.Contains(t, output.Content, "publication-ready academic diagram")
+	assert.Equal(t, "true", output.Metadata["fallback_used"])
 }
 
 type fakeLLMClient struct {

@@ -52,6 +52,8 @@ func NewHandler(runner Runner, logger *zap.Logger) *Handler {
 
 type GenerateRequest struct {
 	Prompt         string  `json:"prompt"`
+	Content        string  `json:"content"`
+	VisualIntent   string  `json:"visual_intent"`
 	Mode           string  `json:"mode"`
 	Model          string  `json:"model"`
 	Temperature    float64 `json:"temperature"`
@@ -190,8 +192,10 @@ func validateGenerateRequest(req GenerateRequest) error {
 		return nil
 	}
 
-	if strings.TrimSpace(req.Prompt) == "" {
-		return errors.New("prompt is required")
+	if strings.TrimSpace(req.Prompt) == "" &&
+		strings.TrimSpace(req.Content) == "" &&
+		strings.TrimSpace(req.VisualIntent) == "" {
+		return errors.New("prompt, content, or visual_intent is required")
 	}
 	if req.CriticRounds < 0 || req.CriticRounds > 5 {
 		return errors.New("critic_rounds must be between 0 and 5")
@@ -226,9 +230,12 @@ func buildAgentInput(req GenerateRequest) (domainagent.AgentInput, error) {
 		sessionID = buildID("session")
 	}
 	requestID := buildID("request")
+	prompt, content, visualIntent := resolvePromptFields(req.Prompt, req.Content, req.VisualIntent)
 
 	metadata := map[string]string{
-		"http.prompt":                   req.Prompt,
+		"http.prompt":                   prompt,
+		"http.content":                  content,
+		"http.visual_intent":            visualIntent,
 		"http.mode":                     string(mode),
 		"http.model":                    req.Model,
 		"http.temperature":              strconv.FormatFloat(req.Temperature, 'f', -1, 64),
@@ -271,10 +278,10 @@ func buildAgentInput(req GenerateRequest) (domainagent.AgentInput, error) {
 	return domainagent.AgentInput{
 		SessionID: sessionID,
 		RequestID: requestID,
-		Content:   req.Prompt,
+		Content:   content,
 		VisualIntent: domainagent.VisualIntent{
 			Mode:             mode,
-			Goal:             req.Prompt,
+			Goal:             visualIntent,
 			Style:            "academic",
 			PreferredOutputs: []string{"png"},
 		},
@@ -317,4 +324,37 @@ func parseVisualMode(raw string) (domainagent.VisualMode, error) {
 
 func buildID(prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, time.Now().UTC().UnixNano())
+}
+
+func resolvePromptFields(prompt, content, visualIntent string) (string, string, string) {
+	trimmedPrompt := strings.TrimSpace(prompt)
+	trimmedContent := strings.TrimSpace(content)
+	trimmedVisualIntent := strings.TrimSpace(visualIntent)
+
+	if trimmedContent == "" && trimmedVisualIntent == "" {
+		return trimmedPrompt, trimmedPrompt, trimmedPrompt
+	}
+
+	if trimmedPrompt == "" {
+		trimmedPrompt = buildCombinedPrompt(trimmedContent, trimmedVisualIntent)
+	}
+	if trimmedContent == "" {
+		trimmedContent = trimmedPrompt
+	}
+	if trimmedVisualIntent == "" {
+		trimmedVisualIntent = trimmedPrompt
+	}
+
+	return trimmedPrompt, trimmedContent, trimmedVisualIntent
+}
+
+func buildCombinedPrompt(content, visualIntent string) string {
+	switch {
+	case content != "" && visualIntent != "":
+		return fmt.Sprintf("Paper Context & References:\n%s\n\nTarget Figure Brief:\n%s", content, visualIntent)
+	case content != "":
+		return content
+	default:
+		return visualIntent
+	}
 }

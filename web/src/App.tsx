@@ -163,13 +163,17 @@ export function App() {
         prompt,
         options.numCandidates,
         options.visualizerNode,
-        options.config
+        options.config,
+        options.content,
+        options.visualIntent
       );
     } else {
       resetBatch();
       setSelectedBatchCandidateId(null);
       // Single generation
       await generate(prompt, {
+        content: options?.content,
+        visualIntent: options?.visualIntent,
         visualizerNode: options?.visualizerNode,
         config: options?.config
           ? {
@@ -189,10 +193,14 @@ export function App() {
     prompt: string,
     numCandidates: number,
     visualizerNode?: string,
-    config?: GenerateOptions['config']
+    config?: GenerateOptions['config'],
+    content?: string,
+    visualIntent?: string
   ) => {
     setSelectedBatchCandidateId(null);
     await startBatch(prompt, numCandidates, {
+      content,
+      visualIntent,
       visualizerNode,
       config: config
         ? {

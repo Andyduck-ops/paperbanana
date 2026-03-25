@@ -6,6 +6,8 @@ import domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 // BatchGenerateRequest is the request body for batch generation.
 type BatchGenerateRequest struct {
 	Prompt         string  `json:"prompt"`
+	Content        string  `json:"content"`
+	VisualIntent   string  `json:"visual_intent"`
 	Mode           string  `json:"mode"`
 	Model          string  `json:"model"`
 	SessionID      string  `json:"session_id"`
@@ -27,11 +29,11 @@ type BatchGenerateRequest struct {
 
 // BatchGenerateResponse is the final response for batch generation.
 type BatchGenerateResponse struct {
-	BatchID    string                   `json:"batch_id"`
-	Results    []CandidateResultDTO     `json:"results"`
-	Successful int                      `json:"successful"`
-	Failed     int                      `json:"failed"`
-	Timing     domainagent.BatchTiming  `json:"timing"`
+	BatchID    string                  `json:"batch_id"`
+	Results    []CandidateResultDTO    `json:"results"`
+	Successful int                     `json:"successful"`
+	Failed     int                     `json:"failed"`
+	Timing     domainagent.BatchTiming `json:"timing"`
 }
 
 // CandidateResultDTO represents the result of a single candidate.

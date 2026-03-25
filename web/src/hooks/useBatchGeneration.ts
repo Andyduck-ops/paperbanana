@@ -6,6 +6,8 @@ import type { GenerateRequest } from '../types/api';
 
 interface StartBatchOptions {
   visualizerNode?: string;
+  content?: string;
+  visualIntent?: string;
   config?: Pick<
     GenerateRequest,
     'aspect_ratio' | 'critic_rounds' | 'retrieval_mode' | 'pipeline_mode' | 'query_model' | 'gen_model'
@@ -23,6 +25,7 @@ interface UseBatchGenerationResult {
     options?: StartBatchOptions
   ) => Promise<void>;
   resetBatch: () => void;
+  restoreBatch: (snapshot: BatchProgress) => void;
 }
 
 function createInitialState() {
@@ -56,6 +59,16 @@ export function useBatchGeneration(): UseBatchGenerationResult {
     setState(createInitialState());
   }, [cancelActiveRequest]);
 
+  const restoreBatch = useCallback((snapshot: BatchProgress) => {
+    cancelActiveRequest();
+    setState({
+      isGenerating: false,
+      progress: snapshot,
+      result: snapshot,
+      error: null,
+    });
+  }, [cancelActiveRequest]);
+
   const startBatch = useCallback(
     async (
       prompt: string,
@@ -82,6 +95,8 @@ export function useBatchGeneration(): UseBatchGenerationResult {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             prompt,
+            content: options?.content,
+            visual_intent: options?.visualIntent,
             num_candidates: numCandidates,
             visualizer_node: options?.visualizerNode,
             aspect_ratio: options?.config?.aspect_ratio,
@@ -201,5 +216,6 @@ export function useBatchGeneration(): UseBatchGenerationResult {
     error: state.error,
     startBatch,
     resetBatch,
+    restoreBatch,
   };
 }

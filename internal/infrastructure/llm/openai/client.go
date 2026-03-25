@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
@@ -14,8 +15,9 @@ import (
 )
 
 type Client struct {
-	client *openaisdk.Client
-	model  string
+	client     *openaisdk.Client
+	httpClient openaisdk.HTTPDoer
+	model      string
 }
 
 func NewClient(apiKey, model string) (*Client, error) {
@@ -32,10 +34,14 @@ func NewClientWithConfig(apiKey, baseURL, model string, timeout time.Duration, h
 	} else if timeout > 0 {
 		cfg.HTTPClient = &http.Client{Timeout: timeout}
 	}
+	if cfg.HTTPClient == nil {
+		cfg.HTTPClient = http.DefaultClient
+	}
 
 	return &Client{
-		client: openaisdk.NewClientWithConfig(cfg),
-		model:  model,
+		client:     openaisdk.NewClientWithConfig(cfg),
+		httpClient: cfg.HTTPClient,
+		model:      model,
 	}, nil
 }
 
@@ -53,13 +59,46 @@ func (c *Client) Generate(ctx context.Context, req domainllm.GenerateRequest) (*
 		return nil, fmt.Errorf("openai response contained no choices")
 	}
 
-	parts := buildResponseParts(resp.Choices[0].Message.Content)
+	parts := buildResponseParts(resp.Choices[0].Message)
 
 	return &domainllm.GenerateResponse{
 		Content:      domainllm.CollectText(parts),
 		Parts:        parts,
 		TokensUsed:   resp.Usage.TotalTokens,
 		FinishReason: string(resp.Choices[0].FinishReason),
+	}, nil
+}
+
+func (c *Client) GenerateImage(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	prompt, err := buildImagePrompt(req)
+	if err != nil {
+		return nil, err
+	}
+
+	imageReq := openaisdk.ImageRequest{
+		Model:          domainllm.ResolveModel(req.Model, c.model),
+		Prompt:         prompt,
+		ResponseFormat: openaisdk.CreateImageResponseFormatB64JSON,
+	}
+
+	resp, err := c.client.CreateImage(ctx, imageReq)
+	if err != nil {
+		return nil, fmt.Errorf("openai image generation failed: %w", err)
+	}
+	if len(resp.Data) == 0 {
+		return nil, errors.New("openai image response contained no data")
+	}
+
+	parts, content, err := c.buildImageResponseParts(ctx, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domainllm.GenerateResponse{
+		Content:      content,
+		Parts:        parts,
+		TokensUsed:   resp.Usage.TotalTokens,
+		FinishReason: "image_generation",
 	}, nil
 }
 
@@ -110,6 +149,127 @@ func (c *Client) GenerateStream(ctx context.Context, req domainllm.GenerateReque
 
 func (c *Client) Provider() string {
 	return "openai"
+}
+
+func buildImagePrompt(req domainllm.GenerateRequest) (string, error) {
+	var sections []string
+	if system := strings.TrimSpace(req.SystemInstruction); system != "" {
+		sections = append(sections, system)
+	}
+
+	for _, message := range req.Messages {
+		var textParts []string
+		for _, part := range message.Parts {
+			switch part.Type {
+			case domainllm.PartTypeText:
+				if text := strings.TrimSpace(part.Text); text != "" {
+					textParts = append(textParts, text)
+				}
+			case domainllm.PartTypeImage:
+				return "", errors.New("openai image generation does not support image input in generation mode")
+			default:
+				return "", fmt.Errorf("openai image generation does not support part type %q", part.Type)
+			}
+		}
+		if len(textParts) == 0 {
+			continue
+		}
+
+		role := strings.TrimSpace(string(message.Role))
+		if role != "" {
+			sections = append(sections, strings.ToUpper(role)+":\n"+strings.Join(textParts, "\n\n"))
+			continue
+		}
+		sections = append(sections, strings.Join(textParts, "\n\n"))
+	}
+
+	prompt := strings.TrimSpace(strings.Join(sections, "\n\n"))
+	if prompt == "" {
+		return "", errors.New("openai image generation requires a text prompt")
+	}
+	return prompt, nil
+}
+
+func (c *Client) buildImageResponseParts(ctx context.Context, resp openaisdk.ImageResponse) ([]domainllm.Part, string, error) {
+	parts := make([]domainllm.Part, 0, len(resp.Data)*2)
+	var content string
+
+	for _, item := range resp.Data {
+		if revised := strings.TrimSpace(item.RevisedPrompt); revised != "" {
+			if content == "" {
+				content = revised
+			}
+			parts = append(parts, domainllm.TextPart(revised))
+		}
+
+		switch {
+		case strings.TrimSpace(item.B64JSON) != "":
+			decoded, err := base64.StdEncoding.DecodeString(item.B64JSON)
+			if err != nil {
+				return nil, "", fmt.Errorf("decode openai image payload: %w", err)
+			}
+			parts = append(parts, domainllm.InlineImagePart(detectImageMIMEType(decoded), decoded))
+		case strings.TrimSpace(item.URL) != "":
+			mimeType, body, err := c.downloadImage(ctx, item.URL)
+			if err != nil {
+				return nil, "", err
+			}
+			parts = append(parts, domainllm.InlineImagePart(mimeType, body))
+		}
+	}
+
+	if len(parts) == 0 {
+		return nil, "", errors.New("openai image response contained no image payload")
+	}
+	return parts, content, nil
+}
+
+func (c *Client) downloadImage(ctx context.Context, url string) (string, []byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", nil, fmt.Errorf("build image download request: %w", err)
+	}
+
+	httpClient := c.httpClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", nil, fmt.Errorf("download openai image payload: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", nil, fmt.Errorf("download openai image payload: unexpected status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil, fmt.Errorf("read openai image payload: %w", err)
+	}
+	if len(body) == 0 {
+		return "", nil, errors.New("download openai image payload: empty body")
+	}
+
+	mimeType := strings.TrimSpace(resp.Header.Get("Content-Type"))
+	if mimeType == "" {
+		mimeType = detectImageMIMEType(body)
+	}
+	return mimeType, body, nil
+}
+
+func detectImageMIMEType(data []byte) string {
+	if len(data) == 0 {
+		return "image/png"
+	}
+
+	mimeType := http.DetectContentType(data)
+	if strings.HasPrefix(mimeType, "image/") {
+		return mimeType
+	}
+	return "image/png"
 }
 
 func buildChatCompletionRequest(req domainllm.GenerateRequest, defaultModel string, stream bool) (openaisdk.ChatCompletionRequest, error) {
@@ -213,9 +373,33 @@ func toOpenAIImageURL(part domainllm.Part) (*openaisdk.ChatMessageImageURL, erro
 	}, nil
 }
 
-func buildResponseParts(content string) []domainllm.Part {
-	if content == "" {
-		return nil
+func buildResponseParts(message openaisdk.ChatCompletionMessage) []domainllm.Part {
+	var parts []domainllm.Part
+
+	if content := strings.TrimSpace(message.Content); content != "" {
+		parts = append(parts, domainllm.TextPart(content))
 	}
-	return []domainllm.Part{domainllm.TextPart(content)}
+
+	for _, item := range message.MultiContent {
+		if item.Type != openaisdk.ChatMessagePartTypeText {
+			continue
+		}
+		if text := strings.TrimSpace(item.Text); text != "" {
+			parts = append(parts, domainllm.TextPart(text))
+		}
+	}
+
+	if len(parts) == 0 {
+		if reasoning := strings.TrimSpace(message.ReasoningContent); reasoning != "" {
+			parts = append(parts, domainllm.TextPart(reasoning))
+		}
+	}
+
+	if len(parts) == 0 {
+		if refusal := strings.TrimSpace(message.Refusal); refusal != "" {
+			parts = append(parts, domainllm.TextPart(refusal))
+		}
+	}
+
+	return parts
 }
