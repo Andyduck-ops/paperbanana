@@ -93,8 +93,11 @@ func SetupRouterWithPersistence(runner *orchestrator.Runner, services Persistenc
 		c.JSON(200, gin.H{"status": "ready"})
 	})
 
-	// Generate endpoints
-	generateHandler := handlers.NewHandler(handlers.NewRunnerAdapter(runner), logger)
+	// Create asset adapter for both generate handler and asset handler
+	assetAdapter := handlers.NewAssetServiceAdapter(services.AssetService)
+
+	// Generate endpoints with asset persistence support
+	generateHandler := handlers.NewHandlerWithAssetService(handlers.NewRunnerAdapter(runner), nil, assetAdapter, logger)
 
 	v1 := router.Group("/api/v1")
 	v1.POST("/generate", generateHandler.Generate)
@@ -120,8 +123,7 @@ func SetupRouterWithPersistence(runner *orchestrator.Runner, services Persistenc
 	v1.GET("/session/latest", historyHandler.GetLatestSession)
 	v1.GET("/session/:session_id", historyHandler.GetSession)
 
-	// Asset endpoints - adapt persistence.AssetService to handlers.AssetService
-	assetAdapter := handlers.NewAssetServiceAdapter(services.AssetService)
+	// Asset endpoints - reuse assetAdapter created for generate handler
 	assetHandler := handlers.NewAssetHandler(assetAdapter, logger)
 	v1.GET("/assets", assetHandler.ListAssets)
 	v1.GET("/assets/:project_id/:asset_id", assetHandler.GetAsset)
@@ -175,7 +177,7 @@ func SetupRouterWithPersistenceWithRegistry(runner *orchestrator.Runner, service
 	v1.GET("/session/latest", historyHandler.GetLatestSession)
 	v1.GET("/session/:session_id", historyHandler.GetSession)
 
-	// Asset endpoints
+	// Asset endpoints - reuse assetAdapter from above
 	assetHandler := handlers.NewAssetHandler(assetAdapter, logger)
 	v1.GET("/assets", assetHandler.ListAssets)
 	v1.GET("/assets/:project_id/:asset_id", assetHandler.GetAsset)
