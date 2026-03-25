@@ -13,6 +13,7 @@ import (
 	criticagent "github.com/paperbanana/paperbanana/internal/application/agents/critic"
 	planneragent "github.com/paperbanana/paperbanana/internal/application/agents/planner"
 	retrieveragent "github.com/paperbanana/paperbanana/internal/application/agents/retriever"
+	stylistagent "github.com/paperbanana/paperbanana/internal/application/agents/stylist"
 	visualizeragent "github.com/paperbanana/paperbanana/internal/application/agents/visualizer"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
@@ -528,6 +529,9 @@ func TestRunnerUsesCachedLLMBoundary(t *testing.T) {
 			planneragent.PromptVersion: {
 				Content: "cached planner output",
 			},
+			stylistagent.PromptVersion: {
+				Content: "cached stylist output",
+			},
 			visualizeragent.PromptVersion: {
 				Parts: []domainllm.Part{
 					domainllm.InlineImagePart("image/png", []byte("cached-image")),
@@ -544,7 +548,7 @@ func TestRunnerUsesCachedLLMBoundary(t *testing.T) {
 	runner := NewCanonicalRunner(
 		retrieveragent.NewAgent(client, retrieveragent.Config{Mode: retrieveragent.RetrievalModeNone, Model: "runner-model"}),
 		planneragent.NewAgent(client, planneragent.Config{Model: "runner-model"}),
-		nil, // stylist is optional
+		stylistagent.NewAgent(client, stylistagent.Config{Model: "runner-model"}),
 		visualizeragent.NewAgent(client, visualizeragent.Config{Model: "runner-model"}),
 		criticagent.NewAgent(client, criticagent.Config{Model: "runner-model"}),
 	)
@@ -564,9 +568,10 @@ func TestRunnerUsesCachedLLMBoundary(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, upstream.calls[planneragent.PromptVersion])
+	assert.Equal(t, 1, upstream.calls[stylistagent.PromptVersion])
 	assert.Equal(t, 1, upstream.calls[visualizeragent.PromptVersion])
 	assert.Equal(t, 1, upstream.calls[criticagent.PromptVersion])
-	assert.Equal(t, 3, cache.sets)
+	assert.Equal(t, 4, cache.sets) // planner + stylist + visualizer + critic (retriever uses none mode)
 }
 
 type stubAgent struct {
