@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -25,14 +26,37 @@ func (r *ProviderRepository) Create(provider *domainconfig.Provider) error {
 		provider.ID = uuid.New().String()
 	}
 	now := time.Now()
-	provider.CreatedAt = now
+	if provider.CreatedAt.IsZero() {
+		provider.CreatedAt = now
+	}
 	provider.UpdatedAt = now
 
-	model := r.toModel(provider)
-	if err := r.db.Create(model).Error; err != nil {
-		return fmt.Errorf("failed to create provider: %w", err)
-	}
-	return nil
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var existing ProviderModel
+		err := tx.Unscoped().Where("name = ?", provider.Name).First(&existing).Error
+		switch {
+		case err == nil && existing.DeletedAt.Valid:
+			provider.ID = existing.ID
+			provider.CreatedAt = existing.CreatedAt
+			provider.UpdatedAt = now
+
+			model := r.toModel(provider)
+			if err := tx.Unscoped().Save(model).Error; err != nil {
+				return fmt.Errorf("failed to restore provider: %w", err)
+			}
+			return nil
+		case err == nil:
+			return fmt.Errorf("failed to create provider: provider %q already exists", provider.Name)
+		case err != nil && !errors.Is(err, gorm.ErrRecordNotFound):
+			return fmt.Errorf("failed to check existing provider: %w", err)
+		}
+
+		model := r.toModel(provider)
+		if err := tx.Create(model).Error; err != nil {
+			return fmt.Errorf("failed to create provider: %w", err)
+		}
+		return nil
+	})
 }
 
 // GetByID gets a provider by ID.

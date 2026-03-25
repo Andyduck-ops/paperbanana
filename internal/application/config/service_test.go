@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	domainconfig "github.com/paperbanana/paperbanana/internal/domain/config"
+	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -78,8 +79,18 @@ func (r *testProviderRepo) InitializeSystemProviders() error {
 }
 
 type testAPIKeyRepo struct {
-	active map[string][]*domainconfig.APIKey
-	plain  map[string]string
+	active         map[string][]*domainconfig.APIKey
+	plain          map[string]string
+	decryptErr     map[string]error
+	nextByProvider map[string]testNextKeyResult
+	getActiveCalls int
+	getNextCalls   int
+}
+
+type testNextKeyResult struct {
+	key       *domainconfig.APIKey
+	plaintext string
+	err       error
 }
 
 func (r *testAPIKeyRepo) Create(ctx interface{}, key *domainconfig.APIKey, plaintext string) error {
@@ -102,6 +113,9 @@ func (r *testAPIKeyRepo) GetByID(id string) (*domainconfig.APIKey, error) {
 }
 
 func (r *testAPIKeyRepo) GetDecrypted(ctx interface{}, id string) (string, error) {
+	if err := r.decryptErr[id]; err != nil {
+		return "", err
+	}
 	return r.plain[id], nil
 }
 
@@ -110,10 +124,15 @@ func (r *testAPIKeyRepo) ListByProvider(providerID string) ([]*domainconfig.APIK
 }
 
 func (r *testAPIKeyRepo) GetActiveKeys(providerID string) ([]*domainconfig.APIKey, error) {
+	r.getActiveCalls++
 	return r.active[providerID], nil
 }
 
 func (r *testAPIKeyRepo) GetNextKey(ctx interface{}, providerID string) (*domainconfig.APIKey, string, error) {
+	r.getNextCalls++
+	if next, ok := r.nextByProvider[providerID]; ok {
+		return next.key, next.plaintext, next.err
+	}
 	keys := r.active[providerID]
 	if len(keys) == 0 {
 		return nil, "", assert.AnError
@@ -213,4 +232,51 @@ func TestEnsureAPIKeySkipsDuplicatePlaintext(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Len(t, keys.active["p1"], 1)
+}
+
+func TestListModelsUsesNextDecryptableKey(t *testing.T) {
+	original := listModelsForProviderFn
+	listModelsForProviderFn = func(_ context.Context, provider, apiKey, baseURL string) ([]domainllm.ModelInfo, error) {
+		assert.Equal(t, "grok", provider)
+		assert.Equal(t, "usable-key", apiKey)
+		assert.Equal(t, "https://lx.example.com/v1", baseURL)
+		return []domainllm.ModelInfo{
+			{ID: "grok-4.1-fast", Name: "grok-4.1-fast"},
+			{ID: "grok-imagine-1.0", Name: "grok-imagine-1.0"},
+		}, nil
+	}
+	defer func() { listModelsForProviderFn = original }()
+
+	providers := &testProviderRepo{
+		providers: map[string]*domainconfig.Provider{
+			"p1": {
+				ID:      "p1",
+				Name:    "grok",
+				Type:    domainconfig.ProviderTypeGrok,
+				APIHost: "https://lx.example.com/v1",
+			},
+		},
+	}
+	keys := &testAPIKeyRepo{
+		active: map[string][]*domainconfig.APIKey{
+			"p1": {
+				{ID: "broken", ProviderID: "p1", IsActive: true},
+				{ID: "good", ProviderID: "p1", IsActive: true},
+			},
+		},
+		nextByProvider: map[string]testNextKeyResult{
+			"p1": {
+				key:       &domainconfig.APIKey{ID: "good", ProviderID: "p1", IsActive: true},
+				plaintext: "usable-key",
+			},
+		},
+	}
+
+	svc := NewService(providers, keys)
+	models, err := svc.ListModels(context.Background(), "grok")
+
+	require.NoError(t, err)
+	require.Len(t, models, 2)
+	assert.Equal(t, 1, keys.getNextCalls)
+	assert.Equal(t, 0, keys.getActiveCalls)
 }

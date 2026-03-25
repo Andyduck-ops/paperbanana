@@ -3,6 +3,7 @@ package aesgcm
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -117,4 +118,27 @@ func TestDecryptTooShort(t *testing.T) {
 	// Valid base64 but too short to be valid ciphertext
 	_, err = svc.Decrypt(context.Background(), "YWJj") // "abc"
 	assert.Error(t, err)
+}
+
+func TestNewServicePersistsDevelopmentKeyWhenEnvMissing(t *testing.T) {
+	t.Setenv("PAPERBANANA_ENCRYPTION_KEY", "")
+	keyPath := filepath.Join(t.TempDir(), "dev", "key.txt")
+	t.Setenv("PAPERBANANA_ENCRYPTION_KEY_FILE", keyPath)
+
+	svc, err := NewService()
+	require.NoError(t, err)
+
+	ciphertext, err := svc.Encrypt(context.Background(), "sk-dev-test")
+	require.NoError(t, err)
+
+	svcAfterRestart, err := NewService()
+	require.NoError(t, err)
+
+	plaintext, err := svcAfterRestart.Decrypt(context.Background(), ciphertext)
+	require.NoError(t, err)
+	assert.Equal(t, "sk-dev-test", plaintext)
+
+	data, err := os.ReadFile(keyPath)
+	require.NoError(t, err)
+	assert.NotEmpty(t, data)
 }

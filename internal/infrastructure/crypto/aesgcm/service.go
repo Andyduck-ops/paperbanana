@@ -10,11 +10,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/paperbanana/paperbanana/internal/infrastructure/crypto/keyderivation"
 )
 
 const nonceLength = 12
+const defaultDevKeyPath = ".paperbanana/dev-encryption.key"
 
 // Service implements EncryptionService using AES-256-GCM.
 type Service struct {
@@ -24,12 +27,15 @@ type Service struct {
 
 // NewService creates a new AES-256-GCM encryption service.
 // It reads the encryption key from PAPERBANANA_ENCRYPTION_KEY environment variable.
-// If not set, it generates a random key for development (with warning).
+// If not set, it loads or creates a persisted development key under .paperbanana/.
 func NewService() (*Service, error) {
 	encKey := os.Getenv("PAPERBANANA_ENCRYPTION_KEY")
 	if encKey == "" {
-		// Generate random key for development
-		encKey = generateDevKey()
+		var err error
+		encKey, err = loadOrCreateDevKey()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	kdf := keyderivation.NewArgon2idKDF()
@@ -104,8 +110,34 @@ func MaskAPIKey(key string) string {
 
 func generateDevKey() string {
 	key := make([]byte, 32)
-	rand.Read(key)
-	encoded := base64.StdEncoding.EncodeToString(key)
-	fmt.Println("WARNING: PAPERBANANA_ENCRYPTION_KEY not set, using random key for development")
-	return encoded
+	_, _ = rand.Read(key)
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+func loadOrCreateDevKey() (string, error) {
+	path := os.Getenv("PAPERBANANA_ENCRYPTION_KEY_FILE")
+	if strings.TrimSpace(path) == "" {
+		path = defaultDevKeyPath
+	}
+
+	if data, err := os.ReadFile(path); err == nil {
+		key := strings.TrimSpace(string(data))
+		if key != "" {
+			fmt.Printf("WARNING: PAPERBANANA_ENCRYPTION_KEY not set, using persisted development key at %s\n", path)
+			return key, nil
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("failed to read development encryption key %s: %w", path, err)
+	}
+
+	key := generateDevKey()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return "", fmt.Errorf("failed to create development key directory for %s: %w", path, err)
+	}
+	if err := os.WriteFile(path, []byte(key+"\n"), 0o600); err != nil {
+		return "", fmt.Errorf("failed to persist development encryption key %s: %w", path, err)
+	}
+
+	fmt.Printf("WARNING: PAPERBANANA_ENCRYPTION_KEY not set, created persisted development key at %s\n", path)
+	return key, nil
 }

@@ -178,12 +178,7 @@ func (s *Service) ListModels(ctx context.Context, providerID string) ([]domainll
 		}
 	}
 
-	keys, err := s.apiKeys.GetActiveKeys(provider.ID)
-	if err != nil || len(keys) == 0 {
-		return nil, err
-	}
-
-	decrypted, err := s.apiKeys.GetDecrypted(ctx, keys[0].ID)
+	_, decrypted, err := s.apiKeys.GetNextKey(ctx, provider.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +188,7 @@ func (s *Service) ListModels(ctx context.Context, providerID string) ([]domainll
 	if providerType == "" || providerType == "custom" {
 		providerType = provider.Name
 	}
-	return ListModelsForProvider(ctx, providerType, decrypted, provider.APIHost)
+	return listModelsForProviderFn(ctx, providerType, decrypted, provider.APIHost)
 }
 
 // ListModelsForProvider lists models for a provider using the given credentials.
