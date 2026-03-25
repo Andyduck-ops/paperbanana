@@ -254,7 +254,7 @@ func TestAssetHandler_DownloadAsset(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "image/png", w.Header().Get("Content-Type"))
-		assert.Equal(t, "attachment", w.Header().Get("Content-Disposition"))
+		assert.Contains(t, w.Header().Get("Content-Disposition"), "attachment")
 		assert.Contains(t, w.Header().Get("Content-Disposition"), assetID)
 		assert.Equal(t, string(imageData), w.Body.String())
 	})

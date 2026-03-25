@@ -113,12 +113,18 @@ func TestHistoryHandler_ListHistory(t *testing.T) {
 		assert.Equal(t, 1, response.Versions[0].VersionNumber)
 	})
 
-	t.Run("returns error for missing project_id", func(t *testing.T) {
+	t.Run("returns empty list for missing project_id", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/history?visualization_id="+vizID, nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ListHistoryResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, "", response.ProjectID)
+		assert.Len(t, response.Versions, 0)
 	})
 
 	t.Run("returns empty list when visualization_id is missing", func(t *testing.T) {
@@ -203,8 +209,9 @@ func TestHistoryHandler_GetLatestSession(t *testing.T) {
 				CurrentStage:  domainagent.StageCritic,
 				StartedAt:     now,
 			},
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+			CompletedAt: &now,
 		},
 	}
 
@@ -224,6 +231,8 @@ func TestHistoryHandler_GetLatestSession(t *testing.T) {
 		assert.Equal(t, sessionID, response.ID)
 		assert.Equal(t, string(domainagent.StatusCompleted), response.Status)
 		assert.Equal(t, string(domainagent.StageCritic), response.CurrentStage)
+		require.NotNil(t, response.CompletedAt)
+		assert.Equal(t, now.Format("2006-01-02T15:04:05Z"), *response.CompletedAt)
 	})
 
 	t.Run("returns not found when no session exists", func(t *testing.T) {
@@ -267,8 +276,9 @@ func TestHistoryHandler_GetSession(t *testing.T) {
 					CurrentStage:  domainagent.StagePlanner,
 					StartedAt:     now,
 				},
-				CreatedAt: now,
-				UpdatedAt: now,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				CompletedAt: &now,
 			},
 		},
 	}
@@ -289,6 +299,8 @@ func TestHistoryHandler_GetSession(t *testing.T) {
 		assert.Equal(t, sessionID, response.ID)
 		assert.Equal(t, string(domainagent.StatusFailed), response.Status)
 		assert.Equal(t, string(domainagent.StagePlanner), response.CurrentStage)
+		require.NotNil(t, response.CompletedAt)
+		assert.Equal(t, now.Format("2006-01-02T15:04:05Z"), *response.CompletedAt)
 	})
 
 	t.Run("returns not found for missing session", func(t *testing.T) {

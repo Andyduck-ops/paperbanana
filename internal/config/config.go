@@ -161,11 +161,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("assets.root", ".paperbanana/assets")
 	v.SetDefault("assets.max_file_size", int64(100*1024*1024)) // 100MB
 	// Stage timeout defaults
-	v.SetDefault("stage_timeout.retriever", 90*time.Second)
-	v.SetDefault("stage_timeout.planner", 90*time.Second)
-	v.SetDefault("stage_timeout.stylist", 60*time.Second)
-	v.SetDefault("stage_timeout.visualizer", 120*time.Second)
-	v.SetDefault("stage_timeout.critic", 90*time.Second)
+	v.SetDefault("stage_timeout.retriever", 180*time.Second)
+	v.SetDefault("stage_timeout.planner", 180*time.Second)
+	v.SetDefault("stage_timeout.stylist", 180*time.Second)
+	v.SetDefault("stage_timeout.visualizer", 180*time.Second)
+	v.SetDefault("stage_timeout.critic", 360*time.Second)
 	// Security defaults
 	v.SetDefault("security.auth_enabled", false)
 	v.SetDefault("security.api_keys", []string{})

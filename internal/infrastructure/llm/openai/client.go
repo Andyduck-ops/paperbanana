@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 	openaisdk "github.com/sashabaranov/go-openai"
 )
+
+var inlineImageDataURIRegex = regexp.MustCompile(`data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)`)
 
 type Client struct {
 	client     *openaisdk.Client
@@ -75,8 +78,13 @@ func (c *Client) GenerateImage(ctx context.Context, req domainllm.GenerateReques
 		return nil, err
 	}
 
+	model := domainllm.ResolveModel(req.Model, c.model)
+	if shouldUseChatImageGeneration(model) {
+		return c.generateImageViaChatCompletion(ctx, req, model, prompt)
+	}
+
 	imageReq := openaisdk.ImageRequest{
-		Model:          domainllm.ResolveModel(req.Model, c.model),
+		Model:          model,
 		Prompt:         prompt,
 		ResponseFormat: openaisdk.CreateImageResponseFormatB64JSON,
 	}
@@ -99,6 +107,59 @@ func (c *Client) GenerateImage(ctx context.Context, req domainllm.GenerateReques
 		Parts:        parts,
 		TokensUsed:   resp.Usage.TotalTokens,
 		FinishReason: "image_generation",
+	}, nil
+}
+
+func shouldUseChatImageGeneration(model string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	return strings.HasPrefix(model, "gemini-") && strings.Contains(model, "image")
+}
+
+func (c *Client) generateImageViaChatCompletion(
+	ctx context.Context,
+	req domainllm.GenerateRequest,
+	model string,
+	prompt string,
+) (*domainllm.GenerateResponse, error) {
+	chatReq := openaisdk.ChatCompletionRequest{
+		Model:       model,
+		Temperature: float32(req.Temperature),
+		Messages: []openaisdk.ChatCompletionMessage{{
+			Role:    openaisdk.ChatMessageRoleUser,
+			Content: prompt,
+		}},
+	}
+	if req.MaxTokens > 0 {
+		chatReq.MaxTokens = req.MaxTokens
+	}
+	if req.PromptVersion != "" {
+		chatReq.Metadata = map[string]string{"prompt_version": req.PromptVersion}
+	}
+	if system := strings.TrimSpace(req.SystemInstruction); system != "" {
+		chatReq.Messages = append([]openaisdk.ChatCompletionMessage{{
+			Role:    openaisdk.ChatMessageRoleSystem,
+			Content: system,
+		}}, chatReq.Messages...)
+	}
+
+	resp, err := c.client.CreateChatCompletion(ctx, chatReq)
+	if err != nil {
+		return nil, fmt.Errorf("openai chat image generation failed: %w", err)
+	}
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("openai chat image generation returned no choices")
+	}
+
+	parts, content, err := buildChatImageResponseParts(resp.Choices[0].Message)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domainllm.GenerateResponse{
+		Content:      content,
+		Parts:        parts,
+		TokensUsed:   resp.Usage.TotalTokens,
+		FinishReason: string(resp.Choices[0].FinishReason),
 	}, nil
 }
 
@@ -402,4 +463,64 @@ func buildResponseParts(message openaisdk.ChatCompletionMessage) []domainllm.Par
 	}
 
 	return parts
+}
+
+func buildChatImageResponseParts(message openaisdk.ChatCompletionMessage) ([]domainllm.Part, string, error) {
+	textSegments := make([]string, 0, 1+len(message.MultiContent))
+	if content := strings.TrimSpace(message.Content); content != "" {
+		textSegments = append(textSegments, content)
+	}
+	for _, item := range message.MultiContent {
+		if item.Type != openaisdk.ChatMessagePartTypeText {
+			continue
+		}
+		if text := strings.TrimSpace(item.Text); text != "" {
+			textSegments = append(textSegments, text)
+		}
+	}
+
+	parts := make([]domainllm.Part, 0, len(textSegments)+1)
+	contentParts := make([]string, 0, len(textSegments))
+	for _, text := range textSegments {
+		imageParts, sanitized, err := extractInlineImagesFromText(text)
+		if err != nil {
+			return nil, "", err
+		}
+		if sanitized != "" {
+			contentParts = append(contentParts, sanitized)
+			parts = append(parts, domainllm.TextPart(sanitized))
+		}
+		parts = append(parts, imageParts...)
+	}
+
+	if len(parts) == 0 {
+		return nil, "", errors.New("openai chat image generation returned no image payload")
+	}
+
+	content := strings.TrimSpace(strings.Join(contentParts, "\n"))
+	if content == "" {
+		content = "generated image via chat completion"
+	}
+	return parts, content, nil
+}
+
+func extractInlineImagesFromText(text string) ([]domainllm.Part, string, error) {
+	matches := inlineImageDataURIRegex.FindAllStringSubmatch(text, -1)
+	if len(matches) == 0 {
+		return nil, strings.TrimSpace(text), nil
+	}
+
+	parts := make([]domainllm.Part, 0, len(matches))
+	for _, match := range matches {
+		decoded, err := base64.StdEncoding.DecodeString(match[2])
+		if err != nil {
+			return nil, "", fmt.Errorf("decode chat image payload: %w", err)
+		}
+		parts = append(parts, domainllm.InlineImagePart(match[1], decoded))
+	}
+
+	sanitized := inlineImageDataURIRegex.ReplaceAllString(text, "[inline-image]")
+	sanitized = strings.ReplaceAll(sanitized, "![image]([inline-image])", "[generated image]")
+	sanitized = strings.TrimSpace(sanitized)
+	return parts, sanitized, nil
 }

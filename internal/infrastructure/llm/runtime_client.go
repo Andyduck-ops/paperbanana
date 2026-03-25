@@ -54,6 +54,19 @@ func (c *RuntimeClient) Generate(ctx context.Context, req domainllm.GenerateRequ
 	return client.Generate(ctx, resolvedReq)
 }
 
+func (c *RuntimeClient) GenerateImage(ctx context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	client, resolvedReq, err := c.resolveClient(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	imageClient, ok := client.(domainllm.ImageGenerator)
+	if !ok {
+		return client.Generate(ctx, resolvedReq)
+	}
+	return imageClient.GenerateImage(ctx, resolvedReq)
+}
+
 func (c *RuntimeClient) GenerateStream(ctx context.Context, req domainllm.GenerateRequest) (<-chan domainllm.StreamChunk, <-chan error) {
 	chunks := make(chan domainllm.StreamChunk)
 	errs := make(chan error, 1)
@@ -213,12 +226,15 @@ func (c *RuntimeClient) buildProviderClient(ctx context.Context, provider *domai
 		providerName = string(provider.Type)
 	}
 
+	options := c.options
+	options.HTTPClient = nil
+
 	return NewLLMClientWithOptions(providerName, pbconfig.ProviderConfig{
 		APIKey:  plaintext,
 		BaseURL: provider.APIHost,
 		Model:   model,
 		Timeout: timeout,
-	}, c.options)
+	}, options)
 }
 
 func (c *RuntimeClient) buildStartupClient(model string) (domainllm.LLMClient, error) {

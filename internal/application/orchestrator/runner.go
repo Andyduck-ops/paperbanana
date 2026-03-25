@@ -27,11 +27,26 @@ type SnapshotStore interface {
 	Restore(sessionID string, stage domainagent.StageName) (agentstate.Snapshot, error)
 }
 
+// StageTimeouts maps stage names to their timeout durations.
+type StageTimeouts map[domainagent.StageName]time.Duration
+
+// DefaultStageTimeouts returns the default timeout configuration.
+func DefaultStageTimeouts() StageTimeouts {
+	return StageTimeouts{
+		domainagent.StageRetriever:  180 * time.Second,
+		domainagent.StagePlanner:    180 * time.Second,
+		domainagent.StageStylist:    180 * time.Second,
+		domainagent.StageVisualizer: 180 * time.Second,
+		domainagent.StageCritic:     360 * time.Second,
+	}
+}
+
 type Runner struct {
 	agents        map[domainagent.StageName]domainagent.BaseAgent
 	pipeline      []domainagent.StageName
 	eventBuffer   int
 	snapshotStore SnapshotStore
+	stageTimeouts StageTimeouts
 }
 
 func NewCanonicalRunner(retriever, planner, stylist, visualizer, critic domainagent.BaseAgent, opts ...RunnerOption) *Runner {
@@ -49,9 +64,10 @@ func NewCanonicalRunner(retriever, planner, stylist, visualizer, critic domainag
 
 func NewRunner(agents map[domainagent.StageName]domainagent.BaseAgent, opts ...RunnerOption) *Runner {
 	runner := &Runner{
-		agents:      cloneRegistry(agents),
-		pipeline:    orderedPipeline(agents),
-		eventBuffer: 32,
+		agents:        cloneRegistry(agents),
+		pipeline:      orderedPipeline(agents),
+		eventBuffer:   32,
+		stageTimeouts: DefaultStageTimeouts(),
 	}
 
 	for _, opt := range opts {
@@ -75,9 +91,26 @@ func WithSnapshotStore(store SnapshotStore) RunnerOption {
 	}
 }
 
+// WithStageTimeouts sets custom timeout durations for each stage.
+func WithStageTimeouts(timeouts StageTimeouts) RunnerOption {
+	return func(r *Runner) {
+		if timeouts == nil {
+			return
+		}
+		// Merge with defaults to ensure all stages have timeouts
+		r.stageTimeouts = DefaultStageTimeouts()
+		for stage, timeout := range timeouts {
+			if timeout > 0 {
+				r.stageTimeouts[stage] = timeout
+			}
+		}
+	}
+}
+
 func (r *Runner) Start(ctx context.Context, input domainagent.AgentInput) (*RunHandle, error) {
-	tracker := newSessionTracker(input, r.pipeline)
-	return r.startWithTracker(ctx, tracker, r.pipeline)
+	pipeline := r.pipelineForInput(input.Metadata)
+	tracker := newSessionTracker(input, pipeline)
+	return r.startWithTracker(ctx, tracker, pipeline)
 }
 
 func (r *Runner) Resume(ctx context.Context, input domainagent.AgentInput) (*RunHandle, error) {
@@ -133,6 +166,19 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 		requestID: tracker.state.RequestID,
 		out:       events,
 	}
+	var (
+		lastCompletedState domainagent.AgentState
+		hasCompletedStage  bool
+	)
+
+	// GD-UI-004: Emit resume_start event if this is a restored session
+	if tracker.state.Restore.RestoredFrom != "" {
+		resumeMetadata := map[string]string{
+			"resumed_from_stage": string(tracker.state.Restore.RestoredFrom),
+			"session_id":         tracker.state.SessionID,
+		}
+		publisher.emit(domainagent.EventResumeStarted, tracker.state.Restore.RestoredFrom, domainagent.StatusRunning, domainagent.Timing{}, nil, resumeMetadata)
+	}
 
 	publisher.emit(domainagent.EventRunStarted, "", domainagent.StatusRunning, domainagent.Timing{}, nil, tracker.state.Metadata)
 
@@ -150,18 +196,35 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 		startedAt := time.Now().UTC()
 		publisher.emit(domainagent.EventStageStarted, stage, domainagent.StatusRunning, domainagent.Timing{StartedAt: startedAt}, nil, stageInput.Metadata)
 
-		if err := stageAgent.Initialize(ctx); err != nil {
-			return r.finishStageError(ctx, tracker, publisher, stage, stageInput, startedAt, err, stageAgent)
+		// Get stage timeout
+		stageTimeout := r.stageTimeouts[stage]
+		if stageTimeout <= 0 {
+			stageTimeout = 60 * time.Second // fallback default
 		}
 
-		output, err := stageAgent.Execute(ctx, stageInput)
+		// Create stage context with timeout
+		stageCtx, cancel := context.WithTimeout(ctx, stageTimeout)
+		defer cancel()
+
+		if err := stageAgent.Initialize(stageCtx); err != nil {
+			cancel()
+			return r.finishStageError(stageCtx, tracker, publisher, stage, stageInput, startedAt, err, stageAgent)
+		}
+
+		output, err := stageAgent.Execute(stageCtx, stageInput)
 		if err != nil {
+			cancel()
 			if cleanupErr := stageAgent.Cleanup(ctx); cleanupErr != nil {
 				err = errors.Join(err, cleanupErr)
+			}
+			// Check if it was a timeout
+			if errors.Is(stageCtx.Err(), context.DeadlineExceeded) {
+				err = fmt.Errorf("stage %s timed out after %s: %w", stage, stageTimeout, err)
 			}
 			return r.finishStageError(ctx, tracker, publisher, stage, stageInput, startedAt, err, stageAgent)
 		}
 
+		cancel()
 		if err := stageAgent.Cleanup(ctx); err != nil {
 			return r.finishStageError(ctx, tracker, publisher, stage, stageInput, startedAt, err, stageAgent)
 		}
@@ -187,10 +250,20 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 			return r.finishPersistenceError(tracker, publisher, stage, stageInput, timing, err)
 		}
 		publisher.emit(domainagent.EventStageCompleted, stage, domainagent.StatusCompleted, timing, nil, stageEventMetadata(output))
+		lastCompletedState = cloneAgentState(stageState)
+		hasCompletedStage = true
 	}
 
 	completedAt := time.Now().UTC()
 	tracker.completeRun(completedAt)
+	if hasCompletedStage {
+		if err := r.persistSnapshot(tracker, lastCompletedState); err != nil {
+			return RunResult{
+				Session:     tracker.snapshot(),
+				FailedStage: lastCompletedState.Stage,
+			}, err
+		}
+	}
 	publisher.emit(domainagent.EventRunCompleted, tracker.state.CurrentStage, domainagent.StatusCompleted, domainagent.Timing{CompletedAt: completedAt}, nil, tracker.state.Metadata)
 
 	return RunResult{Session: tracker.snapshot()}, nil
@@ -203,9 +276,21 @@ func (r *Runner) finishStageError(ctx context.Context, tracker *sessionTracker, 
 		CompletedAt: completedAt,
 		Duration:    completedAt.Sub(startedAt),
 	}
-	detail := &domainagent.ErrorDetail{
-		Message: err.Error(),
-		Stage:   stage,
+
+	// Classify and standardize the error
+	errorCode := domainagent.ClassifyError(err)
+	detail := domainagent.WrapAgentError(err, stage, errorCode)
+
+	// Add timeout info if applicable
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		stageTimeout := r.stageTimeouts[stage]
+		if stageTimeout <= 0 {
+			stageTimeout = 60 * time.Second
+		}
+		detail.Code = string(domainagent.ErrCodeStageTimeout)
+		detail.Message = fmt.Sprintf("stage %s timed out after %s: %s", stage, stageTimeout, err.Error())
+		detail.Category = string(domainagent.ErrorCategoryTransient)
+		detail.Suggestion = fmt.Sprintf("The %s stage took too long (limit: %s). Please try again.", stage, stageTimeout)
 	}
 
 	stageState := domainagent.AgentState{
@@ -261,6 +346,7 @@ func (r *Runner) finishPersistenceError(tracker *sessionTracker, publisher event
 	}
 
 	tracker.state.CurrentStage = stage
+	tracker.state.FailedStage = stage
 	tracker.state.Status = domainagent.StatusFailed
 	tracker.state.Error = cloneErrorDetail(detail)
 	tracker.state.UpdatedAt = timing.CompletedAt
@@ -311,11 +397,12 @@ func (r *Runner) resumeTracker(input domainagent.AgentInput) (*sessionTracker, [
 			continue
 		}
 
-		tracker := newRestoredSessionTracker(snapshot, input, r.pipeline)
+		pipeline := r.pipelineForResume(snapshot, input.Metadata)
+		tracker := newRestoredSessionTracker(snapshot, input, pipeline)
 		if err := r.restoreCompletedStates(snapshot); err != nil {
 			return nil, nil, err
 		}
-		return tracker, remainingPipeline(snapshot.Stage.Stage, r.pipeline), nil
+		return tracker, remainingPipeline(snapshot.Stage.Stage, pipeline), nil
 	}
 
 	return nil, nil, fmt.Errorf("%w: %s", ErrResumeSnapshotMissing, input.SessionID)
@@ -500,6 +587,53 @@ func orderedPipeline(agents map[domainagent.StageName]domainagent.BaseAgent) []d
 			continue
 		}
 		pipeline = append(pipeline, stage)
+	}
+	return pipeline
+}
+
+func (r *Runner) pipelineForInput(metadata map[string]string) []domainagent.StageName {
+	return r.filterPipeline(metadata, r.pipeline)
+}
+
+func (r *Runner) pipelineForResume(snapshot agentstate.Snapshot, metadata map[string]string) []domainagent.StageName {
+	base := snapshot.Session.Pipeline
+	if len(base) == 0 {
+		base = r.pipeline
+	}
+	return r.filterPipeline(metadata, base)
+}
+
+func (r *Runner) filterPipeline(metadata map[string]string, base []domainagent.StageName) []domainagent.StageName {
+	if len(base) == 0 {
+		return nil
+	}
+
+	mode := strings.TrimSpace(metadata["config.pipeline_mode"])
+	if mode == "" {
+		return append([]domainagent.StageName(nil), base...)
+	}
+
+	allowed := map[domainagent.StageName]bool{}
+	switch mode {
+	case "full":
+		return append([]domainagent.StageName(nil), base...)
+	case "planner-critic":
+		allowed[domainagent.StagePlanner] = true
+		allowed[domainagent.StageCritic] = true
+	case "vanilla":
+		allowed[domainagent.StageVisualizer] = true
+	default:
+		return append([]domainagent.StageName(nil), base...)
+	}
+
+	pipeline := make([]domainagent.StageName, 0, len(base))
+	for _, stage := range base {
+		if allowed[stage] {
+			pipeline = append(pipeline, stage)
+		}
+	}
+	if len(pipeline) == 0 {
+		return append([]domainagent.StageName(nil), base...)
 	}
 	return pipeline
 }

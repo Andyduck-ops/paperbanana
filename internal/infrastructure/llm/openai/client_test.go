@@ -115,6 +115,54 @@ func TestOpenAIGenerateImageUsesImagesEndpointAndDecodesBase64(t *testing.T) {
 	assert.Equal(t, []byte("png-image-bytes"), resp.Parts[1].Data)
 }
 
+func TestOpenAIGenerateImageFallsBackToChatCompletionsForGeminiImageModels(t *testing.T) {
+	t.Parallel()
+
+	var chatCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/chat/completions":
+			chatCalls++
+			assert.Equal(t, http.MethodPost, r.Method)
+			w.Header().Set("Content-Type", "application/json")
+			require.NoError(t, json.NewEncoder(w).Encode(openaisdk.ChatCompletionResponse{
+				Choices: []openaisdk.ChatCompletionChoice{{
+					FinishReason: openaisdk.FinishReasonStop,
+					Message: openaisdk.ChatCompletionMessage{
+						Role:    openaisdk.ChatMessageRoleAssistant,
+						Content: "![image](data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("chat-image-bytes")) + ")",
+					},
+				}},
+				Usage: openaisdk.Usage{TotalTokens: 24},
+			}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewClientWithConfig("test-key", server.URL, "gemini-3.1-flash-image-preview", 0, server.Client())
+	require.NoError(t, err)
+
+	resp, err := client.GenerateImage(context.Background(), domainllm.GenerateRequest{
+		SystemInstruction: "Render a paper figure.",
+		Model:             "gemini-3.1-flash-image-preview",
+		Messages: []domainllm.Message{
+			{Role: domainllm.RoleUser, Parts: []domainllm.Part{domainllm.TextPart("Create a clean system diagram.")}},
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, chatCalls)
+	assert.Equal(t, "[generated image]", resp.Content)
+	assert.Equal(t, 24, resp.TokensUsed)
+	require.Len(t, resp.Parts, 2)
+	assert.Equal(t, domainllm.PartTypeText, resp.Parts[0].Type)
+	assert.Equal(t, "[generated image]", resp.Parts[0].Text)
+	assert.Equal(t, domainllm.PartTypeImage, resp.Parts[1].Type)
+	assert.Equal(t, []byte("chat-image-bytes"), resp.Parts[1].Data)
+}
+
 func TestBuildResponsePartsUsesMultiContentAndReasoningFallbacks(t *testing.T) {
 	t.Run("multi content text", func(t *testing.T) {
 		parts := buildResponseParts(openaisdk.ChatCompletionMessage{

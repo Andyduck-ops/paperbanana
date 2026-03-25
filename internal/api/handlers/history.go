@@ -199,6 +199,7 @@ type SessionResponse struct {
 	SchemaVersion   string                    `json:"schema_version"`
 	CreatedAt       string                    `json:"created_at"`
 	UpdatedAt       string                    `json:"updated_at"`
+	CompletedAt     *string                   `json:"completed_at,omitempty"`
 	Snapshot        *domainagent.SessionState `json:"snapshot,omitempty"`
 }
 
@@ -231,6 +232,10 @@ func (h *HistoryHandler) GetLatestSession(c *gin.Context) {
 
 	if session.VisualizationID != nil {
 		response.VisualizationID = session.VisualizationID
+	}
+	if session.CompletedAt != nil {
+		completedAt := session.CompletedAt.Format("2006-01-02T15:04:05Z")
+		response.CompletedAt = &completedAt
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -271,6 +276,10 @@ func (h *HistoryHandler) GetSession(c *gin.Context) {
 
 	if session.VisualizationID != nil {
 		response.VisualizationID = session.VisualizationID
+	}
+	if session.CompletedAt != nil {
+		completedAt := session.CompletedAt.Format("2006-01-02T15:04:05Z")
+		response.CompletedAt = &completedAt
 	}
 
 	c.JSON(http.StatusOK, response)

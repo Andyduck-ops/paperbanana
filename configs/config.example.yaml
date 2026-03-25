@@ -41,8 +41,8 @@ output:
     - pdf
 
 stage_timeout:
-  retriever: 90s
-  planner: 90s
-  stylist: 60s
-  visualizer: 120s
-  critic: 90s
+  retriever: 180s
+  planner: 180s
+  stylist: 180s
+  visualizer: 180s
+  critic: 360s

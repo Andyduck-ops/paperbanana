@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,7 +41,7 @@ func TestBuildStartupLLMClientFallsBackToUnavailableClient(t *testing.T) {
 	require.NotNil(t, client)
 	require.Equal(t, "gemini", client.Provider())
 
-	_, err = client.Generate(t.Context(), domainllm.GenerateRequest{})
+	_, err = client.Generate(context.Background(), domainllm.GenerateRequest{})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "open Settings to add a key before generating")
 }

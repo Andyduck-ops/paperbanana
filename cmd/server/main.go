@@ -54,8 +54,7 @@ func main() {
 		logger.Fatal("default provider not configured", zap.String("provider", cfg.LLM.Default))
 	}
 
-	resilientClient := resilience.NewResilientClient("llm-"+cfg.LLM.Default, providerConfig.Timeout)
-	options := llminfra.ClientOptions{HTTPClient: resilientClient.HTTPClient()}
+	options := llminfra.ClientOptions{}
 	if cfg.Cache.Redis.Enabled {
 		redisClient := goredis.NewClient(&goredis.Options{
 			Addr:     cfg.Cache.Redis.Addr,
@@ -180,7 +179,9 @@ func main() {
 		Addr:         address,
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 120 * time.Second, // Long timeout for generation
+		// Streaming and long-running generation can legitimately exceed several minutes.
+		// Leave write timeout disabled so SSE and synchronous generation are not cut off mid-pipeline.
+		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,
 	}
 

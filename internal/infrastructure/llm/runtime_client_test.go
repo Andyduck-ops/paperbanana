@@ -2,12 +2,18 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	pbconfig "github.com/paperbanana/paperbanana/internal/config"
 	domainconfig "github.com/paperbanana/paperbanana/internal/domain/config"
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
+	"github.com/paperbanana/paperbanana/internal/infrastructure/resilience"
+	openaisdk "github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/require"
 )
 
@@ -167,4 +173,69 @@ func TestRuntimeClientResolveClient_UsesDefaultProviderModelWhenNoOverrideProvid
 	_, resolvedReq, err := client.resolveClient(context.Background(), domainllm.GenerateRequest{})
 	require.NoError(t, err)
 	require.Equal(t, "grok-4.1-thinking", resolvedReq.Model)
+}
+
+func TestRuntimeClientGenerate_UsesProviderScopedHTTPClient(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/chat/completions", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(openaisdk.ChatCompletionResponse{
+			Choices: []openaisdk.ChatCompletionChoice{{
+				FinishReason: openaisdk.FinishReasonStop,
+				Message: openaisdk.ChatCompletionMessage{
+					Role:    openaisdk.ChatMessageRoleAssistant,
+					Content: "ok",
+				},
+			}},
+			Usage: openaisdk.Usage{TotalTokens: 12},
+		}))
+	}))
+	defer server.Close()
+
+	sharedClient := resilience.NewResilientClient("shared-breaker", 200*time.Millisecond).HTTPClient()
+	failingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer failingServer.Close()
+
+	for i := 0; i < 6; i++ {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, failingServer.URL, nil)
+		require.NoError(t, err)
+		_, _ = sharedClient.Do(req)
+	}
+
+	provider := &domainconfig.Provider{
+		ID:         "provider-1",
+		Type:       domainconfig.ProviderTypeOpenAICompatible,
+		Name:       "tencent-coding",
+		DisplayName: "Tencent Coding",
+		APIHost:    server.URL,
+		QueryModel: "kimi-k2.5",
+	}
+
+	client := NewRuntimeClient(
+		RuntimePurposeQuery,
+		"grok",
+		pbconfig.ProviderConfig{
+			APIKey:  "startup-key",
+			BaseURL: "https://lx.lxsummer.cloud/v1",
+			Model:   "grok-4.1-fast",
+			Timeout: time.Second,
+		},
+		ClientOptions{HTTPClient: sharedClient},
+		runtimeTestProviderRepo{provider: provider},
+		runtimeTestAPIKeyRepo{},
+	)
+
+	resp, err := client.Generate(context.Background(), domainllm.GenerateRequest{
+		Model: "tencent-coding:kimi-k2.5",
+		Messages: []domainllm.Message{
+			{Role: domainllm.RoleUser, Parts: []domainllm.Part{domainllm.TextPart("hello")}},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, "ok", resp.Content)
 }

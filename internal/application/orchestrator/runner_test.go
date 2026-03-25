@@ -828,6 +828,22 @@ func (m *runnerLLMProvider) Generate(_ context.Context, req domainllm.GenerateRe
 	return cloneGenerateResponse(resp), nil
 }
 
+func (m *runnerLLMProvider) GenerateImage(_ context.Context, req domainllm.GenerateRequest) (*domainllm.GenerateResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.calls == nil {
+		m.calls = map[string]int{}
+	}
+	m.calls[req.PromptVersion]++
+
+	resp, ok := m.responses[req.PromptVersion]
+	if !ok {
+		return nil, fmt.Errorf("unexpected prompt version %q", req.PromptVersion)
+	}
+	return cloneGenerateResponse(resp), nil
+}
+
 func (m *runnerLLMProvider) GenerateStream(_ context.Context, _ domainllm.GenerateRequest) (<-chan domainllm.StreamChunk, <-chan error) {
 	chunks := make(chan domainllm.StreamChunk)
 	errs := make(chan error)
@@ -1013,4 +1029,46 @@ func TestRunnerResumeFromPersistentStore(t *testing.T) {
 	assert.Equal(t, domainagent.StatusCompleted, result.Session.Status)
 	assertStageEventOrder(t, events, domainagent.EventStageStarted, []domainagent.StageName{domainagent.StageVisualizer, domainagent.StageCritic})
 	assertStageEventOrder(t, events, domainagent.EventStageCompleted, []domainagent.StageName{domainagent.StageVisualizer, domainagent.StageCritic})
+}
+
+func TestRunnerPersistsCompletedSessionStatus(t *testing.T) {
+	t.Parallel()
+
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&sqlitePersistence.SessionModel{}))
+
+	sessionRepo := sqlitePersistence.NewSessionRepository(db)
+	persistentStore := sqlitePersistence.NewPersistentSnapshotStore(sessionRepo)
+
+	runner := NewRunner(newStubRegistry(func(_ context.Context, input domainagent.AgentInput) (domainagent.AgentOutput, error) {
+		return domainagent.AgentOutput{
+			Stage:        input.Stage,
+			Content:      string(input.Stage) + "-output",
+			VisualIntent: input.VisualIntent,
+			Prompt:       input.Prompt,
+		}, nil
+	}), WithSnapshotStore(persistentStore))
+
+	input := testAgentInput()
+	input.SessionID = "completed-session-persisted"
+	input.RequestID = "completed-session-request"
+
+	handle, err := runner.Start(context.Background(), input)
+	require.NoError(t, err)
+
+	_, err = handle.Wait()
+	require.NoError(t, err)
+
+	record, err := sessionRepo.GetByID(context.Background(), input.SessionID)
+	require.NoError(t, err)
+	require.NotNil(t, record)
+	require.NotNil(t, record.Snapshot)
+	require.NotNil(t, record.CompletedAt)
+	assert.Equal(t, string(domainagent.StatusCompleted), record.Status)
+	assert.Equal(t, string(domainagent.StageCritic), record.CurrentStage)
+	assert.Equal(t, domainagent.StatusCompleted, record.Snapshot.Status)
+	assert.Equal(t, domainagent.StageCritic, record.Snapshot.CurrentStage)
+	assert.False(t, record.Snapshot.CompletedAt.IsZero())
 }
