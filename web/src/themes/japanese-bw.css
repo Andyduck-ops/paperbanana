@@ -29,6 +29,11 @@
   --theme-preview-primary: oklch(0.15 0 0);
   --theme-preview-bg: oklch(0.98 0 0);
   --theme-preview-accent: oklch(0.50 0 0);
+  
+  /* Theme option colors for swatches */
+  --theme-option-bg: oklch(0.98 0 0);
+  --theme-option-ink: oklch(0.12 0 0);
+  --theme-option-accent: oklch(0.50 0 0);
 }
 
 /* Quiet geometry: sharp corners, thin borders */
