@@ -1,0 +1,76 @@
+/* Rococo Theme - Pearl backgrounds, old-gold accents, fine ornamental framing */
+[data-theme="rococo"] {
+  /* Elegant palette: pearl white, soft pink, old gold, pale blue */
+  --theme-primary: oklch(0.70 0.12 20);           /* Soft pink/coral */
+  --theme-secondary: oklch(0.75 0.15 85);         /* Old gold */
+  --theme-background: oklch(0.96 0.02 85);        /* Pearl white */
+  --theme-foreground: oklch(0.25 0.03 280);       /* Soft charcoal */
+  --theme-accent: oklch(0.85 0.08 240);           /* Pale blue */
+  --theme-muted: oklch(0.92 0.03 85);             /* Cream */
+  --theme-border: oklch(0.60 0.10 80);            /* Gold trim */
+  --theme-card: rgba(255, 252, 247, 0.94);        /* Pearl card */
+  --theme-muted-foreground: oklch(0.50 0.04 280);
+  --theme-primary-muted: color-mix(in srgb, var(--theme-primary) 15%, white);
+  --theme-primary-alpha: color-mix(in srgb, var(--theme-primary) 22%, transparent);
+  --theme-background-rgb: 255, 252, 247;
+  --theme-surface-shadow: 0 8px 32px rgba(60, 50, 40, 0.12);
+  --theme-status-success: oklch(0.70 0.10 145);
+  --theme-status-warning: oklch(0.80 0.12 85);
+  --theme-status-error: oklch(0.60 0.18 25);
+  --theme-status-info: oklch(0.75 0.10 240);
+  --theme-status-pending: oklch(0.82 0.06 82);
+  --theme-status-running: oklch(0.75 0.10 210);
+  
+  /* Elegant serif fonts */
+  --theme-font-heading: "Playfair Display", "Noto Serif SC", "Times New Roman", serif;
+  --theme-font-body: "Noto Sans SC", "Lato", sans-serif;
+  
+  /* Preview colors for theme selector */
+  --theme-preview-primary: oklch(0.70 0.12 20);
+  --theme-preview-bg: oklch(0.96 0.02 85);
+  --theme-preview-accent: oklch(0.75 0.15 85);
+}
+
+/* Ornamental borders */
+[data-theme="rococo"] .theme-card,
+[data-theme="rococo"] .history-item,
+[data-theme="rococo"] .workspace-stage__surface {
+  border: 1px solid oklch(0.75 0.08 80);
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 20px rgba(60, 50, 40, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Gold gradient accents */
+[data-theme="rococo"] .pb-header__settings,
+[data-theme="rococo"] .theme-card__preview-button,
+[data-theme="rococo"] .history-panel__action {
+  border: 1px solid oklch(0.70 0.12 80);
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--theme-card) 90%, var(--theme-secondary)),
+    var(--theme-card)
+  );
+}
+
+/* Soft, large blur shadows for elegance */
+[data-theme="rococo"] .history-trigger__icon,
+[data-theme="rococo"] .history-item__stamp {
+  box-shadow: 0 4px 12px rgba(180, 160, 140, 0.2);
+}
+
+/* Rounded corners throughout */
+[data-theme="rococo"] button,
+[data-theme="rococo"] .btn {
+  border-radius: 8px;
+}
+
+[data-theme="rococo"] button[data-variant="primary"],
+[data-theme="rococo"] .btn-primary {
+  background: linear-gradient(135deg, 
+    var(--theme-primary),
+    color-mix(in srgb, var(--theme-primary) 85%, var(--theme-secondary))
+  );
+  border-radius: 10px;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--theme-primary) 25%, transparent);
+}

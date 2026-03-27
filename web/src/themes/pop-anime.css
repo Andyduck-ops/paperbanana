@@ -1,13 +1,13 @@
 /* Pop Anime Theme - bold frames, halftone tension, and loud contrast */
 [data-theme="pop-anime"] {
-  --theme-primary: oklch(0.66 0.24 28);
-  --theme-secondary: oklch(0.88 0.18 95);
-  --theme-background: oklch(0.97 0.02 90);
-  --theme-foreground: oklch(0.16 0.03 260);
-  --theme-accent: oklch(0.71 0.22 245);
-  --theme-muted: oklch(0.94 0.02 88);
-  --theme-border: oklch(0.17 0.04 260);
-  --theme-card: rgba(255, 250, 236, 0.94);
+  --theme-primary: oklch(0.65 0.25 25);           /* Bright red */
+  --theme-secondary: oklch(0.90 0.18 95);         /* Bright yellow */
+  --theme-background: oklch(0.97 0.02 90);        /* Off-white */
+  --theme-foreground: oklch(0.16 0.03 260);       /* Near black */
+  --theme-accent: oklch(0.65 0.20 250);           /* Bright blue */
+  --theme-muted: oklch(0.94 0.02 88);             /* Light gray */
+  --theme-border: oklch(0.17 0.04 260);           /* Thick black border feel */
+  --theme-card: rgba(255, 250, 236, 0.94);        /* Creamy card */
   --theme-muted-foreground: oklch(0.42 0.05 260);
   --theme-primary-muted: color-mix(in srgb, var(--theme-primary) 12%, white);
   --theme-primary-alpha: color-mix(in srgb, var(--theme-primary) 28%, transparent);
@@ -19,16 +19,26 @@
   --theme-status-info: oklch(0.66 0.18 240);
   --theme-status-pending: oklch(0.72 0.08 82);
   --theme-status-running: oklch(0.71 0.18 210);
-  --theme-font-heading: "Bungee", "Arial Black", sans-serif;
+  
+  /* Bold/display fonts */
+  --theme-font-heading: "Bungee", "Arial Black", "Noto Sans SC", sans-serif;
   --theme-font-body: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+  
+  /* Preview colors for theme selector */
+  --theme-preview-primary: oklch(0.65 0.25 25);
+  --theme-preview-bg: oklch(0.97 0.02 90);
+  --theme-preview-accent: oklch(0.65 0.20 250);
 }
 
+/* Comic-style heavy shadows */
 [data-theme="pop-anime"] .theme-card,
 [data-theme="pop-anime"] .history-item,
 [data-theme="pop-anime"] .workspace-stage__surface {
   box-shadow: 6px 6px 0 rgba(17, 17, 17, 0.95);
+  border: 3px solid var(--theme-border);
 }
 
+/* Halftone dot pattern overlay */
 [data-theme="pop-anime"] .theme-card__preview,
 [data-theme="pop-anime"] .history-trigger__icon,
 [data-theme="pop-anime"] .history-item__stamp {
@@ -49,6 +59,7 @@
   pointer-events: none;
 }
 
+/* Bold comic-style buttons */
 [data-theme="pop-anime"] .pb-header__settings,
 [data-theme="pop-anime"] .theme-card__preview-button,
 [data-theme="pop-anime"] .history-panel__action,
@@ -57,6 +68,7 @@
   box-shadow: 3px 3px 0 rgba(17, 17, 17, 0.9);
 }
 
+/* Hover transforms for energy */
 [data-theme="pop-anime"] .pb-header__settings:hover,
 [data-theme="pop-anime"] .theme-card:hover,
 [data-theme="pop-anime"] .history-trigger:hover,

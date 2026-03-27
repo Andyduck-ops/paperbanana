@@ -5,7 +5,8 @@ import "./themes/rococo.css";
 import "./themes/japanese-bw.css";
 import "./themes/workspace.css";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Layout, Header, Footer, Toast, ErrorBoundary, SettingsDrawer } from "./components";
+import { Layout, Header, Footer, Toast, ErrorBoundary, SettingsDrawer, WelcomeWizard, isWizardCompleted, ShortcutsHelpPanel } from "./components";
+import { ProjectsPage } from "./pages/ProjectsPage";
 import {
   GeneratePanel,
   HistoryPanel,
@@ -103,9 +104,30 @@ export function App() {
   const [mainTab, setMainTab] = useState<MainTab>("generate");
   const { t } = useLanguage();
 
-  const { isGenerating, stages, result, error, generate, reset, restore: restoreGenerate } =
+  const { isGenerating, stages, result, error, generate, cancel, reset, restore: restoreGenerate } =
     useGenerate();
   const { toasts, addToast, removeToast } = useToast();
+
+  // Simple router based on URL path
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Render projects page for /projects route
+  if (currentPath === '/projects') {
+    return (
+      <ErrorBoundary>
+        <ProjectsPage />
+        <Toast toasts={toasts} onRemove={removeToast} />
+      </ErrorBoundary>
+    );
+  }
   const [selectedSessionId, setSelectedSessionId] = useState<string>();
   const [selectedBatchCandidateId, setSelectedBatchCandidateId] = useState<string | null>(null);
   const [refineSeedImageData, setRefineSeedImageData] = useState<string | null>(null);
@@ -113,11 +135,20 @@ export function App() {
   const [showExport, setShowExport] = useState(false);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showWelcomeWizard, setShowWelcomeWizard] = useState(false);
+  const [examplePrompt, setExamplePrompt] = useState<string | null>(null);
   const [pendingHistoryContext, setPendingHistoryContext] = useState<{
     prompt: string;
     mode: LocalWorkMode;
   } | null>(null);
   const lastRecordedHistoryId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isWizardCompleted()) {
+      setShowWelcomeWizard(true);
+    }
+  }, []);
 
   // History hook for count badge
   const { count: historyCount, restoreSession: restoreHistorySession } = useHistory();
@@ -146,6 +177,23 @@ export function App() {
       addToast(refineError.message || "Refinement failed", "error");
     },
   });
+
+  useEffect(() => {
+    const handleLoadExample = (event: CustomEvent<{ prompt: string }>) => {
+      setExamplePrompt(event.detail.prompt);
+      setMainTab("generate");
+      reset();
+      resetBatch();
+      resetRefine();
+      setSelectedBatchCandidateId(null);
+      setRefineSeedImageData(null);
+    };
+
+    window.addEventListener('workspace:loadExample', handleLoadExample as EventListener);
+    return () => {
+      window.removeEventListener('workspace:loadExample', handleLoadExample as EventListener);
+    };
+  }, [reset, resetBatch, resetRefine]);
 
   const handleGenerate = async (prompt: string, options?: GenerateOptions) => {
     setMainTab("generate");
@@ -369,6 +417,10 @@ export function App() {
     },
     onEscape: () => {
       setShowExport(false);
+      setShowShortcutsHelp(false);
+    },
+    onShowShortcuts: () => {
+      setShowShortcutsHelp(true);
     },
   });
 
@@ -384,7 +436,9 @@ export function App() {
       mode: "generate",
     });
     lastRecordedHistoryId.current = result.sessionId;
-  }, [pendingHistoryContext, result]);
+    // Show toast when generation completes
+    addToast(t('history.savedToHistory') || 'Results saved to history', 'success');
+  }, [pendingHistoryContext, result, addToast, t]);
 
   useEffect(() => {
     if (!batchResult || pendingHistoryContext?.mode !== "batch") return;
@@ -489,6 +543,7 @@ export function App() {
             setCurrentPage("main");
             setIsSettingsOpen(true);
           }}
+          onSaveSuccess={() => addToast(t('settings.providerSaved') || 'Provider saved successfully', 'success')}
         />
         <Toast toasts={toasts} onRemove={removeToast} />
       </ErrorBoundary>
@@ -498,6 +553,17 @@ export function App() {
   // Main page
   return (
     <ErrorBoundary>
+      {/* Welcome Wizard for first-time users */}
+      {showWelcomeWizard && (
+        <WelcomeWizard
+          onComplete={() => setShowWelcomeWizard(false)}
+          onNavigateToSettings={() => {
+            setShowWelcomeWizard(false);
+            setIsSettingsOpen(true);
+          }}
+        />
+      )}
+
       {/* History Panel - Sliding from left */}
       {isHistoryPanelOpen && (
         <HistoryPanel
@@ -552,6 +618,7 @@ export function App() {
                     onGenerate={handleGenerate}
                     isGenerating={isGenerating || isBatchGenerating}
                     onNavigateToSettings={() => setIsSettingsOpen(true)}
+                    initialCaption={examplePrompt || undefined}
                   />
                 }
                 refineInput={
@@ -606,6 +673,7 @@ export function App() {
                 onDeleteCandidate={() => {
                   addToast("Candidate removal is not implemented yet", "info");
                 }}
+                onCancel={cancel}
               />
             </div>
           </section>
@@ -618,6 +686,11 @@ export function App() {
         />
 
         <Toast toasts={toasts} onRemove={removeToast} />
+
+        <ShortcutsHelpPanel
+          isOpen={showShortcutsHelp}
+          onClose={() => setShowShortcutsHelp(false)}
+        />
       </Layout>
     </ErrorBoundary>
   );

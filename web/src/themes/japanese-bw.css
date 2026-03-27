@@ -1,0 +1,76 @@
+/* Japanese B&W Theme - Strict grayscale, editorial spacing, thin borders */
+[data-theme="japanese-bw"] {
+  /* Strict grayscale palette for print compatibility */
+  --theme-primary: oklch(0.15 0 0);               /* Near black */
+  --theme-secondary: oklch(0.35 0 0);             /* Dark gray */
+  --theme-background: oklch(0.98 0 0);            /* Pure white */
+  --theme-foreground: oklch(0.12 0 0);            /* Black text */
+  --theme-accent: oklch(0.50 0 0);                /* Medium gray */
+  --theme-muted: oklch(0.90 0 0);                 /* Light gray */
+  --theme-border: oklch(0.25 0 0);                /* Dark gray border */
+  --theme-card: rgba(255, 255, 255, 0.98);        /* White card */
+  --theme-muted-foreground: oklch(0.45 0 0);
+  --theme-primary-muted: oklch(0.88 0 0);
+  --theme-primary-alpha: oklch(0.50 0 0 / 0.25);
+  --theme-background-rgb: 255, 255, 255;
+  --theme-surface-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --theme-status-success: oklch(0.35 0 0);
+  --theme-status-warning: oklch(0.55 0 0);
+  --theme-status-error: oklch(0.20 0 0);
+  --theme-status-info: oklch(0.45 0 0);
+  --theme-status-pending: oklch(0.70 0 0);
+  --theme-status-running: oklch(0.40 0 0);
+  
+  /* Clean, readable sans-serif fonts */
+  --theme-font-heading: "IBM Plex Sans", "Helvetica Neue", "Noto Sans SC", sans-serif;
+  --theme-font-body: "IBM Plex Sans", "Helvetica Neue", "Noto Sans SC", sans-serif;
+  
+  /* Preview colors for theme selector */
+  --theme-preview-primary: oklch(0.15 0 0);
+  --theme-preview-bg: oklch(0.98 0 0);
+  --theme-preview-accent: oklch(0.50 0 0);
+}
+
+/* Quiet geometry: sharp corners, thin borders */
+[data-theme="japanese-bw"] .theme-card,
+[data-theme="japanese-bw"] .history-item,
+[data-theme="japanese-bw"] .workspace-stage__surface {
+  border: 1px solid oklch(0.25 0 0);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Editorial spacing */
+[data-theme="japanese-bw"] .workspace-main {
+  padding: 2rem;
+}
+
+[data-theme="japanese-bw"] .empty-state {
+  gap: 2rem;
+}
+
+/* Minimal buttons */
+[data-theme="japanese-bw"] .pb-header__settings,
+[data-theme="japanese-bw"] .theme-card__preview-button,
+[data-theme="japanese-bw"] .history-panel__action,
+[data-theme="japanese-bw"] .history-item__status {
+  border: 1px solid var(--theme-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Primary action */
+[data-theme="japanese-bw"] button[data-variant="primary"],
+[data-theme="japanese-bw"] .btn-primary {
+  background: var(--theme-primary);
+  color: white;
+  border-radius: 0;
+}
+
+/* Print optimizations */
+@media print {
+  [data-theme="japanese-bw"] * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}
