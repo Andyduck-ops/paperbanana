@@ -27,13 +27,31 @@ type RefineResponseMetadata struct {
 	QualityScore string `json:"quality_score,omitempty"`
 }
 
+// Artifact represents a single artifact in the refine response.
+type Artifact struct {
+	Type   string `json:"type"`   // "image", "text", etc.
+	Format string `json:"format"` // "png", "jpeg", "svg", etc.
+	Data   string `json:"data"`   // base64 encoded data
+	Width  int    `json:"width,omitempty"`
+	Height int    `json:"height,omitempty"`
+}
+
+// IterationInfo provides metadata about the refinement iteration process.
+type IterationInfo struct {
+	Enabled         bool `json:"enabled"`
+	RoundsCompleted int  `json:"rounds_completed"`
+	MaxRounds       int  `json:"max_rounds"`
+}
+
 // RefineResponse is the response for image refinement.
 type RefineResponse struct {
-	SessionID string                  `json:"session_id"`
-	Status    string                  `json:"status"`
-	Image     *RefineImagePayload     `json:"image,omitempty"`
-	ImageData string                  `json:"image_data,omitempty"` // Compatibility field for older callers
-	Content   string                  `json:"content,omitempty"`
-	Error     string                  `json:"error,omitempty"`
-	Metadata  *RefineResponseMetadata `json:"metadata,omitempty"`
+	SessionID     string                  `json:"session_id"`
+	Status        string                  `json:"status"`
+	Image         *RefineImagePayload     `json:"image,omitempty"`
+	ImageData     string                  `json:"image_data,omitempty"` // Compatibility field for older callers
+	Content       string                  `json:"content,omitempty"`
+	Error         string                  `json:"error,omitempty"`
+	Metadata      *RefineResponseMetadata `json:"metadata,omitempty"`
+	Artifacts     []Artifact              `json:"artifacts,omitempty"`      // New: Array of artifacts
+	IterationInfo *IterationInfo          `json:"iteration_info,omitempty"` // New: Iteration metadata
 }

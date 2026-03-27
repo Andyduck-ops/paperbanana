@@ -149,6 +149,64 @@ func TestRefineHandler_AcceptsPlainBase64ImageData(t *testing.T) {
 	assert.Equal(t, sourceImage, generator.requests[0].Messages[0].Parts[1].Data)
 }
 
+// TestRefine_ImageToImage tests PB-REFINE-001: Single refine image-to-image
+// Validates that refine returns proper image artifacts with base64 data
+func TestRefine_ImageToImage(t *testing.T) {
+	// PB-REFINE-001: Single refine image-to-image contract test
+	generator := &fakeRefineGenerator{}
+	saver := &fakeRefineSessionSaver{}
+	router := setupRefineHandlerTest(t, generator, saver)
+
+	sourceImage := []byte{0x89, 0x50, 0x4E, 0x47, 0x01}
+	reqBody := dto.RefineRequest{
+		ImageData:       "data:image/png;base64," + base64.StdEncoding.EncodeToString(sourceImage),
+		Instructions:    "Sharpen labels and improve contrast",
+		Resolution:      "2K",
+		EnableIteration: false,
+		MaxIterations:   1,
+	}
+
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/refine", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp dto.RefineResponse
+	err = json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	// PB-REFINE-001 assertions
+	assert.NotEmpty(t, resp.SessionID, "SessionID should be present")
+	assert.Equal(t, "completed", resp.Status, "Status should be completed")
+
+	// Artifacts array assertions (PB-REFINE-001 requirement)
+	require.NotEmpty(t, resp.Artifacts, "Artifacts array should not be empty")
+	assert.Len(t, resp.Artifacts, 1, "Should have exactly one artifact")
+	assert.Equal(t, "image", resp.Artifacts[0].Type, "Artifact type should be 'image'")
+	assert.Equal(t, "png", resp.Artifacts[0].Format, "Artifact format should be 'png'")
+	assert.NotEmpty(t, resp.Artifacts[0].Data, "Artifact data should not be empty")
+
+	// Validate base64 data
+	decoded, err := base64.StdEncoding.DecodeString(resp.Artifacts[0].Data)
+	require.NoError(t, err, "Artifact data should be valid base64")
+	assert.Equal(t, []byte("refined-image"), decoded, "Decoded data should match expected image")
+
+	// IterationInfo assertions
+	require.NotNil(t, resp.IterationInfo, "IterationInfo should be present")
+	assert.False(t, resp.IterationInfo.Enabled, "Iteration should be disabled")
+	assert.Equal(t, 1, resp.IterationInfo.RoundsCompleted, "Should complete 1 round")
+	assert.Equal(t, 1, resp.IterationInfo.MaxRounds, "MaxRounds should match request")
+
+	// Backward compatibility fields
+	require.NotNil(t, resp.Image, "Image field should be present for backward compatibility")
+	assert.Equal(t, "image/png", resp.Image.MIMEType)
+}
+
 func TestRefineHandler_HonorsIterationPlan(t *testing.T) {
 	iterationImages := [][]byte{
 		[]byte("refined-round-1"),

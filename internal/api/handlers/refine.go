@@ -168,6 +168,17 @@ func (h *RefineHandler) Refine(c *gin.Context) {
 		stopReason,
 	))
 
+	// Build artifacts array for the response
+	artifacts := []dto.Artifact{
+		{
+			Type:   "image",
+			Format: formatFromMIMEType(currentMimeType),
+			Data:   base64.StdEncoding.EncodeToString(currentImage),
+			Width:  0, // Could be extracted from image if needed
+			Height: 0, // Could be extracted from image if needed
+		},
+	}
+
 	c.JSON(http.StatusOK, dto.RefineResponse{
 		SessionID: sessionID,
 		Status:    "completed",
@@ -181,6 +192,12 @@ func (h *RefineHandler) Refine(c *gin.Context) {
 		Metadata: &dto.RefineResponseMetadata{
 			Iterations: strconv.Itoa(totalIterations),
 			StopReason: stopReason,
+		},
+		Artifacts: artifacts,
+		IterationInfo: &dto.IterationInfo{
+			Enabled:         req.EnableIteration,
+			RoundsCompleted: totalIterations,
+			MaxRounds:       req.MaxIterations,
 		},
 	})
 }
@@ -491,6 +508,24 @@ func firstArtifactMetadata(artifacts []domainagent.Artifact) map[string]string {
 		return nil
 	}
 	return cloneStringMap(artifacts[0].Metadata)
+}
+
+// formatFromMIMEType returns the image format string from MIME type.
+func formatFromMIMEType(mimeType string) string {
+	switch mimeType {
+	case "image/png":
+		return "png"
+	case "image/jpeg", "image/jpg":
+		return "jpeg"
+	case "image/gif":
+		return "gif"
+	case "image/webp":
+		return "webp"
+	case "image/svg+xml":
+		return "svg"
+	default:
+		return "png"
+	}
 }
 
 // detectMIMEType attempts to detect the MIME type from image bytes.
