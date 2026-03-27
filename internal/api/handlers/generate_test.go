@@ -350,3 +350,76 @@ func closedEvents() chan domainagent.Event {
 	close(events)
 	return events
 }
+
+// TestGenerate_ProjectScopedPersistence tests PB-CORE-003: Generation with persistence
+// Validates that generation creates sessions with project scope and asset URLs include project_id
+func TestGenerate_ProjectScopedPersistence(t *testing.T) {
+	// PB-CORE-003: Generation with project-scoped persistence
+	gin.SetMode(gin.TestMode)
+	logger := zap.NewNop()
+
+	artifacts := []domainagent.Artifact{
+		{
+			ID:       "figure-1",
+			Kind:     domainagent.ArtifactKindRenderedFigure,
+			MIMEType: "image/png",
+			URI:      "memory://figure-1",
+			AssetID:  "asset-123",
+			// Note: project_id will be set by cloneArtifactsWithProjectID from the request
+		},
+	}
+
+	handler := NewHandler(&mockRunner{
+		startFn: func(_ context.Context, input domainagent.AgentInput) (RunHandle, error) {
+			// Verify project_id is in metadata
+			assert.Equal(t, "test-project", input.Metadata["http.project_id"])
+			return &mockRunHandle{
+				events: closedEvents(),
+				result: orchestrator.RunResult{
+					Session: domainagent.SessionState{
+						SessionID: input.SessionID,
+						RequestID: input.RequestID,
+						Status:    domainagent.StatusCompleted,
+						FinalOutput: domainagent.AgentOutput{
+							Content:            "generated content",
+							GeneratedArtifacts: artifacts,
+						},
+					},
+				},
+			}, nil
+		},
+		resumeFn: func(context.Context, domainagent.AgentInput) (RunHandle, error) {
+			return nil, errors.New("unexpected resume")
+		},
+	}, logger)
+
+	router := gin.New()
+	router.POST("/generate", handler.Generate)
+
+	body, err := json.Marshal(GenerateRequest{
+		Prompt:    "test prompt",
+		ProjectID: "test-project",
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/generate", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp GenerateResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+
+	// PB-CORE-003 assertions
+	assert.NotEmpty(t, resp.SessionID, "SessionID should be present")
+	assert.Equal(t, "test-project", resp.ProjectID, "ProjectID should be in response")
+	assert.Equal(t, string(domainagent.StatusCompleted), resp.FinishReason, "Status should be completed")
+
+	// Verify artifacts have project scope
+	require.Len(t, resp.GeneratedArtifacts, 1, "Should have one artifact")
+	assert.Equal(t, "asset-123", resp.GeneratedArtifacts[0].AssetID, "Artifact should have AssetID")
+	assert.Equal(t, "test-project", resp.GeneratedArtifacts[0].Metadata["project_id"], "Artifact metadata should have project_id")
+}
