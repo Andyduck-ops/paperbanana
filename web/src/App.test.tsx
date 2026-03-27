@@ -47,12 +47,13 @@ vi.mock('./hooks', () => ({
     ],
   }),
   useTheme: () => ({
-    theme: 'pop-art',
+    theme: 'qi-baishi',
     setTheme: vi.fn(),
     themes: [
-      { id: 'pop-art', name: 'Pop Art' },
-      { id: 'classical-chinese', name: 'Classical Chinese' },
-      { id: 'minimalist-bw', name: 'Minimalist B&W' },
+      { id: 'qi-baishi', name: 'Qi Baishi' },
+      { id: 'pop-anime', name: 'Pop Anime' },
+      { id: 'rococo', name: 'Rococo' },
+      { id: 'japanese-bw', name: 'Night Mono' },
     ],
   }),
   useGenerate: () => ({
@@ -82,6 +83,12 @@ vi.mock('./hooks', () => ({
     isLoading: false,
     error: null,
     refresh: vi.fn(),
+  }),
+  useLocalWorkRecords: () => ({
+    records: [],
+    addRecord: vi.fn(),
+    removeRecord: vi.fn(),
+    clearRecords: vi.fn(),
   }),
   useToast: () => ({
     toasts: [],

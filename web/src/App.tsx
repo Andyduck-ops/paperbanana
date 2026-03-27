@@ -24,6 +24,7 @@ import {
   useKeyboardShortcuts,
   useLanguage,
   useHistory,
+  useLocalWorkRecords,
 } from "./hooks";
 import { getArtifactImageUrl } from "./components/ArtifactPreview";
 import { copyImageToClipboard } from "./lib/clipboard";
@@ -32,28 +33,6 @@ import { ProviderEditPage } from "./pages/ProviderEditPage";
 type Page = "main" | "provider-new" | "provider-edit";
 type MainTab = "generate" | "refine";
 type LocalWorkMode = "generate" | "batch" | "refine";
-
-const LOCAL_WORK_RECORDS_KEY = "paperbanana-local-work-records";
-
-interface LocalWorkRecord {
-  id: string;
-  createdAt: string;
-  status: string;
-  prompt?: string;
-  mode: LocalWorkMode;
-  candidateSessionIds?: string[];
-}
-
-function recordLocalWorkEntry(entry: LocalWorkRecord) {
-  if (typeof window === "undefined") return;
-
-  const existing = JSON.parse(
-    localStorage.getItem(LOCAL_WORK_RECORDS_KEY) || "[]"
-  ) as LocalWorkRecord[];
-
-  const next = [entry, ...existing.filter((item) => item.id !== entry.id)].slice(0, 24);
-  localStorage.setItem(LOCAL_WORK_RECORDS_KEY, JSON.stringify(next));
-}
 
 async function imageSourceToFile(imageSource: string, filename: string) {
   if (imageSource.startsWith("data:")) {
@@ -152,6 +131,9 @@ export function App() {
 
   // History hook for count badge
   const { count: historyCount, restoreSession: restoreHistorySession } = useHistory();
+  
+  // Local work records hook for fallback when server history unavailable
+  const { addRecord: addLocalWorkRecord } = useLocalWorkRecords();
 
   const {
     isGenerating: isBatchGenerating,
@@ -428,7 +410,7 @@ export function App() {
     if (!result || pendingHistoryContext?.mode !== "generate") return;
     if (lastRecordedHistoryId.current === result.sessionId) return;
 
-    recordLocalWorkEntry({
+    addLocalWorkRecord({
       id: result.sessionId,
       createdAt: new Date().toISOString(),
       status: "completed",
@@ -444,7 +426,7 @@ export function App() {
     if (!batchResult || pendingHistoryContext?.mode !== "batch") return;
     if (lastRecordedHistoryId.current === batchResult.batchId) return;
 
-    recordLocalWorkEntry({
+    addLocalWorkRecord({
       id: batchResult.batchId,
       createdAt: batchResult.startedAt,
       status: batchResult.status,
@@ -461,7 +443,7 @@ export function App() {
     if (!refineResult || pendingHistoryContext?.mode !== "refine") return;
     if (lastRecordedHistoryId.current === refineResult.sessionId) return;
 
-    recordLocalWorkEntry({
+    addLocalWorkRecord({
       id: refineResult.sessionId,
       createdAt: new Date().toISOString(),
       status: refineResult.status,
