@@ -9,6 +9,9 @@ export interface HistorySession {
   status: string;
   prompt?: string;
   thumbnailUrl?: string;
+  summary?: string;
+  mode?: 'generate' | 'batch' | 'refine' | 'workspace';
+  source?: 'local' | 'server';
 }
 
 export interface HistoryState {
