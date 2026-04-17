@@ -27,11 +27,17 @@ web/tsconfig.tsbuildinfo
 /configs/config.yaml
 /configs/custom_nodes.yaml
 !configs/config.yaml.example
+# PaperBananaBench dataset - large files
 /data/PaperBananaBench.zip
-/data/PaperBananaBench/diagram/images/
-/data/PaperBananaBench/plot/images/
-/data/PaperBananaBench/diagram/test.json
-/data/PaperBananaBench/plot/test.json
+/data/PaperBananaBench/**/*.jpg
+/data/PaperBananaBench/**/*.jpeg
+/data/PaperBananaBench/**/*.png
+/data/PaperBananaBench/**/*.gif
+/data/PaperBananaBench/**/*.webp
+/data/PaperBananaBench/**/*.json
+/data/PaperBananaBench/**/*.csv
+!/data/PaperBananaBench/.gitkeep
+!/data/PaperBananaBench/**/.gitkeep
 
 .DS_Store
 Thumbs.db
