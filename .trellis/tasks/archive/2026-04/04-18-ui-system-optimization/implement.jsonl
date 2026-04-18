@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/conventions.md", "reason": "Naming, imports, error handling conventions"}
+{"file": ".trellis/spec/frontend/component-patterns.md", "reason": "Component design, styling tokens, fragile areas"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Directory layout and barrel exports"}

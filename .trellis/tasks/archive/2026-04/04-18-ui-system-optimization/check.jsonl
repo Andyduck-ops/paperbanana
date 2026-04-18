@@ -1,0 +1,4 @@
+{"file": ".kilocode/workflows/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".kilocode/workflows/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/ui-design/design-principles.md", "reason": "UI design principles to verify against"}
+{"file": ".trellis/spec/frontend/conventions.md", "reason": "Verify conventions compliance"}
