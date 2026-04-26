@@ -9,10 +9,12 @@ status: canonical
 
 PaperBanana 把外部设计语言收敛到**两个权威参考**，浅色与暗色各一：
 
-| 文件 | 角色 | 核心动作 | 适用主题 |
-|------|------|---------|---------|
-| [`claude-light.md`](./claude-light.md) | 浅色基底 (Light Anchor) | 暖羊皮纸 + Anthropic Serif 500 + 赤陶 CTA + ring 阴影 | `academic` (warm-brown 回归)、`art-deco`、`classical-chinese`、`japanese-bw`、`workspace`、`base` |
-| [`linear-dark.md`](./linear-dark.md) | 暗色基底 (Dark Anchor) | 近黑画布 + Inter Variable cv01/ss03 + 510 字重 + 半透明白边 | `pop-art-dark`、未来引入的 `dark` 通用主题；其他主题在 `prefers-color-scheme: dark` 下回退到本系统 |
+| 文件 | 角色 | 核心动作 | 实现 |
+|------|------|---------|------|
+| [`claude-light.md`](./claude-light.md) | 浅色基底 (Light Anchor) | 暖羊皮纸 + Anthropic Serif 500 + 赤陶 CTA + ring 阴影 | `web/src/themes/claude-light.css` |
+| [`linear-dark.md`](./linear-dark.md) | 暗色基底 (Dark Anchor) | 近黑画布 + Inter Variable cv01/ss03 + 510 字重 + 半透明白边 | `web/src/themes/linear-dark.css` |
+
+> 历史上 PaperBanana 曾有 14 个主题文件，已在 `04-26-themes-light-dark-only` 任务中收敛到 2 个。详见 [`design-principles.md` §0 §7](../design-principles.md)。
 
 ## 1. 为什么是这两个
 
@@ -28,16 +30,20 @@ PaperBanana 把外部设计语言收敛到**两个权威参考**，浅色与暗�
 2. 修改实现而不是修改 spec
 3. 如果发现 spec 真的过时（外部参考更新），先在本目录提 patch + git commit，再动实现
 
-## 3. 主题收敛路线图 (P0/P1/P2)
+## 3. 主题收敛路线图（决策已收尾，落地由 PRD 跟踪）
 
-| 阶段 | 动作 | 受影响主题 |
+> 状态列反映的是**spec 决策状态**。实现进度请看任务 [`04-26-themes-light-dark-only/prd.md`](../../tasks/04-26-themes-light-dark-only/prd.md) 的 §9 Definition of Done。
+
+| 阶段 | 动作 | spec 决策 |
 |------|------|----------|
-| **P0** | 修复 `base.css` 的 CSS 嵌套 bug；把 `academic.css` 主色从冷调蓝 (`oklch(0.42 0.12 255)`) 改回暖棕 (`oklch(0.56 0.16 40)`) | `base`、`academic` |
-| **P0** | Header 移除 14 个主题色块，改为 Settings 抽屉内的下拉/分组选择 | 全局 |
-| **P1** | 收敛圆角到 `radius-sm/md/lg/2xl` 四档；删除 `rounded-[1.6rem]`、`rounded-[2rem]` 等 ad-hoc 值 | 全局 |
-| **P1** | 把所有 box-shadow 替换为 `0 0 0 1px` ring + 单层 whisper shadow（浅色）或 luminance step（暗色） | 全局 |
-| **P2** | 删除 `pop-art`、`pop-art-dark`、`rococo` 等装饰性强的主题；保留 6–8 个学术/工程向主题 | 主题文件 |
-| **P2** | 引入 Anthropic Serif fallback (Source Serif 4) 与 Inter Variable cv01/ss03，统一字体加载 | `index.html`、`base.css` |
+| **P0** | 删除 `base.css` CSS 嵌套 bug 与 `academic.css` 冷调蓝主色 | ✅ 通过整体下沉到 `tokens.css` + `claude-light.css` 解决 |
+| **P0** | Header 移除 14 个主题色块，改为 Settings → Appearance 三态 toggle | ✅ |
+| **P1** | 收敛圆角到 sm/md/lg/2xl 四档 + 锚点专属（浅色 12px CTA / 暗色 6px input） | ✅ |
+| **P1** | 所有 box-shadow → ring + 单层 whisper（浅色）或 luminance step（暗色） | ✅ |
+| **P2** | 删除装饰主题 | ✅ 决策为 14 → 2（不是 6–8），达到「1 浅 + 1 暗」终极状态 |
+| **P2** | `index.html` 字体链 → Source Serif 4 + Inter Variable + JetBrains Mono | ✅ |
+
+> **新增主题被显式禁用**。详见 [`design-principles.md` §0 §7.3](../design-principles.md)。
 
 ## 4. 与 PaperBanana 自身 DESIGN.md 的关系
 

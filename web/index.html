@@ -13,52 +13,42 @@
     <link rel="icon" type="image/png" href="/images/logo.png" />
     <title>PaperBanana — AI Academic Illustration Generator</title>
 
-    <!-- Preconnect to Google Fonts for performance -->
+    <!--
+      Anchor fonts (per .trellis/spec/ui-design/design-principles.md §0):
+        Source Serif 4   — Claude/Anthropic light-anchor display headings (weight 500)
+        Inter Variable   — Linear dark-anchor + universal body (cv01/ss03/cv11, weight 510 signature)
+        JetBrains Mono   — code/monospace
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-
-    <!-- Theme fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Source+Serif+4:opsz,wght@8..60,400..600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
     <script>
-      // Prevent a first-paint theme mismatch before React hydrates.
-      (function() {
-        var theme = 'qi-baishi';
+      // Sync color-scheme attribute before first paint to avoid theme flash.
+      // §0 of design principles: only `data-color-scheme="light" | "dark"` is supported.
+      (function () {
         var colorScheme = 'system';
-
-        // Try reading from Zustand app store (primary source)
         try {
           var raw = localStorage.getItem('paperbanana-app-store');
           if (raw) {
             var parsed = JSON.parse(raw);
-            if (parsed && parsed.state) {
-              if (parsed.state.theme) theme = parsed.state.theme;
-              if (parsed.state.colorScheme) colorScheme = parsed.state.colorScheme;
+            if (parsed && parsed.state && parsed.state.colorScheme) {
+              colorScheme = parsed.state.colorScheme;
             }
           }
         } catch (e) {
-          // Fallback: legacy theme key
-          var legacyTheme = localStorage.getItem('paperbanana-theme');
-          if (legacyTheme) theme = legacyTheme;
+          // Persisted state unreadable — fall through to system preference.
         }
 
-        // Migrate old theme IDs
-        var migrationMap = { 'pop-art': 'pop-anime', 'classical-chinese': 'qi-baishi', 'minimalist-bw': 'japanese-bw' };
-        theme = migrationMap[theme] || theme;
-
-        // Validate theme
-        var validThemes = ['academic', 'qi-baishi', 'pop-anime', 'rococo', 'japanese-bw'];
-        if (validThemes.indexOf(theme) === -1) theme = 'qi-baishi';
-
-        document.documentElement.setAttribute('data-theme', theme);
-
-        // Apply color scheme
-        var effectiveScheme = colorScheme;
+        var effective = colorScheme;
         if (colorScheme === 'system') {
-          effectiveScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          effective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-        document.documentElement.setAttribute('data-color-scheme', effectiveScheme);
+        document.documentElement.setAttribute('data-color-scheme', effective);
+
+        // Cleanup any legacy `data-theme` attribute that may have been persisted.
+        document.documentElement.removeAttribute('data-theme');
       })();
     </script>
   </head>

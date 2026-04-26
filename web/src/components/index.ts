@@ -57,7 +57,6 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { FieldError, type FieldErrorProps } from './FieldError';
 
 // Theme components
-export { ThemeSelector } from './theme/ThemeSelector';
 export { DarkModeToggle, useDarkMode } from './theme/DarkModeToggle';
 
 // Loading components

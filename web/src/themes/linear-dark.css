@@ -1,0 +1,74 @@
+/* =====================================================================
+   PaperBanana — Dark Anchor (Linear)
+   --------------------------------------------------------------------
+   Spec source:  .trellis/spec/ui-design/references/linear-dark.md
+   Decision:     .trellis/spec/ui-design/design-principles.md §0 §7
+
+   Signature features:
+     - Marketing Black canvas        #08090a  (oklch(0.10 0.005 264))
+     - Inter Variable + cv01/ss03    weight 510 signature
+     - Negative tracking             -0.022em (= -1.584px @ 72px / -1.056px @ 48px)
+     - Brand Indigo CTA              #5e6ad2  (oklch(0.58 0.16 285))
+     - Semi-transparent white edges  5% / 8% / 10%
+     - Multi-layer luminance step shadows (no drop shadows)
+   ===================================================================== */
+
+[data-color-scheme="dark"] {
+  /* === Surface === */
+  --theme-background: oklch(0.10 0.005 264);
+  --theme-card:       oklch(0.13 0.005 264);
+  --theme-muted:      oklch(0.16 0.005 264);
+  --theme-background-rgb: 8, 9, 10;
+
+  /* === Text === */
+  --theme-foreground:       oklch(0.97 0.005 264);
+  --theme-muted-foreground: oklch(0.62 0.01 260);
+
+  /* === Brand & accents === */
+  --theme-primary:             oklch(0.58 0.16 285);
+  --theme-primary-foreground:  #ffffff;
+  --theme-primary-muted:       color-mix(in srgb, var(--theme-primary) 15%, transparent);
+  --theme-primary-alpha:       color-mix(in srgb, var(--theme-primary) 30%, transparent);
+  --theme-secondary:           oklch(0.35 0.03 260);
+  --theme-accent:              oklch(0.65 0.10 150);
+
+  /* === Borders (semi-transparent white per Linear) === */
+  --theme-border:        rgba(255, 255, 255, 0.08);
+  --theme-border-subtle: rgba(255, 255, 255, 0.05);
+  --theme-ring:          rgba(0, 0, 0, 0.20);
+
+  /* === Shadows: luminance step + ring (no drop shadows) === */
+  --theme-shadow-whisper: 0 0 0 1px rgba(0, 0, 0, 0.20);
+  --theme-shadow-ring:    0 0 0 1px var(--theme-border);
+  --theme-surface-shadow: var(--theme-shadow-whisper);
+
+  /* === Status === */
+  --theme-status-success: oklch(0.70 0.14 145);
+  --theme-status-warning: oklch(0.78 0.14 85);
+  --theme-status-error:   oklch(0.68 0.16 25);
+  --theme-status-info:    oklch(0.68 0.10 245);
+  --theme-status-pending: oklch(0.70 0.04 80);
+  --theme-status-running: oklch(0.72 0.11 210);
+
+  /* === Typography === */
+  --theme-font-heading: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --theme-font-body:    "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --theme-font-mono:    "JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* === Inter Variable signature: cv01 + ss03 alternates, weight 510 === */
+[data-color-scheme="dark"] {
+  font-feature-settings: "cv01" on, "ss03" on, "cv11" on;
+  font-variation-settings: "wght" 510;
+}
+
+[data-color-scheme="dark"] :where(h1, h2, h3) {
+  font-family: var(--theme-font-heading);
+  font-weight: 510;
+  letter-spacing: -0.022em;
+  line-height: 1.10;
+}
+
+[data-color-scheme="dark"] ::selection {
+  background: color-mix(in srgb, var(--theme-primary) 35%, var(--theme-card));
+}

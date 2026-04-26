@@ -1,0 +1,80 @@
+/* =====================================================================
+   PaperBanana — Light Anchor (Claude / Anthropic)
+   --------------------------------------------------------------------
+   Spec source:  .trellis/spec/ui-design/references/claude-light.md
+   Decision:     .trellis/spec/ui-design/design-principles.md §0 §7
+
+   Signature features:
+     - Parchment background       #f5f4ed  (oklch(0.96 0.01 95))
+     - Anthropic Serif fallback   Source Serif 4, weight 500 single-weight
+     - Terracotta CTA             #c96442  (oklch(0.56 0.16 40))
+     - Ring shadow                0 0 0 1px (no drop shadows)
+     - Body text color            #141413  (oklch(0.20 0.005 80))
+     - Focus Blue ring            #3898ec  (the only allowed cool color)
+   ===================================================================== */
+
+:root,
+[data-color-scheme="light"] {
+  /* === Surface === */
+  --theme-background: oklch(0.96 0.01 95);
+  --theme-card:       oklch(0.98 0.005 95);
+  --theme-muted:      oklch(0.93 0.01 90);
+  --theme-background-rgb: 245, 244, 237;
+
+  /* === Text === */
+  --theme-foreground:       oklch(0.20 0.005 80);
+  --theme-muted-foreground: oklch(0.46 0.01 80);
+
+  /* === Brand & accents === */
+  --theme-primary:             oklch(0.56 0.16 40);
+  --theme-primary-foreground:  oklch(0.98 0.005 95);
+  --theme-primary-muted:       color-mix(in srgb, var(--theme-primary) 10%, transparent);
+  --theme-primary-alpha:       color-mix(in srgb, var(--theme-primary) 24%, transparent);
+  --theme-secondary:           oklch(0.82 0.05 85);
+  --theme-accent:              oklch(0.58 0.08 150);
+
+  /* === Borders & rings === */
+  --theme-border:        oklch(0.93 0.01 90);
+  --theme-border-subtle: oklch(0.95 0.01 90);
+  --theme-ring:          oklch(0.85 0.01 80);
+
+  /* === Shadows: ring + whisper only (no drop shadows) === */
+  --theme-shadow-whisper: 0 4px 24px rgba(0, 0, 0, 0.05);
+  --theme-shadow-ring:    0 0 0 1px var(--theme-ring);
+  --theme-surface-shadow: var(--theme-shadow-whisper);
+
+  /* === Status === */
+  --theme-status-success: oklch(0.61 0.16 145);
+  --theme-status-warning: oklch(0.75 0.16 85);
+  --theme-status-error:   oklch(0.59 0.19 25);
+  --theme-status-info:    oklch(0.57 0.12 245);
+  --theme-status-pending: oklch(0.63 0.04 80);
+  --theme-status-running: oklch(0.66 0.13 210);
+
+  /* === Typography (Anthropic Serif + Anthropic Sans fallbacks) === */
+  --theme-font-heading: "Source Serif 4", "Source Serif Pro", Georgia, "Noto Serif SC", serif;
+  --theme-font-body:    "Inter Variable", "Inter", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+  --theme-font-mono:    "JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* === Display headings: Anthropic single-weight rule (500) === */
+:root :where(h1, h2, h3),
+[data-color-scheme="light"] :where(h1, h2, h3) {
+  font-family: var(--theme-font-heading);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.10;
+}
+
+/* === Selection tints with Terracotta brand === */
+[data-color-scheme="light"] ::selection {
+  background: color-mix(in srgb, var(--theme-primary) 22%, var(--theme-card));
+}
+
+/* === Focus ring on form fields uses Focus Blue (only allowed cool color) === */
+[data-color-scheme="light"] :where(input, textarea, select):focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--theme-border),
+    0 0 0 3px color-mix(in srgb, #3898ec 30%, transparent);
+}

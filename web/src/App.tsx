@@ -1,10 +1,6 @@
-import "./themes/base.css";
-import "./themes/academic.css";
-import "./themes/qi-baishi.css";
-import "./themes/pop-anime.css";
-import "./themes/rococo.css";
-import "./themes/japanese-bw.css";
-import "./themes/workspace.css";
+import "./themes/tokens.css";
+import "./themes/claude-light.css";
+import "./themes/linear-dark.css";
 import { useEffect, useRef, lazy, Suspense } from "react";
 import { Layout, Header, Footer, Toast, ErrorBoundary, SettingsDrawer, WelcomeWizard, isWizardCompleted, ShortcutsHelpPanel } from "./components";
 import {
@@ -23,7 +19,6 @@ import {
   useLanguage,
   useHistory,
   useLocalWorkRecords,
-  useTheme,
 } from "./hooks";
 
 import { getArtifactImageUrl } from "./components/ArtifactPreview";
@@ -58,9 +53,6 @@ function toArtifactPreview(artifact: {
 }
 
 export function App() {
-  // Initialize theme at app level
-  useTheme();
-
   // Migration: App UI state moved to Zustand store
   const currentPage = useAppStore((state) => state.currentPage);
   const editingProvider = useAppStore((state) => state.editingProvider);

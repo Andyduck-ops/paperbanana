@@ -1,4 +1,3 @@
-export { useTheme, type Theme } from './useTheme';
 export { useLanguage, type LanguageCode } from './useLanguage';
 export { useGenerate, type StageState, type GenerateResult, type GenerateState } from './useGenerate';
 export { useHistory, type HistorySession, type HistoryState, type RestoredSession } from './useHistory';
@@ -18,7 +17,6 @@ export { usePromptTemplates, type PromptTemplate, type PromptTemplatesState } fr
 export { useFocusTrap } from './useFocusTrap';
 
 // New Zustand store adapters (for migration)
-export { useAppStoreAdapter, useAppStoreInit, type AppStoreAdapter } from './useAppStoreAdapter';
 export { useProviderStoreAdapter, useProviderStoreInit, type ProviderStoreAdapter } from './useProviderStoreAdapter';
 
 // Generation flow hooks

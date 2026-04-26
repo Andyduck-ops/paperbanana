@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ui-design/design-principles.md", "reason": "宪法：14→2 主题收敛规则、首屏暴露原则、视觉锚点合规"}
+{"file": ".trellis/spec/ui-design/references/claude-light.md", "reason": "浅色锚点：Parchment/Anthropic Serif 500/Terracotta/ring shadow"}
+{"file": ".trellis/spec/ui-design/references/linear-dark.md", "reason": "暗色锚点：#08090a/Inter Variable cv01 ss03/Indigo/半透明白边"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "appStore migration 与 colorScheme 状态规范"}
+{"file": ".trellis/spec/frontend/component-patterns.md", "reason": "Header/SettingsDrawer 组件改造对齐"}

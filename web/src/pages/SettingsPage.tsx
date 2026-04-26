@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import {
   ChannelManager,
+  DarkModeToggle,
   ModelSelector,
   RoleMapping,
   TemplateManager,
 } from '../components';
-import { useTemplates, useTheme } from '../hooks';
+import { useTemplates } from '../hooks';
 // Migration: Using Zustand store adapter instead of ModelConfigContext
 import { useProviderStoreAdapter } from '../hooks/useProviderStoreAdapter';
 
@@ -18,9 +19,6 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onBack, variant = 'page' }: SettingsPageProps) {
   const { t } = useTranslation();
-
-  // Appearance settings
-  const { theme, setTheme, themes } = useTheme();
 
   // Migration: Using Zustand store adapter
   const {
@@ -196,41 +194,19 @@ export function SettingsPage({ onBack, variant = 'page' }: SettingsPageProps) {
               </div>
             </div>
 
-            {/* Theme Selector */}
+            {/* Color scheme tri-state: Light / Dark / Auto (system) */}
             <div className="space-y-3">
               <span className="block text-sm font-medium text-foreground">
-                {t('theme.title', 'Theme')}
+                {t('settings.colorScheme', 'Color scheme')}
               </span>
-              <div className="flex flex-wrap gap-3">
-                {themes.map((themeItem) => (
-                  <button
-                    key={themeItem.id}
-                    onClick={() => setTheme(themeItem.id)}
-                    className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all duration-150 ${
-                      theme === themeItem.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border bg-background hover:border-primary/40'
-                    }`}
-                  >
-                    <span
-                      className={`w-6 h-6 rounded-full border-2 transition-all ${
-                        theme === themeItem.id ? 'border-primary scale-105' : 'border-muted'
-                      }`}
-                      style={{
-                        background: `linear-gradient(135deg, ${themeItem.swatch.bg} 50%, ${themeItem.swatch.ink} 50%)`,
-                      }}
-                    />
-                    <span className={`text-sm font-medium ${
-                      theme === themeItem.id ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      {t(`theme.options.${themeItem.id}.label`) || themeItem.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <DarkModeToggle />
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  'settings.colorSchemeDescription',
+                  'Light follows the Claude anchor, Dark follows the Linear anchor. Auto matches your OS preference.'
+                )}
+              </p>
             </div>
-
-
           </section>
 
           <section className="workspace-stage__surface settings-shell__section">

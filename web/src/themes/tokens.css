@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* =====================================================================
+   PaperBanana — Theme tokens bridge
+   --------------------------------------------------------------------
+   This file defines:
+     1. The Tailwind v4 @theme bridge from utility classes to --theme-*.
+     2. Global resets (box-sizing, body fonts, transitions, focus, etc.)
+     3. Accessibility helpers (.skip-link, .sr-only).
+     4. Status color helpers and reduced-motion fallback.
+
+   It defines NO color values. Light tokens come from claude-light.css,
+   dark tokens come from linear-dark.css. See spec:
+   .trellis/spec/ui-design/design-principles.md §0
+   ===================================================================== */
+
+@theme {
+  /* === Color scale === */
+  --color-primary:             var(--theme-primary);
+  --color-primary-foreground:  var(--theme-primary-foreground);
+  --color-secondary:           var(--theme-secondary);
+  --color-background:          var(--theme-background);
+  --color-foreground:          var(--theme-foreground);
+  --color-accent:              var(--theme-accent);
+  --color-muted:               var(--theme-muted);
+  --color-muted-foreground:    var(--theme-muted-foreground);
+  --color-card:                var(--theme-card);
+  --color-border:              var(--theme-border);
+  --color-border-subtle:       var(--theme-border-subtle);
+  --color-ring:                var(--theme-ring);
+
+  /* === Status colors === */
+  --color-status-success: var(--theme-status-success);
+  --color-status-warning: var(--theme-status-warning);
+  --color-status-error:   var(--theme-status-error);
+  --color-status-info:    var(--theme-status-info);
+  --color-status-pending: var(--theme-status-pending);
+  --color-status-running: var(--theme-status-running);
+
+  /* === Typography === */
+  --font-heading: var(--theme-font-heading);
+  --font-body:    var(--theme-font-body);
+  --font-mono:    var(--theme-font-mono);
+}
+
+/* =====================================================================
+   Global reset
+   ===================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--theme-background);
+  color: var(--theme-foreground);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  color: var(--color-foreground);
+  background: var(--theme-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  margin: 0;
+}
+
+button,
+[role="button"],
+a,
+[role="link"],
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  transition:
+    transform 120ms ease-out,
+    opacity 160ms ease-out,
+    background-color 220ms ease-out,
+    border-color 220ms ease-out,
+    box-shadow 220ms ease-out;
+}
+
+button:active,
+[role="button"]:active,
+a:active,
+input[type="submit"]:active,
+input[type="reset"]:active,
+input[type="button"]:active {
+  transform: scale(0.98);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--theme-primary) 24%, var(--theme-card));
+}
+
+/* =====================================================================
+   Accessibility helpers
+   ===================================================================== */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: var(--theme-primary);
+  color: var(--theme-primary-foreground);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =====================================================================
+   Status color helpers
+   ===================================================================== */
+
+.status-success { color: var(--color-status-success); }
+.status-warning { color: var(--color-status-warning); }
+.status-error   { color: var(--color-status-error); }
+.status-info    { color: var(--color-status-info); }
+.status-pending { color: var(--color-status-pending); }
+.status-running { color: var(--color-status-running); }
+
+.bg-status-success { background-color: var(--color-status-success); }
+.bg-status-warning { background-color: var(--color-status-warning); }
+.bg-status-error   { background-color: var(--color-status-error); }
+.bg-status-info    { background-color: var(--color-status-info); }
+.bg-status-pending { background-color: var(--color-status-pending); }
+.bg-status-running { background-color: var(--color-status-running); }
+
+/* =====================================================================
+   Reduced motion
+   ===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  button:active,
+  [role="button"]:active,
+  a:active {
+    transform: none;
+  }
+}

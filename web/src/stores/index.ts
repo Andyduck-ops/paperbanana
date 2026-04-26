@@ -2,15 +2,13 @@
 // Store Exports
 // ============================================================================
 
-// App Store - UI State, Theme, Language, Drawers, Modals
+// App Store - UI State, ColorScheme, Language, Drawers, Modals
 export {
   useAppStore,
-  useThemeFromStore,
   useLanguageFromStore,
-  THEMES,
   LANGUAGES,
   // Selectors
-  selectTheme,
+  selectColorScheme,
   selectLanguage,
   selectCurrentPage,
   selectMainTab,
@@ -24,7 +22,7 @@ export {
 } from './appStore';
 
 export type {
-  Theme,
+  ColorScheme,
   LanguageCode,
   Page,
   MainTab,

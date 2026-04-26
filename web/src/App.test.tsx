@@ -46,16 +46,6 @@ vi.mock('./hooks', () => ({
       { code: 'en', name: 'English', nativeName: 'English' },
     ],
   }),
-  useTheme: () => ({
-    theme: 'qi-baishi',
-    setTheme: vi.fn(),
-    themes: [
-      { id: 'qi-baishi', name: 'Qi Baishi' },
-      { id: 'pop-anime', name: 'Pop Anime' },
-      { id: 'rococo', name: 'Rococo' },
-      { id: 'japanese-bw', name: 'Night Mono' },
-    ],
-  }),
   useGenerate: () => ({
     isGenerating: false,
     stages: [],

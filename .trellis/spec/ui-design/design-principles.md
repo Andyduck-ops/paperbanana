@@ -6,19 +6,18 @@
 
 ## 0. 视觉锚点 (Visual Anchors)
 
-PaperBanana 同时维护浅色与暗色两套基底，分别锚定在两个外部参考：
+PaperBanana 维护**恰好两套基底**：1 浅 + 1 暗，**没有第三个**。每套都直接 1:1 映射到一个外部参考：
 
-| 模式 | 锚点 | 文件 | 关键特征 |
-|------|------|------|---------|
-| 白天 / 阅读 / 学术 | **Claude (Anthropic)** | [`references/claude-light.md`](./references/claude-light.md) | 暖羊皮纸 `#f5f4ed`、Anthropic Serif weight 500、赤陶 CTA `#c96442`、ring 阴影 `0 0 0 1px` |
-| 夜晚 / 工程 / 高密度 | **Linear** | [`references/linear-dark.md`](./references/linear-dark.md) | 近黑画布 `#08090a`、Inter Variable + cv01/ss03、510 字重、半透明白边 `rgba(255,255,255,0.05~0.08)` |
+| 模式 | 锚点 | 实现文件 | 关键特征 |
+|------|------|---------|---------|
+| 白天 / 阅读 / 学术 | **Claude (Anthropic)** [`references/claude-light.md`](./references/claude-light.md) | `web/src/themes/claude-light.css` | 暖羊皮纸 `#f5f4ed`、Anthropic Serif weight 500、赤陶 CTA `#c96442`、ring 阴影 `0 0 0 1px` |
+| 夜晚 / 工程 / 高密度 | **Linear** [`references/linear-dark.md`](./references/linear-dark.md) | `web/src/themes/linear-dark.css` | 近黑画布 `#08090a`、Inter Variable + cv01/ss03、510 字重、半透明白边 `rgba(255,255,255,0.05~0.08)` |
 
 **原则**：
 1. 当 `web/src/themes/*.css` 与 references 冲突时，**永远修改实现**，不要反向修改 reference。
-2. 任何新主题必须声明它继承自哪个锚点，不允许在两套体系之间「折中」。
-3. 自动暗色（`prefers-color-scheme: dark`）回退到 Linear 锚点；浅色回退到 Claude 锚点。
-
-详细收敛路线图见 [`references/README.md`](./references/README.md)。
+2. **不允许新增第三个主题**。如果未来确实要加，必须先在本文档与 [`references/README.md`](./references/README.md) 完成「锚点声明 + 收敛门槛 + 删除候选」三件事，否则 PR 会被拒。
+3. 切换由 `data-color-scheme="light" | "dark"` 写到 `<html>` 上；缺省值跟随 OS `prefers-color-scheme`。**不再使用 `data-theme`**。
+4. 用户在 SettingsDrawer → Appearance 里的选择会持久化到 `localStorage` 的 `colorScheme` 字段，覆盖 OS 偏好。
 
 ---
 
@@ -147,8 +146,9 @@ PaperBanana 同时维护浅色与暗色两套基底，分别锚定在两个外�
 | 模板选择器 | 是/否/是 | 保留但简化 |
 
 ### 5.3 主题数量
-- 当前：14 个主题（`academic`、`art-deco`、`base`、`bauhaus`、`classical-chinese`、`japanese-bw`、`minimalist-bw`、`neo-minimal`、`pop-anime`、`pop-art`、`pop-art-dark`、`qi-baishi`、`rococo`、`swiss`、`workspace`）
-- 目标：**保留 6–8 个学术/工程向主题**，删除装饰性强的（`pop-art`、`pop-art-dark`、`rococo` 候选）
+- **历史**：曾膨胀到 14 个主题文件（`academic`、`art-deco`、`base`、`bauhaus`、`classical-chinese`、`japanese-bw`、`minimalist-bw`、`neo-minimal`、`pop-anime`、`pop-art`、`pop-art-dark`、`qi-baishi`、`rococo`、`swiss`、`workspace`），违反 §0 视觉锚点纪律。
+- **现状**：收敛到 **2 个**——`claude-light.css`（浅色锚点实现）+ `linear-dark.css`（暗色锚点实现）+ `tokens.css`（共享 token bridge & global reset）。
+- **不允许新增第三个主题**。详见 §0 与 §7。
 
 ---
 
@@ -197,30 +197,40 @@ PaperBanana 同时维护浅色与暗色两套基底，分别锚定在两个外�
 
 ## 7. 主题与视觉宪法
 
-> 14 主题膨胀是当前最大的视觉债务来源。本节固化收敛规则。
+> 14 主题膨胀曾是最大的视觉债务源。任务 [`04-26-themes-light-dark-only`](../../tasks/04-26-themes-light-dark-only/prd.md) 把它压缩到「1 浅 + 1 暗」。本节固化收敛后的纪律。
 
-### 7.1 主题分类
-| 类别 | 锚点 | 包含主题 |
+### 7.1 当前主题清单（恰好两个，不允许新增）
+| 文件 | 锚点 | 触发条件 |
 |------|------|---------|
-| 学术暖调 | Claude 浅色 | `academic`（待修复主色）、`base`、`workspace`、`classical-chinese`、`japanese-bw` |
-| 工程冷调 | Linear 暗色 | `pop-art-dark`、未来 `dark` 通用主题 |
-| 装饰候选删除 | — | `pop-art`、`rococo`、`pop-anime`、`art-deco` |
-| 几何中性 | 双锚点适配 | `swiss`、`bauhaus`、`minimalist-bw`、`neo-minimal`、`qi-baishi` |
+| `web/src/themes/claude-light.css` | [`claude-light.md`](./references/claude-light.md) | `:root` / `[data-color-scheme="light"]`，或 OS 偏好浅色 |
+| `web/src/themes/linear-dark.css` | [`linear-dark.md`](./references/linear-dark.md) | `[data-color-scheme="dark"]`，或 OS 偏好暗色 |
+| `web/src/themes/tokens.css` | — | 共享 `@theme` token bridge + global reset，**没有颜色主张** |
 
-### 7.2 收敛路线图
-| 阶段 | 动作 |
-|------|------|
-| **P0** | 修复 `base.css` 第 57–80 行 CSS 嵌套 bug |
-| **P0** | `academic.css` 主色 `oklch(0.42 0.12 255)` → `oklch(0.56 0.16 40)` 暖棕 |
-| **P0** | Header 14 色块迁出到 Settings 抽屉 |
-| **P1** | 收敛 box-shadow 到 ring + whisper 两档；删除 `rounded-[1.6rem]` 等 ad-hoc 圆角 |
-| **P1** | 引入 Inter Variable cv01/ss03 + Source Serif 4（Anthropic Serif 替代）|
-| **P2** | 删除装饰候选主题（`rococo`、`pop-art`、`pop-anime`、`art-deco`，至少删 2 个）|
+> 已删除的 15 个旧文件：`academic.css`、`art-deco.css`、`bauhaus.css`、`classical-chinese.css`、`japanese-bw.css`、`minimalist-bw.css`、`neo-minimal.css`、`pop-anime.css`、`pop-art.css`、`pop-art-dark.css`、`qi-baishi.css`、`rococo.css`、`swiss.css`、`workspace.css`、旧 `base.css`。
 
-### 7.3 新增主题门槛
-- 必须在 `references/README.md` 中先声明锚点归属
-- 必须通过本文件的「实现检查清单」全部勾选
-- 必须有至少 1 个真实使用场景（论文领域、配色诉求）
+### 7.2 收敛路线图（spec 决策已收尾）
+
+> 状态列反映的是**spec 决策**。代码落地进度请看任务 [`04-26-themes-light-dark-only/prd.md`](../../tasks/04-26-themes-light-dark-only/prd.md) 的 §5 实施步骤与 §9 Definition of Done。
+
+| 阶段 | 动作 | spec 决策 |
+|------|------|----------|
+| **P0** | 修复 `base.css` 第 57–80 行 CSS 嵌套 bug | ✅ 通过删除 `base.css`、新建 `tokens.css` 解决 |
+| **P0** | `academic.css` 主色 `oklch(0.42 0.12 255)` → `oklch(0.56 0.16 40)` | ✅ 通过删除 `academic.css` 解决；浅色锚点的 `--theme-primary` 现在统一是 `oklch(0.56 0.16 40)` Terracotta |
+| **P0** | Header 14 色块迁出 | ✅ Header 不再渲染主题切换；DarkModeToggle 三态进入 SettingsDrawer → Appearance |
+| **P1** | 收敛 box-shadow 到 ring + whisper 两档；删除 ad-hoc 圆角 | ✅ 仅保留 `0 0 0 1px` ring（浅色）+ whisper `0 4px 24px rgba(0,0,0,0.05)`；暗色用 `rgba(0,0,0,0.2) 0 0 0 1px` |
+| **P1** | 引入 Inter Variable cv01/ss03 + Source Serif 4 | ✅ `index.html` 字体链改为 Inter Variable + Source Serif 4 + JetBrains Mono |
+| **P2** | 删除装饰主题 | ✅ 14 → 2，全部装饰主题已删 |
+
+
+### 7.3 新主题门槛（事实上禁用）
+**当前规则：不允许新增第三个主题。** 如要破例：
+
+1. 必须先在 PR 描述中说明为什么 `claude-light` 与 `linear-dark` 都无法承载这个场景；
+2. 必须提名一个删除候选（绝不能净增加）；
+3. 必须在 `references/` 下补一份新锚点 spec（与 `claude-light.md` / `linear-dark.md` 同等深度）；
+4. 必须通过本文件 §8 的实现检查清单；
+5. PRD 必须经过 ui-design 维护者签字。
+
 
 ---
 
@@ -245,7 +255,9 @@ PaperBanana 同时维护浅色与暗色两套基底，分别锚定在两个外�
 - [ ] Hero H1：浅色 Serif、暗色 Inter Variable + cv01/ss03
 
 ### 8.3 主题清洁
-- [ ] 浅色主题中没有冷色调灰（`oklch(... 0.0X 200~280)`）
-- [ ] 暗色主题中没有暖色调 chrome
-- [ ] 主题文件 < 200 行（`workspace.css` 当前 2065 行需拆分）
-- [ ] CSS 嵌套语法正确（`base.css` bug 已修）
+- [ ] `web/src/themes/` 只有 `tokens.css` + `claude-light.css` + `linear-dark.css`，**不能多一个文件**
+- [ ] 浅色（`claude-light.css`）中没有冷色调灰（`oklch(... 0.0X 200~280)`）；唯一允许的冷色是 input focus 的 Focus Blue `#3898ec`
+- [ ] 暗色（`linear-dark.css`）中没有暖色调 chrome（borders/backgrounds）；只允许语义化的暖色 accent（如 warning/error）
+- [ ] 没有 `data-theme="..."` 属性残留；只用 `data-color-scheme="light" | "dark"`
+- [ ] CSS 嵌套语法正确（旧 `base.css` 嵌套 bug 已通过删除该文件解决）
+- [ ] 单个主题文件 < 200 行；超过即代表掺杂了组件级样式，应该迁去 `web/src/components/**/*.module.css` 或 Tailwind utility

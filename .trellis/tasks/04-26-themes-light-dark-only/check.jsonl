@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ui-design/design-principles.md", "reason": "实现检查清单 §8 全部勾选"}
+{"file": ".trellis/spec/ui-design/references/claude-light.md", "reason": "浅色锚点 Do/Don't 比对"}
+{"file": ".trellis/spec/ui-design/references/linear-dark.md", "reason": "暗色锚点 Do/Don't 比对"}
+{"file": ".trellis/spec/testing/frontend-testing.md", "reason": "单元测试规范"}
+{"file": ".trellis/spec/frontend/testing.md", "reason": "前端测试约定"}
