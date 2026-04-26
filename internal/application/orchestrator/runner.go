@@ -17,11 +17,11 @@ import (
 type RunnerOption func(*Runner)
 
 var (
-	ErrResumeRequiresSession  = errors.New("orchestrator: resume requires session id")
-	ErrResumeSnapshotMissing  = errors.New("orchestrator: resume snapshot not found")
-	ErrResumeStoreMissing     = errors.New("orchestrator: resume requires snapshot store")
-	ErrResumeSessionNotValid  = errors.New("orchestrator: resume session state is not valid for resumption")
-	ErrResumePipelineEmpty    = errors.New("orchestrator: resume session has empty pipeline")
+	ErrResumeRequiresSession = errors.New("orchestrator: resume requires session id")
+	ErrResumeSnapshotMissing = errors.New("orchestrator: resume snapshot not found")
+	ErrResumeStoreMissing    = errors.New("orchestrator: resume requires snapshot store")
+	ErrResumeSessionNotValid = errors.New("orchestrator: resume session state is not valid for resumption")
+	ErrResumePipelineEmpty   = errors.New("orchestrator: resume session has empty pipeline")
 )
 
 type SnapshotStore interface {
@@ -219,9 +219,8 @@ func (r *Runner) execute(ctx context.Context, tracker *sessionTracker, stages []
 			stageTimeout = 60 * time.Second // fallback default
 		}
 
-		// Create stage context with timeout
+		// Create stage context with timeout (cancel is called explicitly in all code paths below)
 		stageCtx, cancel := context.WithTimeout(ctx, stageTimeout)
-		defer cancel()
 
 		if err := stageAgent.Initialize(stageCtx); err != nil {
 			cancel()
@@ -657,19 +656,52 @@ func nonEmpty(values ...string) string {
 }
 
 func prepareStageInput(stage domainagent.StageName, input, initial domainagent.AgentInput) domainagent.AgentInput {
-	if stage != domainagent.StageCritic || strings.TrimSpace(initial.Content) == "" {
-		return input
-	}
+	switch stage {
+	case domainagent.StageStylist:
+		// Stylist receives planner's output as Content
+		// The Content is already set by mergeAgentInput in completeStage
+		// Just ensure Stylist has all context needed
+		prepared := cloneAgentInput(input)
+		prepared.Stage = stage
+		// Stylist needs the visual intent and content from planner
+		if prepared.VisualIntent.Goal == "" && initial.VisualIntent.Goal != "" {
+			prepared.VisualIntent = cloneVisualIntent(initial.VisualIntent)
+		}
+		return prepared
 
-	metadata := cloneStringMap(input.Metadata)
-	if metadata == nil {
-		metadata = map[string]string{}
+	case domainagent.StageVisualizer:
+		// Visualizer receives stylist's output as Content
+		// mergeAgentInput already sets Content from previous stage output
+		prepared := cloneAgentInput(input)
+		prepared.Stage = stage
+		// Ensure visualizer has all references and artifacts
+		if len(prepared.RetrievedReferences) == 0 && len(initial.RetrievedReferences) > 0 {
+			prepared.RetrievedReferences = cloneReferences(initial.RetrievedReferences)
+		}
+		return prepared
+
+	case domainagent.StageCritic:
+		// Critic needs initial content for comparison
+		prepared := cloneAgentInput(input)
+		prepared.Stage = stage
+		if strings.TrimSpace(initial.Content) != "" {
+			metadata := cloneStringMap(prepared.Metadata)
+			if metadata == nil {
+				metadata = map[string]string{}
+			}
+			if _, exists := metadata["orchestrator.initial_content"]; !exists {
+				metadata["orchestrator.initial_content"] = initial.Content
+			}
+			prepared.Metadata = metadata
+		}
+		return prepared
+
+	default:
+		// For other stages (Retriever, Planner), use input as-is
+		prepared := cloneAgentInput(input)
+		prepared.Stage = stage
+		return prepared
 	}
-	if _, exists := metadata["orchestrator.initial_content"]; !exists {
-		metadata["orchestrator.initial_content"] = initial.Content
-	}
-	input.Metadata = metadata
-	return input
 }
 
 func cloneRegistry(agents map[domainagent.StageName]domainagent.BaseAgent) map[domainagent.StageName]domainagent.BaseAgent {
@@ -838,9 +870,9 @@ func fallbackOutputForStage(stage domainagent.StageName, input domainagent.Agent
 		VisualIntent: input.VisualIntent,
 		Prompt:       input.Prompt,
 		Metadata: map[string]string{
-			"degraded":   "true",
-			"stage":      string(stage),
-			"fallback":   "true",
+			"degraded": "true",
+			"stage":    string(stage),
+			"fallback": "true",
 		},
 	}
 

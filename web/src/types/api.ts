@@ -51,6 +51,12 @@ export interface RefineImagePayload {
   metadata?: Record<string, string>;
 }
 
+export interface IterationInfo {
+  enabled?: boolean;
+  rounds_completed?: number;
+  max_round?: number;
+}
+
 export interface RefineResponse {
   session_id: string;
   status: "completed" | "failed";
@@ -59,6 +65,8 @@ export interface RefineResponse {
   content?: string; // Textual fallback or final model text content
   error?: string;
   metadata?: RefineResponseMetadata;
+  artifacts?: Artifact[];
+  iteration_info?: IterationInfo;
 }
 
 export interface RefineResult {
@@ -145,6 +153,11 @@ export interface Artifact {
   project_id?: string;
   summary?: string;
   metadata?: Record<string, string>;
+  // Legacy compatibility fields
+  type?: string;
+  format?: string;
+  width?: number;
+  height?: number;
 }
 
 export type ArtifactKind =
@@ -189,12 +202,70 @@ export interface HistorySession {
 export interface Project {
   id: string;
   name: string;
+  description?: string;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface ProjectCreateRequest {
+  name: string;
+  description?: string;
+}
+
+export interface ProjectUpdateRequest {
+  name?: string;
+  description?: string;
 }
 
 export interface Folder {
   id: string;
   name: string;
+  project_id: string;
+  parent_id?: string;
   type: 'folder' | 'visualization';
   created_at: string;
+  updated_at?: string;
+}
+
+export interface FolderCreateRequest {
+  name: string;
+  project_id: string;
+  parent_id?: string;
+}
+
+export interface FolderUpdateRequest {
+  name?: string;
+}
+
+export interface Visualization {
+  id: string;
+  name: string;
+  project_id: string;
+  folder_id?: string;
+  status: 'draft' | 'completed' | 'failed';
+  prompt?: string;
+  created_at: string;
+  updated_at?: string;
+  artifacts?: Artifact[];
+}
+
+export interface VisualizationVersion {
+  id: string;
+  visualization_id: string;
+  version: number;
+  created_at: string;
+  artifacts: Artifact[];
+}
+
+export interface FolderContentsResponse {
+  items: Array<{
+    id: string;
+    name: string;
+    type: 'folder' | 'visualization';
+    created_at: string;
+  }>;
+}
+
+export interface ProjectsListResponse {
+  projects: Project[];
 }

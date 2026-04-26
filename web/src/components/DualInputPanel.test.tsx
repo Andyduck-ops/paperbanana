@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with unused variables
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DualInputPanel } from './DualInputPanel';

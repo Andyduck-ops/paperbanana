@@ -178,15 +178,16 @@ type PromptMetadata struct {
 }
 
 type Artifact struct {
-	ID       string            `json:"id"`
-	Kind     ArtifactKind      `json:"kind"`
-	MIMEType string            `json:"mime_type"`
-	URI      string            `json:"uri"`
-	Content  string            `json:"content,omitempty"`
-	Bytes    []byte            `json:"data,omitempty"`               // Deprecated: Use SharedBytes for new code
-	Shared   *SharedBytes      `json:"-"`                            // Reference-counted bytes, not serialized
-	AssetID  string            `json:"asset_id,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	ID        string            `json:"id"`
+	Kind      ArtifactKind      `json:"kind"`
+	MIMEType  string            `json:"mime_type"`
+	URI       string            `json:"uri"`
+	Content   string            `json:"content,omitempty"`
+	Bytes     []byte            `json:"data,omitempty"`               // Deprecated: Use SharedBytes for new code
+	Shared    *SharedBytes      `json:"-"`                            // Reference-counted bytes, not serialized
+	AssetID   string            `json:"assetId,omitempty"`            // camelCase for frontend compatibility
+	ProjectID string            `json:"projectId,omitempty"`          // camelCase for frontend URL construction
+	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 // GetBytes returns the artifact's binary data, preferring SharedBytes if available.
@@ -320,6 +321,7 @@ type BatchTiming struct {
 	StartedAt   time.Time     `json:"started_at"`
 	CompletedAt time.Time     `json:"completed_at"`
 	Duration    time.Duration `json:"duration"`
+	UpdatedAt   time.Time     `json:"updated_at,omitempty"` // 用于进度更新
 }
 
 // CandidateResult represents the result of a single candidate execution within a batch.

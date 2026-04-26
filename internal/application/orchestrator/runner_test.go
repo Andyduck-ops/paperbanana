@@ -1077,3 +1077,105 @@ func TestRunnerPersistsCompletedSessionStatus(t *testing.T) {
 	assert.Equal(t, domainagent.StageCritic, record.Snapshot.CurrentStage)
 	assert.False(t, record.Snapshot.CompletedAt.IsZero())
 }
+
+func TestPrepareStageInput(t *testing.T) {
+	t.Parallel()
+
+	baseInput := domainagent.AgentInput{
+		SessionID:   "test-session",
+		RequestID:   "test-request",
+		Content:     "base content",
+		VisualIntent: domainagent.VisualIntent{
+			Goal:    "base goal",
+			Mode:    domainagent.VisualModeDiagram,
+			Audience: "researchers",
+		},
+		RetrievedReferences: []domainagent.RetrievedReference{
+			{ID: "ref-1", Title: "Reference 1"},
+		},
+		Metadata: map[string]string{"key": "value"},
+	}
+
+	initialInput := domainagent.AgentInput{
+		SessionID: "initial-session",
+		Content:   "initial content",
+		VisualIntent: domainagent.VisualIntent{
+			Goal:     "initial goal",
+			Mode:     domainagent.VisualModeDiagram,
+			Audience: "students",
+		},
+		RetrievedReferences: []domainagent.RetrievedReference{
+			{ID: "ref-2", Title: "Reference 2"},
+		},
+		Metadata: map[string]string{"initial": "meta"},
+	}
+
+	t.Run("Stylist clones input and sets stage", func(t *testing.T) {
+		result := prepareStageInput(domainagent.StageStylist, baseInput, initialInput)
+		assert.Equal(t, domainagent.StageStylist, result.Stage)
+		assert.Equal(t, baseInput.Content, result.Content)
+		assert.Equal(t, baseInput.SessionID, result.SessionID)
+		// VisualIntent copied from initial because base has Goal set
+		assert.Equal(t, baseInput.VisualIntent.Goal, result.VisualIntent.Goal)
+	})
+
+	t.Run("Stylist copies visual intent from initial when base is empty", func(t *testing.T) {
+		emptyInput := baseInput
+		emptyInput.VisualIntent = domainagent.VisualIntent{}
+		result := prepareStageInput(domainagent.StageStylist, emptyInput, initialInput)
+		assert.Equal(t, domainagent.StageStylist, result.Stage)
+		assert.Equal(t, initialInput.VisualIntent.Goal, result.VisualIntent.Goal)
+		assert.Equal(t, initialInput.VisualIntent.Mode, result.VisualIntent.Mode)
+	})
+
+	t.Run("Visualizer clones input and sets stage", func(t *testing.T) {
+		result := prepareStageInput(domainagent.StageVisualizer, baseInput, initialInput)
+		assert.Equal(t, domainagent.StageVisualizer, result.Stage)
+		assert.Equal(t, baseInput.Content, result.Content)
+		// References kept from base because base has them
+		assert.Len(t, result.RetrievedReferences, 1)
+		assert.Equal(t, baseInput.RetrievedReferences[0].ID, result.RetrievedReferences[0].ID)
+	})
+
+	t.Run("Visualizer copies references from initial when base is empty", func(t *testing.T) {
+		emptyInput := baseInput
+		emptyInput.RetrievedReferences = nil
+		result := prepareStageInput(domainagent.StageVisualizer, emptyInput, initialInput)
+		assert.Equal(t, domainagent.StageVisualizer, result.Stage)
+		assert.Len(t, result.RetrievedReferences, 1)
+		assert.Equal(t, initialInput.RetrievedReferences[0].ID, result.RetrievedReferences[0].ID)
+	})
+
+	t.Run("Critic sets initial content metadata when initial content exists", func(t *testing.T) {
+		result := prepareStageInput(domainagent.StageCritic, baseInput, initialInput)
+		assert.Equal(t, domainagent.StageCritic, result.Stage)
+		assert.Equal(t, "initial content", result.Metadata["orchestrator.initial_content"])
+	})
+
+	t.Run("Critic does not overwrite existing initial content metadata", func(t *testing.T) {
+		inputWithMeta := baseInput
+		inputWithMeta.Metadata = map[string]string{
+			"orchestrator.initial_content": "existing",
+		}
+		result := prepareStageInput(domainagent.StageCritic, inputWithMeta, initialInput)
+		assert.Equal(t, "existing", result.Metadata["orchestrator.initial_content"])
+	})
+
+	t.Run("Critic skips metadata when initial content is empty", func(t *testing.T) {
+		emptyInitial := initialInput
+		emptyInitial.Content = "   "
+		result := prepareStageInput(domainagent.StageCritic, baseInput, emptyInitial)
+		assert.Equal(t, domainagent.StageCritic, result.Stage)
+		_, exists := result.Metadata["orchestrator.initial_content"]
+		assert.False(t, exists)
+	})
+
+	t.Run("default stages clone input and set stage", func(t *testing.T) {
+		for _, stage := range []domainagent.StageName{domainagent.StageRetriever, domainagent.StagePlanner} {
+			result := prepareStageInput(stage, baseInput, initialInput)
+			assert.Equal(t, stage, result.Stage)
+			assert.Equal(t, baseInput.Content, result.Content)
+			assert.Equal(t, baseInput.SessionID, result.SessionID)
+		}
+	})
+}

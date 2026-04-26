@@ -23,7 +23,29 @@ It intentionally excludes local planning artifacts, nested repositories, runtime
 - SQLite for local persistence
 - Provider configuration for Gemini, OpenAI, Anthropic, and OpenRouter
 
-## Local development
+## Quick Start (One-Click)
+
+We provide one-click startup scripts that automatically check dependencies, ports, and start both backend and frontend:
+
+**Windows:**
+```batch
+start.bat
+```
+
+**Linux/Mac:**
+```bash
+./start.sh
+```
+
+The scripts will:
+- Check Go and Node.js installations
+- Verify ports 8080 (backend) and 5173 (frontend) are available
+- Create necessary data directories
+- Install frontend dependencies if missing
+- Create `.env` from `.env.example` if not exists
+- Start both services and open browser
+
+## Local development (Manual)
 
 Backend:
 

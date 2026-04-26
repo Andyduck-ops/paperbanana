@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/paperbanana/paperbanana/internal/api/handlers"
 	"github.com/paperbanana/paperbanana/internal/api/middleware"
 	configservice "github.com/paperbanana/paperbanana/internal/application/config"
@@ -14,6 +13,7 @@ import (
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
 	domainllm "github.com/paperbanana/paperbanana/internal/domain/llm"
 	"github.com/paperbanana/paperbanana/internal/domain/workspace"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -91,8 +91,8 @@ type HealthStatus struct {
 
 // HealthResponse represents the health check response.
 type HealthResponse struct {
-	Status   string                  `json:"status"`
-	Database *HealthStatus           `json:"database,omitempty"`
+	Status   string        `json:"status"`
+	Database *HealthStatus `json:"database,omitempty"`
 }
 
 // SetupRouter creates the main router with generate endpoints.
@@ -322,15 +322,26 @@ func SetupRouterWithConfig(runner *orchestrator.Runner, services PersistenceServ
 
 // SetupRouterWithConfigAndBatch creates the full router with all endpoints including config and batch management.
 func SetupRouterWithConfigAndBatch(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, batchSvc *BatchServices, refineSvc *RefineServices, logger *zap.Logger) *gin.Engine {
-	return SetupRouterWithConfigAndBatchAndDB(runner, services, configSvc, batchSvc, refineSvc, nil, logger)
+	return SetupRouterWithConfigAndBatchAndDB(runner, services, configSvc, batchSvc, refineSvc, nil, logger, middleware.AuthConfig{}, middleware.RateLimitConfig{})
 }
 
 // SetupRouterWithConfigAndBatchAndDB creates the full router with all endpoints and database health check.
-func SetupRouterWithConfigAndBatchAndDB(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, batchSvc *BatchServices, refineSvc *RefineServices, db *gorm.DB, logger *zap.Logger) *gin.Engine {
+func SetupRouterWithConfigAndBatchAndDB(runner *orchestrator.Runner, services PersistenceServices, configSvc *ConfigServices, batchSvc *BatchServices, refineSvc *RefineServices, db *gorm.DB, logger *zap.Logger, authCfg middleware.AuthConfig, rateLimitCfg middleware.RateLimitConfig) *gin.Engine {
 	// Create session registry for cancellation support
 	sessionRegistry := handlers.NewSessionRegistry()
 
 	router := SetupRouterWithPersistenceWithRegistryAndDB(runner, services, sessionRegistry, db, logger)
+
+	// Apply authentication middleware (disabled by default — set auth_enabled=true to activate)
+	if authCfg.Enabled {
+		router.Use(middleware.Auth(authCfg))
+		logger.Info("API key authentication enabled")
+	}
+
+	// Apply rate limiting middleware (enabled by default — 60 req/min, 10 burst)
+	if rateLimitCfg.RequestsPerMinute > 0 {
+		router.Use(middleware.RateLimitByIP(rateLimitCfg))
+	}
 
 	// Add Prometheus metrics endpoint
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))

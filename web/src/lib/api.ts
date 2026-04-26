@@ -50,21 +50,36 @@ export const apiClient = {
     }>(response);
   },
 
-  async createProject(name: string) {
+  async createProject(name: string, description?: string) {
     const response = await fetch(`${API_BASE}/projects`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, description }),
     });
-    return handleResponse<{ id: string; name: string; created_at: string }>(response);
+    return handleResponse<{ id: string; name: string; description?: string; created_at: string }>(response);
+  },
+
+  async deleteProject(projectId: string) {
+    const response = await fetch(`${API_BASE}/projects/${projectId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new ApiError(
+        response.status,
+        response.statusText,
+        text || `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+    return { success: true };
   },
 
   // Folder contents
   async listFolderContents(projectId: string, folderId?: string) {
-    const path = folderId
-      ? `${API_BASE}/projects/${projectId}/folders/${folderId}/contents`
-      : `${API_BASE}/projects/${projectId}/folders`;
-    const response = await fetch(path);
+    const params = new URLSearchParams();
+    if (projectId) params.set('project_id', projectId);
+    if (folderId) params.set('folder_id', folderId);
+    const response = await fetch(`${API_BASE}/folders/contents?${params.toString()}`);
     return handleResponse<{
       items: Array<{
         id: string;
@@ -240,5 +255,146 @@ export const apiClient = {
         completed_at: string;
       };
     }>(response);
+  },
+
+  async retrySession(sessionId: string) {
+    const response = await fetch(`${API_BASE}/sessions/${sessionId}/retry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse<{
+      session_id: string;
+      status: string;
+      resumed_from_stage?: string;
+    }>(response);
+  },
+
+  // Folder CRUD endpoints
+  async createFolder(data: { name: string; project_id: string; parent_id?: string }) {
+    const response = await fetch(`${API_BASE}/folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{
+      id: string;
+      name: string;
+      project_id: string;
+      parent_id?: string;
+      created_at: string;
+    }>(response);
+  },
+
+  async updateFolder(folderId: string, data: { name?: string }) {
+    const response = await fetch(`${API_BASE}/folders/${folderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{
+      id: string;
+      name: string;
+      project_id: string;
+      parent_id?: string;
+      updated_at: string;
+    }>(response);
+  },
+
+  async deleteFolder(folderId: string) {
+    const response = await fetch(`${API_BASE}/folders/${folderId}`, {
+      method: 'DELETE',
+    });
+    return handleResponse<{ success: boolean }>(response);
+  },
+
+  // Version history endpoints
+  async getVisualizationHistory(projectId: string, vizId: string) {
+    const response = await fetch(`${API_BASE}/history/${projectId}/${vizId}`);
+    return handleResponse<{
+      versions: Array<{
+        id: string;
+        visualization_id: string;
+        version: number;
+        created_at: string;
+        artifacts: Array<{
+          id: string;
+          kind: string;
+          mime_type: string;
+          data?: string;
+          summary?: string;
+        }>;
+      }>;
+    }>(response);
+  },
+
+  async restoreVersion(projectId: string, vizId: string, versionId: string) {
+    const response = await fetch(`${API_BASE}/workspace/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: projectId, visualization_id: vizId, version_id: versionId }),
+    });
+    return handleResponse<{
+      success: boolean;
+      session_id: string;
+      artifacts: Array<{
+        id: string;
+        kind: string;
+        mime_type: string;
+        data?: string;
+        summary?: string;
+      }>;
+    }>(response);
+  },
+
+  // Template management endpoints
+  async listTemplates() {
+    const response = await fetch(`${API_BASE}/templates`);
+    return handleResponse<{
+      templates: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        category: string;
+        thumbnail?: string;
+        created_at: string;
+      }>;
+    }>(response);
+  },
+
+  async createTemplate(data: { name: string; description?: string; category: string; content: string }) {
+    const response = await fetch(`${API_BASE}/templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{
+      id: string;
+      name: string;
+      description?: string;
+      category: string;
+      created_at: string;
+    }>(response);
+  },
+
+  async updateTemplate(templateId: string, data: { name?: string; description?: string; category?: string; content?: string }) {
+    const response = await fetch(`${API_BASE}/templates/${templateId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{
+      id: string;
+      name: string;
+      description?: string;
+      category: string;
+      updated_at: string;
+    }>(response);
+  },
+
+  async deleteTemplate(templateId: string) {
+    const response = await fetch(`${API_BASE}/templates/${templateId}`, {
+      method: 'DELETE',
+    });
+    return handleResponse<{ success: boolean }>(response);
   },
 };

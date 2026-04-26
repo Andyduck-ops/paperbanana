@@ -1,7 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { streamGenerate } from '../lib/sse';
+import { apiClient } from '../lib/api';
 import type { StageStatus } from '../components/StageCard';
 import type { GenerateRequest } from '../types/api';
+import { useNetworkStatus } from './useNetworkStatus';
 
 export interface StageState {
   stage: string;
@@ -11,6 +13,9 @@ export interface StageState {
   error?: string;
   artifactCount?: number;
   artifactKinds?: string[];
+  startedAt?: string;
+  completedAt?: string;
+  duration?: number;
 }
 
 export interface ResumeMetadata {
@@ -38,6 +43,7 @@ export interface GenerateState {
   error: string | null;
   resumeMetadata: ResumeMetadata | null;
   stagesNotRun: string[];
+  isRetrying: boolean;
 }
 
 export interface RestoreGenerateSnapshot {
@@ -50,6 +56,9 @@ export interface RestoreGenerateSnapshot {
     error?: string;
     artifactCount?: number;
     artifactKinds?: string[];
+    startedAt?: string;
+    completedAt?: string;
+    duration?: number;
   }>;
   error?: string | null;
   resumeMetadata?: ResumeMetadata | null;
@@ -74,6 +83,7 @@ function createInitialState(): GenerateState {
     error: null,
     resumeMetadata: null,
     stagesNotRun: [],
+    isRetrying: false,
   };
 }
 
@@ -90,10 +100,20 @@ function getAgentLabel(stage: string) {
   return agentNames[stage] || stage;
 }
 
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+}
+
 export function useGenerate() {
   const [state, setState] = useState<GenerateState>(createInitialState);
   const abortControllerRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastPromptRef = useRef<string | null>(null);
+  const lastOptionsRef = useRef<GenerateOptions | null>(null);
+  const generateRef = useRef<((prompt: string, options?: GenerateOptions) => Promise<void>) | null>(null);
+  const { online, onReconnect } = useNetworkStatus();
 
   const cancel = useCallback(async () => {
     const sessionId = sessionIdRef.current;
@@ -101,7 +121,6 @@ export function useGenerate() {
       return;
     }
 
-    // Call the cancel API endpoint
     try {
       await fetch(`/api/v1/sessions/${sessionId}/cancel`, {
         method: 'POST',
@@ -111,13 +130,11 @@ export function useGenerate() {
       // Ignore network errors, abort locally anyway
     }
 
-    // Abort the fetch request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
 
-    // Update state to show canceled status
     setState((prev) => ({
       ...prev,
       isGenerating: false,
@@ -130,14 +147,14 @@ export function useGenerate() {
     prompt: string,
     options?: GenerateOptions
   ) => {
-    // Abort any existing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Create new AbortController for this request
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    lastPromptRef.current = prompt;
+    lastOptionsRef.current = options || null;
 
     setState({
       isGenerating: true,
@@ -147,9 +164,9 @@ export function useGenerate() {
       error: null,
       resumeMetadata: null,
       stagesNotRun: [],
+      isRetrying: false,
     });
 
-    // GD-UI-001: Full 5-stage pipeline order
     const stageOrder = ['retriever', 'planner', 'stylist', 'visualizer', 'critic'];
     const agentNames: Record<string, string> = {
       retriever: 'Retriever',
@@ -159,7 +176,6 @@ export function useGenerate() {
       critic: 'Critic',
     };
 
-    // Initialize stages
     const initialStages: StageState[] = stageOrder.map((stage) => ({
       stage,
       agent: agentNames[stage] || stage,
@@ -185,27 +201,33 @@ export function useGenerate() {
         {
           signal: abortController.signal,
           onStageStart: (data) => {
+            const startedAt = data.occurred_at || new Date().toISOString();
             setState((prev) => ({
               ...prev,
               stages: prev.stages.map((s) =>
-                s.stage === data.stage ? { ...s, status: 'running' } : s
+                s.stage === data.stage ? { ...s, status: 'running', startedAt } : s
               ),
             }));
           },
           onStageComplete: (data) => {
+            const completedAt = data.occurred_at || new Date().toISOString();
             setState((prev) => ({
               ...prev,
-              stages: prev.stages.map((s) =>
-                s.stage === data.stage
-                  ? {
-                      ...s,
-                      status: 'complete',
-                      summary: data.summary,
-                      artifactCount: data.artifact_count,
-                      artifactKinds: data.artifact_kinds,
-                    }
-                  : s
-              ),
+              stages: prev.stages.map((s) => {
+                if (s.stage !== data.stage) return s;
+                const startedAt = s.startedAt ? new Date(s.startedAt).getTime() : Date.now();
+                const endTime = new Date(completedAt).getTime();
+                const duration = endTime - startedAt;
+                return {
+                  ...s,
+                  status: 'complete',
+                  summary: data.metadata?.summary,
+                  artifactCount: data.metadata?.artifact_count ? parseInt(data.metadata.artifact_count, 10) : undefined,
+                  artifactKinds: data.metadata?.artifact_kinds?.split(','),
+                  completedAt,
+                  duration,
+                };
+              }),
             }));
           },
           onResult: (data) => {
@@ -227,13 +249,11 @@ export function useGenerate() {
             }));
           },
           onError: (data) => {
-            // GD-UI-002: Mark failed stage and stages_not_run
             setState((prev) => {
               const failedStageIndex = data.stage
                 ? prev.stages.findIndex((s) => s.stage === data.stage)
                 : -1;
 
-              // Identify stages that will not run (after the failed stage)
               const stagesNotRun = failedStageIndex >= 0
                 ? prev.stages.slice(failedStageIndex + 1).map((s) => s.stage)
                 : [];
@@ -245,13 +265,11 @@ export function useGenerate() {
                 stagesNotRun,
                 stages: prev.stages.map((s) => {
                   if (data.stage && s.stage === data.stage) {
-                    // Mark the failed stage
                     return { ...s, status: 'error', error: data.message };
                   }
                   if (failedStageIndex >= 0) {
                     const currentIndex = prev.stages.findIndex((st) => st.stage === s.stage);
                     if (currentIndex > failedStageIndex) {
-                      // Mark subsequent stages as not_run
                       return { ...s, status: 'not_run' as StageStatus };
                     }
                   }
@@ -261,7 +279,6 @@ export function useGenerate() {
             });
           },
           onResumeStart: (data) => {
-            // GD-UI-004: Handle resumed task - mark completed stages and set resume metadata
             sessionIdRef.current = data.session_id;
             setState((prev) => ({
               ...prev,
@@ -271,7 +288,6 @@ export function useGenerate() {
               },
               stages: prev.stages.map((s) => {
                 if (data.stages_completed_before_resume.includes(s.stage)) {
-                  // Mark previously completed stages
                   return { ...s, status: 'complete' as StageStatus };
                 }
                 return s;
@@ -281,7 +297,6 @@ export function useGenerate() {
         }
       );
     } catch (err) {
-      // Check if this was an abort error
       if (err instanceof Error && err.name === 'AbortError') {
         setState((prev) => ({
           ...prev,
@@ -299,7 +314,33 @@ export function useGenerate() {
     }
   }, []);
 
+  generateRef.current = generate;
+
+  useEffect(() => {
+    if (!online) return;
+
+    return onReconnect(() => {
+      if (state.isGenerating && lastPromptRef.current && generateRef.current) {
+        const lastFailedStage = state.stages.find(s => s.status === 'error' || s.status === 'running');
+        if (lastFailedStage && sessionIdRef.current) {
+          apiClient.retrySession(sessionIdRef.current)
+            .then((res) => {
+              if (res.session_id && lastPromptRef.current && generateRef.current) {
+                generateRef.current(lastPromptRef.current, lastOptionsRef.current || undefined);
+              }
+            })
+            .catch(() => {
+              // Silently fail retry
+            });
+        }
+      }
+    });
+  }, [online, onReconnect, state.isGenerating, state.stages]);
+
   const reset = useCallback(() => {
+    lastPromptRef.current = null;
+    lastOptionsRef.current = null;
+    abortControllerRef.current = null;
     setState(createInitialState());
   }, []);
 
@@ -326,6 +367,7 @@ export function useGenerate() {
       stagesNotRun: stages
         .filter((stage) => stage.status === 'not_run')
         .map((stage) => stage.stage),
+      isRetrying: false,
     });
   }, []);
 
@@ -335,5 +377,6 @@ export function useGenerate() {
     cancel,
     reset,
     restore,
+    formatDuration,
   };
 }

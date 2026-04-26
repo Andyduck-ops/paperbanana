@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/paperbanana/paperbanana/internal/application/agents/modelselection"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
@@ -28,6 +29,7 @@ type RetrievalMode string
 const (
 	RetrievalModeAuto      RetrievalMode = "auto"
 	RetrievalModeAutoFull  RetrievalMode = "auto-full"
+	RetrievalModeLite      RetrievalMode = "lite"
 	RetrievalModeManual    RetrievalMode = "manual"
 	RetrievalModeRandom    RetrievalMode = "random"
 	RetrievalModeNone      RetrievalMode = "none"
@@ -209,6 +211,8 @@ func (a *Agent) executeMode(ctx context.Context, input domainagent.AgentInput, m
 		return a.executeAutoRetrieval(ctx, input, mode, prompt, true)
 	case RetrievalModeAutoFull:
 		return a.executeAutoRetrieval(ctx, input, mode, prompt, false)
+	case RetrievalModeLite:
+		return a.executeLiteRetrieval(ctx, input, mode, prompt)
 	default:
 		return domainagent.AgentOutput{}, fmt.Errorf("unsupported retrieval mode %q", mode)
 	}
@@ -252,6 +256,94 @@ func (a *Agent) executeAutoRetrieval(ctx context.Context, input domainagent.Agen
 	return a.buildOutput(input, prompt, mode, ids, selectExamples(ids, candidates)), nil
 }
 
+// executeLiteRetrieval performs a lightweight retrieval with minimal LLM usage.
+// It skips detailed content analysis and uses keyword matching for faster results.
+func (a *Agent) executeLiteRetrieval(ctx context.Context, input domainagent.AgentInput, mode RetrievalMode, prompt domainagent.PromptMetadata) (domainagent.AgentOutput, error) {
+	candidates, err := a.loadCandidates(ctx, input.VisualIntent.Mode)
+	if err != nil {
+		return domainagent.AgentOutput{}, err
+	}
+	if len(candidates) == 0 {
+		return a.buildOutput(input, prompt, RetrievalModeNone, nil, nil), nil
+	}
+
+	// Use keyword-based scoring instead of LLM for lite mode
+	selected := a.keywordMatchCandidates(input, candidates, 5)
+	ids := selectedExampleIDs(selected)
+
+	output := a.buildOutput(input, prompt, mode, ids, selected)
+	output.Metadata["retrieval_mode"] = "lite"
+	output.Metadata["retrieval_method"] = "keyword_matching"
+
+	return output, nil
+}
+
+// keywordMatchCandidates performs simple keyword matching for lite retrieval mode.
+// It scores candidates based on visual intent keyword overlap and returns top matches.
+func (a *Agent) keywordMatchCandidates(input domainagent.AgentInput, candidates []ReferenceExample, limit int) []ReferenceExample {
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	targetIntent := strings.ToLower(input.VisualIntent.Goal)
+	targetKeywords := extractKeywords(targetIntent)
+
+	type scored struct {
+		example ReferenceExample
+		score   int
+	}
+
+	scoredList := make([]scored, 0, len(candidates))
+	for _, candidate := range candidates {
+		candidateIntent := strings.ToLower(candidate.VisualIntent)
+		candidateKeywords := extractKeywords(candidateIntent)
+
+		// Simple intersection scoring
+		score := 0
+		for kw := range targetKeywords {
+			if _, ok := candidateKeywords[kw]; ok {
+				score += 2
+			}
+		}
+		// Boost for substring match
+		if strings.Contains(candidateIntent, targetIntent) || strings.Contains(targetIntent, candidateIntent) {
+			score += 5
+		}
+
+		scoredList = append(scoredList, scored{example: candidate, score: score})
+	}
+
+	// Sort by score descending
+	sort.Slice(scoredList, func(i, j int) bool {
+		return scoredList[i].score > scoredList[j].score
+	})
+
+	// Take top matches
+	if limit > len(scoredList) {
+		limit = len(scoredList)
+	}
+	result := make([]ReferenceExample, 0, limit)
+	for i := 0; i < limit; i++ {
+		result = append(result, scoredList[i].example)
+	}
+
+	return result
+}
+
+// extractKeywords extracts simple keywords from text for lite mode matching.
+func extractKeywords(text string) map[string]struct{} {
+	keywords := make(map[string]struct{})
+	words := strings.FieldsFunc(text, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	for _, word := range words {
+		if len(word) > 3 {
+			keywords[strings.ToLower(word)] = struct{}{}
+		}
+	}
+	return keywords
+}
+
 func (a *Agent) promptMetadata(mode domainagent.VisualMode) (domainagent.PromptMetadata, error) {
 	systemPrompt, err := SystemPrompt(mode)
 	if err != nil {
@@ -278,7 +370,7 @@ func (a *Agent) resolveMode(input domainagent.AgentInput) (RetrievalMode, error)
 
 func parseMode(value string) (RetrievalMode, error) {
 	switch RetrievalMode(value) {
-	case RetrievalModeAuto, RetrievalModeAutoFull, RetrievalModeManual, RetrievalModeRandom, RetrievalModeNone:
+	case RetrievalModeAuto, RetrievalModeAutoFull, RetrievalModeLite, RetrievalModeManual, RetrievalModeRandom, RetrievalModeNone:
 		return RetrievalMode(value), nil
 	default:
 		return "", fmt.Errorf("unknown retrieval_setting: %s", value)

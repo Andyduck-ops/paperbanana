@@ -22,6 +22,7 @@ type Config struct {
 	StageTimeout StageTimeoutConfig `mapstructure:"stage_timeout"`
 	Security     SecurityConfig     `mapstructure:"security"`
 	Plot         PlotConfig         `mapstructure:"plot"`
+	Pipeline     PipelineConfig     `mapstructure:"pipeline"`
 }
 
 // PlotConfig defines settings for the plot execution feature.
@@ -45,6 +46,14 @@ type StageTimeoutConfig struct {
 	Stylist    time.Duration `mapstructure:"stylist"`
 	Visualizer time.Duration `mapstructure:"visualizer"`
 	Critic     time.Duration `mapstructure:"critic"`
+}
+
+// PipelineConfig defines pipeline execution settings.
+type PipelineConfig struct {
+	// GracefulDegrade enables graceful degradation for non-critical stages.
+	// When enabled, failures in non-critical stages (retriever, stylist, critic)
+	// will allow the pipeline to continue with fallback behavior.
+	GracefulDegrade bool `mapstructure:"graceful_degrade"`
 }
 
 type ServerConfig struct {
@@ -179,7 +188,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("stage_timeout.retriever", 180*time.Second)
 	v.SetDefault("stage_timeout.planner", 180*time.Second)
 	v.SetDefault("stage_timeout.stylist", 180*time.Second)
-	v.SetDefault("stage_timeout.visualizer", 180*time.Second)
+	v.SetDefault("stage_timeout.visualizer", 300*time.Second)
 	v.SetDefault("stage_timeout.critic", 360*time.Second)
 	// Security defaults
 	v.SetDefault("security.auth_enabled", false)
@@ -193,6 +202,8 @@ func setDefaults(v *viper.Viper) {
 	// Plot defaults - SECURITY: disabled by default
 	v.SetDefault("plot.enabled", false)
 	v.SetDefault("plot.sandbox_mode", "none")
+	// Pipeline defaults
+	v.SetDefault("pipeline.graceful_degrade", false)
 }
 
 func readConfigFile(v *viper.Viper) error {

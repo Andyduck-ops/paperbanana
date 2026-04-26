@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { useLanguage } from '../../hooks';
 import { ModeSwitcher, type WorkspaceMode } from './ModeSwitcher';
-import { EmptyState } from './EmptyState';
 import { CandidateGrid, type Candidate } from './CandidateGrid';
 import { ResultArea } from './ResultArea';
 import type { Artifact } from '../ArtifactPreview';
 import type { StageState } from '../../hooks/useGenerate';
+import { downloadBatchArchive } from '../../types/batch';
 
 export interface WorkspaceProps {
   // Mode state
@@ -21,6 +21,9 @@ export interface WorkspaceProps {
   } | null;
   error: string | null;
 
+  // Cancel action
+  onCancel?: () => void;
+
   // Batch state
   isBatchGenerating?: boolean;
   batchCandidates?: Candidate[];
@@ -30,12 +33,14 @@ export interface WorkspaceProps {
     completed: number;
     failed: number;
   } | null;
+  batchCompleted?: boolean;
 
   // Refinement state
   refineResult?: Artifact | null;
   isRefining?: boolean;
 
   // Input components
+  hero?: React.ReactNode;
   generateInput: React.ReactNode;
   refineInput: React.ReactNode;
 
@@ -46,6 +51,7 @@ export interface WorkspaceProps {
   onSelectCandidate?: (candidateId: string) => void;
   onRefineCandidate?: (candidateId: string) => void;
   onDeleteCandidate?: (candidateId: string) => void;
+  onRefineResult?: () => void;
 }
 
 /**
@@ -72,8 +78,10 @@ export function Workspace({
   isBatchGenerating,
   batchCandidates,
   batchProgress,
+  batchCompleted,
   refineResult,
   isRefining,
+  hero,
   generateInput,
   refineInput,
   onExport,
@@ -82,17 +90,27 @@ export function Workspace({
   onSelectCandidate,
   onRefineCandidate,
   onDeleteCandidate,
+  onCancel,
 }: WorkspaceProps) {
   const { t } = useLanguage();
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [enableMultiSelect, setEnableMultiSelect] = useState(false);
 
-  // Determine if we should show empty state
-  const showEmptyState = !isGenerating &&
-    !result &&
-    !refineResult &&
-    !isBatchGenerating &&
-    !batchProgress &&
-    !error;
+  const handleBatchDownload = useCallback(async () => {
+    if (!batchProgress?.batchId) return;
+    setIsDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadBatchArchive(batchProgress.batchId);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [batchProgress?.batchId]);
 
   // Determine if we should show result area
   const showResultArea = result || refineResult;
@@ -100,19 +118,14 @@ export function Workspace({
   // Determine if we should show candidate grid
   const showCandidateGrid = batchCandidates && batchCandidates.length > 0;
 
+  // Determine if we should show input area
+  const showInputArea = !isGenerating && !isBatchGenerating && !refineResult && !showResultArea;
+
   // Handle candidate selection
   const handleSelectCandidate = useCallback((candidateId: string) => {
     setSelectedCandidateId(candidateId);
     onSelectCandidate?.(candidateId);
   }, [onSelectCandidate]);
-
-  // Handle empty state action
-  const handleEmptyStateAction = useCallback((action: 'generate' | 'example') => {
-    if (action === 'generate') {
-      onModeChange('generate');
-    }
-    // Examples would be handled by the parent component
-  }, [onModeChange]);
 
   return (
     <div className="workspace-container h-full flex flex-col">
@@ -136,27 +149,28 @@ export function Workspace({
       <div className="workspace-main flex-1 overflow-auto p-6">
         {/* Error Display */}
         {error && (
-          <div className="workspace-error mb-6 rounded-2xl border border-red-500/25 bg-red-500/10 p-4 text-red-700">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="font-medium">{error}</span>
+          <div className="workspace-error mb-6 rounded-2xl border border-status-error/25 bg-status-error/10 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-status-error/15 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-status-error" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="font-medium text-status-error">{error}</span>
             </div>
           </div>
         )}
 
-        {/* Empty State */}
-        {showEmptyState && (
-          <EmptyState
-            mode={mode}
-            onAction={handleEmptyStateAction}
-          />
+        {/* Hero Slot - visible with the primary input flow */}
+        {showInputArea && hero && (
+          <div className="workspace-hero-slot mb-6">
+            {hero}
+          </div>
         )}
 
-        {/* Input Area - Only show when not generating and no results */}
-        {!showEmptyState && !showResultArea && !isGenerating && !isBatchGenerating && !refineResult && (
-          <div className="workspace-input-area max-w-4xl mx-auto">
+        {/* Input Area - Always visible at top when no results/generation in progress */}
+        {showInputArea && (
+          <div className="workspace-input-area max-w-3xl mx-auto">
             {mode === 'generate' ? generateInput : refineInput}
           </div>
         )}
@@ -164,13 +178,49 @@ export function Workspace({
         {/* Progress Display */}
         {(isGenerating || isRefining) && stages.length > 0 && (
           <div className="workspace-progress max-w-2xl mx-auto">
+            {/* Header with progress bar */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    {isRefining ? t('refine.refining') : t('generate.generating')}
+                  </h3>
+                  <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(stages.filter(s => s.status === 'complete').length / stages.length) * 100}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Cancel Button */}
+              {isGenerating && onCancel && (
+                <button
+                  onClick={onCancel}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-status-error hover:text-status-error/80 hover:bg-status-error/10 rounded-lg transition-colors border border-status-error/20 hover:border-status-error/40"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {t('common.cancel')}
+                </button>
+              )}
+            </div>
+
             <div className="space-y-3">
               {stages.map((stage) => (
                 <div
                   key={stage.stage}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     stage.status === 'running'
-                      ? 'border-primary/30 bg-primary/5'
+                      ? 'border-primary/30 bg-primary/5 shadow-sm'
                       : stage.status === 'complete'
                       ? 'border-status-success/30 bg-status-success/5'
                       : stage.status === 'error'
@@ -202,7 +252,18 @@ export function Workspace({
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-foreground">{stage.agent}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{stage.agent}</span>
+                      {stage.duration !== undefined && stage.status === 'complete' && (
+                        <span className="text-xs font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                          {stage.duration < 1000
+                            ? `${stage.duration}ms`
+                            : stage.duration < 60000
+                              ? `${(stage.duration / 1000).toFixed(1)}s`
+                              : `${Math.floor(stage.duration / 60000)}m ${Math.floor((stage.duration % 60000) / 1000)}s`}
+                        </span>
+                      )}
+                    </div>
                     {stage.summary && (
                       <div className="text-xs text-muted-foreground">{stage.summary}</div>
                     )}
@@ -215,33 +276,69 @@ export function Workspace({
         )}
 
         {/* Batch Progress */}
-        {isBatchGenerating && batchProgress && (
+        {(isBatchGenerating || batchCompleted) && batchProgress && (
           <div className="workspace-batch-progress max-w-2xl mx-auto">
-            <div className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-lg">
+            <div className={`rounded-2xl border p-6 shadow-lg ${
+              batchCompleted
+                ? 'border-status-success/70 bg-status-success/10'
+                : 'border-border/70 bg-card/80'
+            }`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-foreground">{t('generate.batchProgress')}</h3>
+                <h3 className="text-lg font-medium text-foreground">
+                  {batchCompleted ? t('generate.batchComplete') : t('generate.batchProgress')}
+                </h3>
                 <span className="text-sm text-muted-foreground">
                   {batchProgress.completed} / {batchProgress.total}
                 </span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary transition-all duration-300"
+                  className={`h-full transition-all duration-300 ${
+                    batchCompleted ? 'bg-status-success' : 'bg-primary'
+                  }`}
                   style={{ width: `${(batchProgress.completed / batchProgress.total) * 100}%` }}
                 />
               </div>
-              <div className="mt-4 flex gap-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-status-success" />
-                  <span className="text-muted-foreground">{batchProgress.completed} {t('generate.successful')}</span>
-                </div>
-                {batchProgress.failed > 0 && (
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex gap-4 text-sm">
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-status-error" />
-                    <span className="text-muted-foreground">{batchProgress.failed} {t('generate.failed')}</span>
+                    <div className="w-2 h-2 rounded-full bg-status-success" />
+                    <span className="text-muted-foreground">{batchProgress.completed} {t('generate.successful')}</span>
                   </div>
+                  {batchProgress.failed > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-status-error" />
+                      <span className="text-muted-foreground">{batchProgress.failed} {t('generate.failed')}</span>
+                    </div>
+                  )}
+                </div>
+                {batchCompleted && (
+                  <button
+                    onClick={handleBatchDownload}
+                    disabled={isDownloading}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        {t('generate.downloading') || 'Downloading...'}
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        {t('generate.downloadAll') || 'Download All'}
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
+              {downloadError && (
+                <div className="mt-3 p-2 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+                  {downloadError}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -264,10 +361,37 @@ export function Workspace({
         {/* Candidate Grid - Multi-candidate comparison */}
         {showCandidateGrid && (
           <div className="workspace-candidates mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableMultiSelect}
+                    onChange={(e) => {
+                      setEnableMultiSelect(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedCandidateIds([]);
+                      }
+                    }}
+                    className="rounded border-border"
+                  />
+                  {t('generate.enableComparison') || 'Enable comparison mode'}
+                </label>
+                {enableMultiSelect && selectedCandidateIds.length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {selectedCandidateIds.length} {t('generate.selected') || 'selected'}
+                  </span>
+                )}
+              </div>
+            </div>
             <CandidateGrid
               candidates={batchCandidates}
               selectedId={selectedCandidateId}
+              selectedIds={selectedCandidateIds}
               onSelect={handleSelectCandidate}
+              onMultiSelect={enableMultiSelect ? setSelectedCandidateIds : undefined}
+              multiSelect={enableMultiSelect}
+              maxSelection={4}
               onRefine={onRefineCandidate}
               onDelete={onDeleteCandidate}
               onExport={onExport}
@@ -279,4 +403,6 @@ export function Workspace({
   );
 }
 
-export default Workspace;
+const MemoizedWorkspace = memo(Workspace);
+MemoizedWorkspace.displayName = 'Workspace';
+export default MemoizedWorkspace;

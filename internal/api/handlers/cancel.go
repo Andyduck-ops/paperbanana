@@ -18,6 +18,16 @@ type SessionRegistry struct {
 
 type sessionHandle struct {
 	cancel context.CancelFunc
+	once   sync.Once
+}
+
+// cancelOnce safely cancels the session exactly once.
+func (h *sessionHandle) cancelOnce() {
+	h.once.Do(func() {
+		if h.cancel != nil {
+			h.cancel()
+		}
+	})
 }
 
 // NewSessionRegistry creates a new SessionRegistry.
@@ -34,11 +44,12 @@ func (r *SessionRegistry) Register(sessionID string, ctx context.Context) (conte
 	defer r.mu.Unlock()
 
 	ctx, cancel := context.WithCancel(ctx)
-	r.sessions[sessionID] = &sessionHandle{cancel: cancel}
+	handle := &sessionHandle{cancel: cancel}
+	r.sessions[sessionID] = handle
 
 	// Return a cancel function that also removes from registry
 	return ctx, func() {
-		cancel()
+		handle.cancelOnce()
 		r.mu.Lock()
 		delete(r.sessions, sessionID)
 		r.mu.Unlock()
@@ -56,7 +67,7 @@ func (r *SessionRegistry) Cancel(sessionID string) bool {
 		return false
 	}
 
-	handle.cancel()
+	handle.cancelOnce()
 	delete(r.sessions, sessionID)
 	return true
 }
@@ -116,8 +127,8 @@ func (h *CancelHandler) Cancel(c *gin.Context) {
 			zap.String("session_id", sessionID),
 		)
 		c.JSON(http.StatusNotFound, gin.H{
-			"error":       ErrSessionNotFound.Error(),
-			"session_id":  sessionID,
+			"error":      ErrSessionNotFound.Error(),
+			"session_id": sessionID,
 		})
 		return
 	}

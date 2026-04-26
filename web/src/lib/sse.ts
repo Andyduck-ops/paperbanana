@@ -18,7 +18,8 @@ export type SSEEventType =
   | 'batch_start'
   | 'candidate_start'
   | 'candidate_complete'
-  | 'batch_complete';
+  | 'batch_complete'
+  | 'batch_result';
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -165,6 +166,7 @@ function dispatchEvent(
     case 'candidate_start':
     case 'candidate_complete':
     case 'batch_complete':
+    case 'batch_result':
       // These events are recognized but don't have specific handlers yet
       break;
   }

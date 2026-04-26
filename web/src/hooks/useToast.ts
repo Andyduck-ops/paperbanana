@@ -1,25 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useToastStore, type ToastType } from '../stores/toastStore';
 
 export interface Toast {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: ToastType;
 }
 
 export function useToast() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toasts = useToastStore((state) => state.toasts);
+  const addToast = useToastStore((state) => state.addToast);
+  const removeToast = useToastStore((state) => state.removeToast);
 
-  const addToast = useCallback((message: string, type: Toast['type'] = 'info') => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
-  }, []);
+  // Wrapped addToast to support the legacy 5s auto-dismiss behavior
+  const wrappedAddToast = useCallback((message: string, type: ToastType = 'info') => {
+    addToast(message, type);
+  }, [addToast]);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  return { toasts, addToast, removeToast };
+  return {
+    toasts,
+    addToast: wrappedAddToast,
+    removeToast,
+  };
 }

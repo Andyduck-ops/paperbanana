@@ -59,7 +59,7 @@ func buildMessages(input domainagent.AgentInput, examples []referenceExample, lo
 
 		image, mimeType, err := loadImage(input.VisualIntent.Mode, example.PathToGTImage)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		parts = append(parts, domainllm.InlineImagePart(mimeType, image))
 	}

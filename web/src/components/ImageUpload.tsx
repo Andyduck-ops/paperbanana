@@ -3,6 +3,8 @@ import { useLanguage } from '../hooks';
 
 export interface ImageUploadProps {
   onImageSelect: (base64Data: string) => void;
+  onClear?: () => void;
+  initialPreview?: string | null;
   disabled?: boolean;
   className?: string;
 }

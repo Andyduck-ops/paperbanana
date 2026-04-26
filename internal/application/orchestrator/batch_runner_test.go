@@ -102,8 +102,8 @@ func TestBatchRunner_SharedRetriever(t *testing.T) {
 				execute: func(ctx context.Context, input domainagent.AgentInput) (domainagent.AgentOutput, error) {
 					retrieverCalled = true
 					return domainagent.AgentOutput{
-						Stage:              domainagent.StageRetriever,
-						VisualIntent:       input.VisualIntent,
+						Stage:               domainagent.StageRetriever,
+						VisualIntent:        input.VisualIntent,
 						RetrievedReferences: sharedRefs,
 					}, nil
 				},
@@ -279,7 +279,7 @@ func TestBatchRunner_RetrieverFailure(t *testing.T) {
 				},
 			}
 		},
-		createPlanner:   func() domainagent.BaseAgent { return &stubAgent{stage: domainagent.StagePlanner} },
+		createPlanner:    func() domainagent.BaseAgent { return &stubAgent{stage: domainagent.StagePlanner} },
 		createVisualizer: func() domainagent.BaseAgent { return &stubAgent{stage: domainagent.StageVisualizer} },
 		createCritic:     func() domainagent.BaseAgent { return &stubAgent{stage: domainagent.StageCritic} },
 	}
@@ -314,7 +314,7 @@ func TestBatchRunner_ConcurrencyLimit(t *testing.T) {
 				stage: domainagent.StageRetriever,
 				execute: func(ctx context.Context, input domainagent.AgentInput) (domainagent.AgentOutput, error) {
 					return domainagent.AgentOutput{
-						Stage:              domainagent.StageRetriever,
+						Stage:               domainagent.StageRetriever,
 						RetrievedReferences: []domainagent.RetrievedReference{{ID: "ref"}},
 					}, nil
 				},

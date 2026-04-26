@@ -8,6 +8,8 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/google/generative-ai-go v0.20.1
 	github.com/google/uuid v1.6.0
+	github.com/mattn/go-sqlite3 v1.14.22
+	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.0
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/sony/gobreaker v1.0.0
@@ -67,7 +69,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect

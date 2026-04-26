@@ -1,7 +1,7 @@
 export { useTheme, type Theme } from './useTheme';
 export { useLanguage, type LanguageCode } from './useLanguage';
 export { useGenerate, type StageState, type GenerateResult, type GenerateState } from './useGenerate';
-export { useHistory, type HistorySession, type HistoryState } from './useHistory';
+export { useHistory, type HistorySession, type HistoryState, type RestoredSession } from './useHistory';
 export { useLocalWorkRecords, type LocalWorkRecord, type LocalWorkRecordsState } from './useLocalWorkRecords';
 export { useToast, type Toast } from './useToast';
 export { useKeyboardShortcuts, type ShortcutHandlers } from './useKeyboardShortcuts';
@@ -15,3 +15,12 @@ export { useFolders, type Folder, type FolderItem, type FoldersState } from './u
 export { useVersions, type Version, type VersionsState } from './useVersions';
 export { useTemplates, type Template, type TemplatesState } from './useTemplates';
 export { usePromptTemplates, type PromptTemplate, type PromptTemplatesState } from './usePromptTemplates';
+export { useFocusTrap } from './useFocusTrap';
+
+// New Zustand store adapters (for migration)
+export { useAppStoreAdapter, useAppStoreInit, type AppStoreAdapter } from './useAppStoreAdapter';
+export { useProviderStoreAdapter, useProviderStoreInit, type ProviderStoreAdapter } from './useProviderStoreAdapter';
+
+// Generation flow hooks
+export { useGenerationFlow, type GenerateOptions } from './useGenerationFlow';
+export { useGenerationStateMachine } from './useGenerationStateMachine';

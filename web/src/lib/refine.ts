@@ -30,6 +30,15 @@ async function toRefineApiRequest(request: RefineRequest): Promise<RefineApiRequ
   };
 }
 
+function detectMIMEType(base64: string): string {
+  const signature = base64.substring(0, 10);
+  if (signature.startsWith('/9j/')) return 'image/jpeg';
+  if (signature.startsWith('iVBORw')) return 'image/png';
+  if (signature.startsWith('R0lGODdh')) return 'image/gif';
+  if (signature.startsWith('UklGRg')) return 'image/webp';
+  return 'image/png';
+}
+
 export async function refineImage(request: RefineRequest): Promise<RefineResult> {
   const apiRequest = await toRefineApiRequest(request);
 
@@ -65,10 +74,14 @@ export async function refineImage(request: RefineRequest): Promise<RefineResult>
     throw new Error(payload.error);
   }
 
-  const imageData = payload.image?.data || payload.image_data;
+  const imageData = payload.image?.data || payload.image_data || payload.artifacts?.[0]?.data;
   if (!imageData) {
     throw new Error("Refine response did not include image data");
   }
+
+  const mimeType = payload.image?.mime_type ||
+    payload.artifacts?.[0]?.format ||
+    detectMIMEType(imageData);
 
   return {
     sessionId: payload.session_id,
@@ -77,7 +90,7 @@ export async function refineImage(request: RefineRequest): Promise<RefineResult>
     metadata: payload.metadata,
     image: {
       data: imageData,
-      mimeType: payload.image?.mime_type || "image/png",
+      mimeType: mimeType,
       metadata: payload.image?.metadata,
     },
   };

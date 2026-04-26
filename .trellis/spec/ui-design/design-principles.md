@@ -1,5 +1,27 @@
 # PaperBanana UI 设计原则 Spec
 
+> 本文档是 PaperBanana 的 **UI 决策法典**。所有视觉细节（颜色、字体、阴影、圆角）请优先查阅 [`references/`](./references/) 目录的两份外部参考。本文档负责说明「哪条原则在什么场景下生效」。
+
+---
+
+## 0. 视觉锚点 (Visual Anchors)
+
+PaperBanana 同时维护浅色与暗色两套基底，分别锚定在两个外部参考：
+
+| 模式 | 锚点 | 文件 | 关键特征 |
+|------|------|------|---------|
+| 白天 / 阅读 / 学术 | **Claude (Anthropic)** | [`references/claude-light.md`](./references/claude-light.md) | 暖羊皮纸 `#f5f4ed`、Anthropic Serif weight 500、赤陶 CTA `#c96442`、ring 阴影 `0 0 0 1px` |
+| 夜晚 / 工程 / 高密度 | **Linear** | [`references/linear-dark.md`](./references/linear-dark.md) | 近黑画布 `#08090a`、Inter Variable + cv01/ss03、510 字重、半透明白边 `rgba(255,255,255,0.05~0.08)` |
+
+**原则**：
+1. 当 `web/src/themes/*.css` 与 references 冲突时，**永远修改实现**，不要反向修改 reference。
+2. 任何新主题必须声明它继承自哪个锚点，不允许在两套体系之间「折中」。
+3. 自动暗色（`prefers-color-scheme: dark`）回退到 Linear 锚点；浅色回退到 Claude 锚点。
+
+详细收敛路线图见 [`references/README.md`](./references/README.md)。
+
+---
+
 ## 1. 首屏暴露原则 (Above the Fold Principle)
 
 > 核心功能必须在首屏可见，无需滚动、无需点击、无需思考。
@@ -63,12 +85,16 @@
 ### 3.2 主行动按钮规范
 - 尺寸：至少 48px 高度，全宽或接近全宽
 - 颜色：使用主色，与背景形成强烈对比
+  - 浅色锚点：Terracotta `#c96442`，Ivory 文字
+  - 暗色锚点：Indigo `#5e6ad2`，纯白文字
 - 文案：动作导向，如"生成图表"而非"提交"
 - 位置：紧跟核心输入之后，视线自然流动到达
+- 阴影：`0 0 0 1px` ring（浅色）或 multi-layer luminance step（暗色），**禁用** drop-shadow
 
 ### 3.3 禁止项
 - 禁止多个按钮使用同等视觉权重
 - 禁止使用装饰性动画干扰核心操作
+- 禁止在浅色锚点中引入冷色调灰；禁止在暗色锚点中引入暖色调 chrome
 
 ---
 
@@ -91,6 +117,10 @@
 - 提供合理的默认值
 - 实时验证，错误提示具体可操作
 
+### 4.4 输入框样式（来自锚点）
+- 浅色：12px radius、Border Cream `#f0eee6`、focus ring 用 Focus Blue `#3898ec`（**唯一允许的冷色**）
+- 暗色：6px radius、`rgba(255,255,255,0.08)` 边框、`rgba(255,255,255,0.02)` 背景、focus 用 multi-layer shadow
+
 ---
 
 ## 5. 极简主义原则 (Less is More)
@@ -108,12 +138,17 @@
 ### 5.2 PaperBanana 应用清单
 | 元素 | 评估 | 决策 |
 |------|------|------|
-| 主题色板 | 否/否/否 | 从 Header 移除，放入设置 |
+| Header 14 主题色板 | 否/否/否 | **P0** 从 Header 移除，放入 Settings 抽屉 |
 | EmptyState 动画 | 否/否/否 | 删除或极简化 |
 | 示例卡片 | 否/否/否 | 删除 |
+| 多余 tagline + subtitle 双层介绍 | 否/否/否 | 合并为一行 |
 | 批量模式 | 是/否/否 | 折叠到高级选项 |
 | 配置面板 | 是/否/是 | 折叠到高级选项 |
 | 模板选择器 | 是/否/是 | 保留但简化 |
+
+### 5.3 主题数量
+- 当前：14 个主题（`academic`、`art-deco`、`base`、`bauhaus`、`classical-chinese`、`japanese-bw`、`minimalist-bw`、`neo-minimal`、`pop-anime`、`pop-art`、`pop-art-dark`、`qi-baishi`、`rococo`、`swiss`、`workspace`）
+- 目标：**保留 6–8 个学术/工程向主题**，删除装饰性强的（`pop-art`、`pop-art-dark`、`rococo` 候选）
 
 ---
 
@@ -122,10 +157,10 @@
 ### 6.1 首屏布局（桌面端）
 ```
 +--------------------------------------------------+
-| [Logo]  PaperBanana          [Nav] [Dark] [Lang] |
+| [Logo]  PaperBanana          [Nav] [Dark] [Lang] |  <- Header 已剔除主题色块
 +--------------------------------------------------+
 |                                                  |
-|         创建科学可视化图表                        |  <- 价值主张
+|         创建科学可视化图表                        |  <- 价值主张 (Serif H1, 48–64px)
 |                                                  |
 |  +--------------------------------------------+  |
 |  | 论文上下文与参考                               |  |  <- 核心输入
@@ -138,10 +173,10 @@
 |  +--------------------------------------------+  |
 |                                                  |
 |  +--------------------------------------------+  |
-|  |           [  生成图表  ]                      |  |  <- 主CTA
+|  |           [  生成图表  ]                      |  |  <- 主CTA (Terracotta/Indigo)
 |  +--------------------------------------------+  |
 |                                                  |
-|  [高级选项 ▼]  [模板 ▼]                           |  <- 次要操作
+|  [高级选项 ▼]  [模板 ▼]                           |  <- 次要操作 (ghost button)
 |                                                  |
 +--------------------------------------------------+
 ```
@@ -156,56 +191,61 @@
 - 输入框最小高度：120px（多行文本）
 - 核心区域最大宽度：720px，居中
 - 首屏总高度：不超过 100vh，核心内容在 above the fold
+- Hero H1：浅色 64px Serif weight 500 line-height 1.10；暗色 48px Inter Variable weight 510 letter-spacing -1.056px
 
 ---
 
-## 7. 设计系统规范 (DESIGN.md)
+## 7. 主题与视觉宪法
 
-> 2026-04-18: 引入基于 RunwayML 风格的 DESIGN.md 规范，统一主题系统。
+> 14 主题膨胀是当前最大的视觉债务来源。本节固化收敛规则。
 
-### 7.1 DESIGN.md 文件
+### 7.1 主题分类
+| 类别 | 锚点 | 包含主题 |
+|------|------|---------|
+| 学术暖调 | Claude 浅色 | `academic`（待修复主色）、`base`、`workspace`、`classical-chinese`、`japanese-bw` |
+| 工程冷调 | Linear 暗色 | `pop-art-dark`、未来 `dark` 通用主题 |
+| 装饰候选删除 | — | `pop-art`、`rococo`、`pop-anime`、`art-deco` |
+| 几何中性 | 双锚点适配 | `swiss`、`bauhaus`、`minimalist-bw`、`neo-minimal`、`qi-baishi` |
 
-项目根目录 `web/DESIGN.md` 遵循 Stitch DESIGN.md 9-section 格式：
-1. Visual Theme & Atmosphere — 电影感、画廊式、内容优先
-2. Color Palette & Roles — OKLCH 色彩空间、语义化 token
-3. Typography Rules — Fraunces + IBM Plex Sans
-4. Component Stylings — Button/Card/Input/Drawer/Modal 规范
-5. Layout Principles — 间距体系、Z-Index 层级
-6. Depth & Elevation — 阴影系统、表面层级
-7. Do's and Don'ts — 设计 guardrails 和反模式
-8. Responsive Behavior — 断点、触摸目标、折叠策略
-9. Agent Prompt Guide — 快速颜色参考、ready-to-use prompts
+### 7.2 收敛路线图
+| 阶段 | 动作 |
+|------|------|
+| **P0** | 修复 `base.css` 第 57–80 行 CSS 嵌套 bug |
+| **P0** | `academic.css` 主色 `oklch(0.42 0.12 255)` → `oklch(0.56 0.16 40)` 暖棕 |
+| **P0** | Header 14 色块迁出到 Settings 抽屉 |
+| **P1** | 收敛 box-shadow 到 ring + whisper 两档；删除 `rounded-[1.6rem]` 等 ad-hoc 圆角 |
+| **P1** | 引入 Inter Variable cv01/ss03 + Source Serif 4（Anthropic Serif 替代）|
+| **P2** | 删除装饰候选主题（`rococo`、`pop-art`、`pop-anime`、`art-deco`，至少删 2 个）|
 
-### 7.2 主题系统架构
-
-**双轴主题系统：**
-- `data-theme` — 艺术主题（色调、品牌个性）: academic | qi-baishi | pop-anime | rococo | japanese-bw
-- `data-color-scheme` — 明暗模式: light | dark
-
-**实现要点：**
-- 两者正交共存，`<html data-theme="qi-baishi" data-color-scheme="dark">`
-- `appStore` (Zustand) 是 theme + colorScheme 的单一真相源
-- `index.html` inline script 在 React hydrate 前读取 Zustand localStorage 并应用属性，防止 FOUC
-- `useTheme()` 和 `useDarkMode()` 是 appStore 的薄封装
-
-### 7.3 设计 Token 工程化
-
-- 颜色定义使用 OKLCH 色彩空间（`themes/base.css`）
-- Tailwind v4 `@theme` 指令映射 CSS 自定义属性
-- 禁止使用原始 Tailwind 颜色类（如 `bg-green-500`）
-- 状态色使用语义 token：`--color-status-success`, `--color-status-error` 等
+### 7.3 新增主题门槛
+- 必须在 `references/README.md` 中先声明锚点归属
+- 必须通过本文件的「实现检查清单」全部勾选
+- 必须有至少 1 个真实使用场景（论文领域、配色诉求）
 
 ---
 
 ## 8. 实现检查清单
 
+### 8.1 首屏
 - [ ] 打开页面后，输入框在首屏可见（无需滚动）
 - [ ] "生成"按钮是页面上视觉上最重的元素
 - [ ] 没有纯装饰性内容占用首屏空间
 - [ ] 高级选项默认折叠
 - [ ] 标签持久可见，placeholder 仅用于格式示例
 - [ ] 每个元素都通过"三问"测试
-- [ ] `web/DESIGN.md` 存在且遵循 9-section Stitch 格式
-- [ ] 主题系统使用 `data-theme` + `data-color-scheme`，无冲突
-- [ ] App.tsx 行数控制在 150 行以内，职责分离清晰
-- [ ] 组件目录结构一致，legacy 组件已清理
+
+### 8.2 视觉锚点合规
+- [ ] 浅色页面背景使用 `oklch(0.96 0.01 95)` 暖羊皮纸（≈ `#f5f4ed`），不是纯白
+- [ ] 暗色页面背景使用 `oklch(0.10 0.005 264)` 近黑（≈ `#08090a`），不是纯黑
+- [ ] 文字色：浅色用 `oklch(0.20 0.005 80)`（warm near-black），暗色用 `oklch(0.97 0.005 264)`（warm off-white）
+- [ ] 主 CTA：浅色 Terracotta，暗色 Indigo
+- [ ] 阴影只用 `0 0 0 1px` ring（浅色）或 luminance step + `rgba(0,0,0,0.2) 0 0 0 1px`（暗色），**没有任何 drop-shadow**
+- [ ] 圆角集中在 sm/md/lg/2xl 四档，没有 ad-hoc 像素值
+- [ ] Header 不展示主题色块；主题切换在 Settings 抽屉内
+- [ ] Hero H1：浅色 Serif、暗色 Inter Variable + cv01/ss03
+
+### 8.3 主题清洁
+- [ ] 浅色主题中没有冷色调灰（`oklch(... 0.0X 200~280)`）
+- [ ] 暗色主题中没有暖色调 chrome
+- [ ] 主题文件 < 200 行（`workspace.css` 当前 2065 行需拆分）
+- [ ] CSS 嵌套语法正确（`base.css` bug 已修）

@@ -16,11 +16,20 @@ const (
 	// GD-UI-004: Resume event for snapshot restoration
 	EventResumeStarted EventType = "resume_start"
 
+	// Streaming result event for single-run output
+	EventResult EventType = "result"
+
+	// Error event for run-level failures
+	EventError EventType = "error"
+
 	// Batch event types for multi-candidate generation
 	EventBatchStarted     EventType = "batch_start"
 	EventCandidateStart   EventType = "candidate_start"
 	EventCandidateComplete EventType = "candidate_complete"
 	EventBatchCompleted   EventType = "batch_complete"
+
+	// Batch result event for aggregated batch output
+	EventBatchResult EventType = "batch_result"
 )
 
 type Event struct {

@@ -4,6 +4,28 @@
 PaperBanana/
 agentsdk-go/
 
+# Agent & workflow tooling state (not source of truth for the repo)
+.workflow/
+.agents/
+.codex/
+.kilocode/
+.playwright-mcp/
+.qoder/
+.claude/skills/
+.claude/agents/
+.claude/commands/
+.claude/hooks/
+.claude/settings.json
+.claude/scheduled_tasks.lock
+
+# Local scratch / screenshots / one-off reports
+.tmp/
+.tmp-*
+screenshot-*.png
+nul
+web/test-results/
+web/test-output.txt
+
 # Environment files with secrets
 .env
 .env.local
@@ -41,3 +63,6 @@ web/tsconfig.tsbuildinfo
 
 .DS_Store
 Thumbs.db
+
+# Windows alternate data stream metadata
+*:Zone.Identifier

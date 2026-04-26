@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type Theme = 'qi-baishi' | 'pop-anime' | 'rococo' | 'japanese-bw';
+export type Theme = 'academic' | 'qi-baishi' | 'pop-anime' | 'rococo' | 'japanese-bw';
 
 const THEME_STORAGE_KEY = 'paperbanana-theme';
 
@@ -12,7 +12,7 @@ const THEME_MIGRATION_MAP: Record<string, Theme> = {
 };
 
 function migrateTheme(oldTheme: string): Theme {
-  return THEME_MIGRATION_MAP[oldTheme] || (isValidTheme(oldTheme) ? oldTheme : 'qi-baishi');
+  return THEME_MIGRATION_MAP[oldTheme] || (isValidTheme(oldTheme) ? oldTheme : 'academic');
 }
 
 function getInitialTheme(): Theme {
@@ -29,12 +29,12 @@ function getInitialTheme(): Theme {
       return migrated;
     }
   }
-  // Default theme: Qi Baishi represents academic paper aesthetic
-  return 'qi-baishi';
+  // Default theme: Academic represents professional baseline
+  return 'academic';
 }
 
 function isValidTheme(theme: string): theme is Theme {
-  return ['qi-baishi', 'pop-anime', 'rococo', 'japanese-bw'].includes(theme);
+  return ['academic', 'qi-baishi', 'pop-anime', 'rococo', 'japanese-bw'].includes(theme);
 }
 
 export function useTheme() {
@@ -57,10 +57,11 @@ export function useTheme() {
     theme,
     setTheme,
     themes: [
-      { id: 'qi-baishi' as const, name: 'Qi Baishi' },
-      { id: 'pop-anime' as const, name: 'Pop Anime' },
-      { id: 'rococo' as const, name: 'Rococo' },
-      { id: 'japanese-bw' as const, name: 'Night Mono' },
+      { id: 'academic' as const, name: 'Academic', swatch: { bg: '#f6f2ea', ink: '#2a4a7a', accent: '#6a9a7a' } },
+      { id: 'qi-baishi' as const, name: 'Qi Baishi', swatch: { bg: '#fcfaf5', ink: '#c44a3a', accent: '#5a9a7a' } },
+      { id: 'pop-anime' as const, name: 'Pop Anime', swatch: { bg: '#f9f2dc', ink: '#e83a2a', accent: '#2a6aea' } },
+      { id: 'rococo' as const, name: 'Rococo', swatch: { bg: '#fffcf7', ink: '#c48a8a', accent: '#c4a45a' } },
+      { id: 'japanese-bw' as const, name: 'Night Mono', swatch: { bg: '#1c1c1c', ink: '#ebebeb', accent: '#a0a0a0' } },
     ] as const,
   };
 }

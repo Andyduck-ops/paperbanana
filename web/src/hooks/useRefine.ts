@@ -61,11 +61,20 @@ export function useRefine(options: UseRefineOptions = {}) {
     setState(createInitialState());
   }, []);
 
+  const restore = useCallback((result: RefineResult) => {
+    setState({
+      isRefining: false,
+      result,
+      error: null,
+    });
+  }, []);
+
   return {
     isRefining: state.isRefining,
     result: state.result,
     error: state.error,
     refine,
     reset,
+    restore,
   };
 }

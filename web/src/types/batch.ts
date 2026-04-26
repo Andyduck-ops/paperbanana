@@ -26,6 +26,7 @@ export interface BatchProgress {
   failed: number;
   startedAt: string;
   completedAt?: string;
+  downloadUrl?: string;
 }
 
 // UIArtifact is the frontend UI representation of an artifact with camelCase fields.
@@ -53,4 +54,20 @@ export function toUIArtifact(artifact: BatchArtifact): UIArtifact {
     projectId: artifact.metadata?.project_id,
     uri: artifact.uri,
   };
+}
+
+export async function downloadBatchArchive(batchId: string): Promise<void> {
+  const response = await fetch(`/api/v1/batches/${batchId}/download`);
+  if (!response.ok) {
+    throw new Error(`Download failed: HTTP ${response.status}`);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `batch-${batchId}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

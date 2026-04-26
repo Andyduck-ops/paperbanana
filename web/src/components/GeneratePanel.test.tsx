@@ -39,6 +39,14 @@ vi.mock('../hooks', () => ({
       return translations[key] || key;
     },
   }),
+  usePromptTemplates: () => ({
+    templates: [],
+    isLoading: false,
+    addTemplate: vi.fn(),
+    updateTemplate: vi.fn(),
+    deleteTemplate: vi.fn(),
+    getTemplate: vi.fn(),
+  }),
 }));
 
 vi.mock('../hooks/useProviders', () => ({

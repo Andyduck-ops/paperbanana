@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -61,14 +60,14 @@ type ListAssetsRequest struct {
 // AssetResponse represents a single asset in the response.
 // Storage internals are intentionally not exposed.
 type AssetResponse struct {
-	ID              string    `json:"id"`
-	ProjectID       string    `json:"project_id"`
-	VisualizationID string    `json:"visualization_id"`
-	VersionID       *string   `json:"version_id,omitempty"`
-	MIMEType        string    `json:"mime_type"`
-	ByteSize        int64     `json:"byte_size"`
-	ChecksumSHA256  string    `json:"checksum_sha256"`
-	CreatedAt       string    `json:"created_at"`
+	ID              string  `json:"id"`
+	ProjectID       string  `json:"project_id"`
+	VisualizationID string  `json:"visualization_id"`
+	VersionID       *string `json:"version_id,omitempty"`
+	MIMEType        string  `json:"mime_type"`
+	ByteSize        int64   `json:"byte_size"`
+	ChecksumSHA256  string  `json:"checksum_sha256"`
+	CreatedAt       string  `json:"created_at"`
 	// StorageKey is intentionally NOT included to hide storage internals
 	StorageKey string `json:"-"` // Always empty in responses
 }
@@ -235,6 +234,5 @@ func (h *AssetHandler) ListAssetsByVersion(c *gin.Context) {
 
 // isAssetNotFoundError checks if an error indicates a not found condition.
 func isAssetNotFoundError(err error) bool {
-	return errors.Is(err, errors.New("asset not found")) ||
-		err.Error() == "asset not found"
+	return err.Error() == "asset not found"
 }

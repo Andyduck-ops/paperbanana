@@ -3,11 +3,11 @@ import {
   ChannelManager,
   ModelSelector,
   RoleMapping,
+  TemplateManager,
 } from '../components';
-import {
-  useModelConfig,
-  ModelConfigProvider,
-} from '../context/ModelConfigContext';
+import { useTemplates, useTheme } from '../hooks';
+// Migration: Using Zustand store adapter instead of ModelConfigContext
+import { useProviderStoreAdapter } from '../hooks/useProviderStoreAdapter';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -16,8 +16,13 @@ interface SettingsPageProps {
   variant?: 'page' | 'drawer';
 }
 
-function SettingsContent({ onBack, variant = 'page' }: SettingsPageProps) {
+export function SettingsPage({ onBack, variant = 'page' }: SettingsPageProps) {
   const { t } = useTranslation();
+
+  // Appearance settings
+  const { theme, setTheme, themes } = useTheme();
+
+  // Migration: Using Zustand store adapter
   const {
     channels,
     role_assignments,
@@ -28,11 +33,19 @@ function SettingsContent({ onBack, variant = 'page' }: SettingsPageProps) {
     fetchChannelModels,
     assignRole,
     clearRole,
-  } = useModelConfig();
+  } = useProviderStoreAdapter();
+  
+  const {
+    templates,
+    isLoading: templatesLoading,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+  } = useTemplates();
 
   const pinnedChannelIds = new Set(
     Object.values(role_assignments)
-      .map((assignment) => assignment?.channel_id)
+      .map((assignment) => assignment?.provider_id)
       .filter((value): value is string => Boolean(value))
   );
 
@@ -64,8 +77,8 @@ function SettingsContent({ onBack, variant = 'page' }: SettingsPageProps) {
           </div>
         </div>
 
-        <button onClick={onBack} className="settings-shell__back-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <button onClick={onBack} className="settings-shell__back-button" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m15 18-6-6 6-6" />
           </svg>
           {t('common.back')}
@@ -122,9 +135,6 @@ function SettingsContent({ onBack, variant = 'page' }: SettingsPageProps) {
             {hasAvailableModels ? (
               <ModelSelector
                 channels={configuredChannels}
-                onSelect={(channelId, modelId) => {
-                  console.log('Selected model:', channelId, modelId);
-                }}
               />
             ) : (
               <div className="settings-empty-state">
@@ -173,10 +183,60 @@ function SettingsContent({ onBack, variant = 'page' }: SettingsPageProps) {
             )}
           </section>
 
+          {/* Appearance Settings */}
           <section className="workspace-stage__surface settings-shell__section">
-            <h3 className="settings-shell__section-title text-base">
+            <div className="settings-shell__section-head">
+              <div>
+                <h2 className="settings-shell__section-title">
+                  {t('settings.appearance', 'Appearance')}
+                </h2>
+                <p className="settings-shell__section-copy">
+                  {t('settings.appearanceDescription', 'Customize the look and feel of the application.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Theme Selector */}
+            <div className="space-y-3">
+              <span className="block text-sm font-medium text-foreground">
+                {t('theme.title', 'Theme')}
+              </span>
+              <div className="flex flex-wrap gap-3">
+                {themes.map((themeItem) => (
+                  <button
+                    key={themeItem.id}
+                    onClick={() => setTheme(themeItem.id)}
+                    className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all duration-150 ${
+                      theme === themeItem.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border bg-background hover:border-primary/40'
+                    }`}
+                  >
+                    <span
+                      className={`w-6 h-6 rounded-full border-2 transition-all ${
+                        theme === themeItem.id ? 'border-primary scale-105' : 'border-muted'
+                      }`}
+                      style={{
+                        background: `linear-gradient(135deg, ${themeItem.swatch.bg} 50%, ${themeItem.swatch.ink} 50%)`,
+                      }}
+                    />
+                    <span className={`text-sm font-medium ${
+                      theme === themeItem.id ? 'text-primary' : 'text-foreground'
+                    }`}>
+                      {t(`theme.options.${themeItem.id}.label`) || themeItem.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+
+          </section>
+
+          <section className="workspace-stage__surface settings-shell__section">
+            <h2 className="settings-shell__section-title text-base">
               {t('modelConfig.configurationSummary', 'Configuration Summary')}
-            </h3>
+            </h2>
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between border-b border-border/30 py-2">
                 <span className="text-muted-foreground">{t('modelConfig.totalChannels', 'Configured Channels')}</span>
@@ -196,14 +256,31 @@ function SettingsContent({ onBack, variant = 'page' }: SettingsPageProps) {
           </section>
         </div>
       </div>
-    </div>
-  );
-}
 
-export function SettingsPage(props: SettingsPageProps) {
-  return (
-    <ModelConfigProvider>
-      <SettingsContent {...props} />
-    </ModelConfigProvider>
+      {/* Template Management Section */}
+      <div className="settings-main-grid">
+        <div className="settings-column" style={{ gridColumn: '1 / -1' }}>
+          <section className="workspace-stage__surface settings-shell__section">
+            <div className="settings-shell__section-head">
+              <div>
+                <h2 className="settings-shell__section-title">
+                  {t('template.title', 'Template Management')}
+                </h2>
+                <p className="settings-shell__section-copy">
+                  {t('template.description', 'Manage reusable prompt templates for common figure types.')}
+                </p>
+              </div>
+            </div>
+            <TemplateManager
+              templates={templates}
+              isLoading={templatesLoading}
+              onCreate={createTemplate}
+              onUpdate={updateTemplate}
+              onDelete={deleteTemplate}
+            />
+          </section>
+        </div>
+      </div>
+    </div>
   );
 }

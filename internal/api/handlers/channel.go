@@ -90,7 +90,7 @@ func (h *ChannelHandler) DeleteChannelAPIKey(c *gin.Context) {
 
 // ChannelRoleRequest is the request body for setting role assignments.
 type ChannelRoleRequest struct {
-	Role      string `json:"role" binding:"required"`       // "image_generation" or "retrieval_reasoning"
+	Role      string `json:"role" binding:"required"` // "image_generation" or "retrieval_reasoning"
 	ChannelID string `json:"channel_id" binding:"required"`
 	ModelID   string `json:"model_id" binding:"required"`
 }
@@ -149,10 +149,10 @@ func (h *ChannelHandler) SetRoleAssignment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"role":    req.Role,
+		"success":    true,
+		"role":       req.Role,
 		"channel_id": req.ChannelID,
-		"model_id": req.ModelID,
+		"model_id":   req.ModelID,
 	})
 }
 

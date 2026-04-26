@@ -1,0 +1,434 @@
+/**
+ * PaperBanana Component Animation Styles
+ * Pre-built animation styles for common UI components
+ */
+
+@import './keyframes.css';
+
+/* ============================================
+   BUTTON ANIMATIONS
+   ============================================ */
+.btn-animate {
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+  will-change: transform;
+}
+
+.btn-animate:hover {
+  transform: translateY(-1px);
+}
+
+.btn-animate:active {
+  transform: scale(0.98);
+  transition-duration: var(--duration-fast);
+}
+
+.btn-animate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading state */
+.btn-animate.is-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-animate.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s var(--ease-linear) infinite;
+  top: 50%;
+  left: 50%;
+  margin-top: -0.5em;
+  margin-left: -0.5em;
+}
+
+/* ============================================
+   CARD ANIMATIONS
+   ============================================ */
+.card-animate {
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+  will-change: transform;
+}
+
+.card-animate:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--theme-surface-shadow, 0 18px 60px rgba(43, 32, 20, 0.12));
+}
+
+.card-animate-enter {
+  animation: scale-in var(--duration-slow) var(--ease-out) both;
+}
+
+/* ============================================
+   SKELETON/LOADING STATES
+   ============================================ */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--theme-muted, oklch(0.93 0.01 90)) 25%,
+    var(--theme-background, oklch(0.97 0.01 90)) 50%,
+    var(--theme-muted, oklch(0.93 0.01 90)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s var(--ease-linear) infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-text:last-child {
+  width: 80%;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.skeleton-card {
+  min-height: 120px;
+}
+
+/* ============================================
+   MODAL/DIALOG ANIMATIONS
+   ============================================ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: backdrop-fade-in var(--duration-base) var(--ease-out) both;
+}
+
+.modal-backdrop.is-exiting {
+  animation: backdrop-fade-out var(--duration-fast) var(--ease-in-out) both;
+}
+
+.modal-content {
+  animation: modal-enter var(--duration-base) var(--ease-spring) both;
+}
+
+.modal-content.is-exiting {
+  animation: modal-exit var(--duration-fast) var(--ease-in-out) both;
+}
+
+/* ============================================
+   TOAST NOTIFICATION ANIMATIONS
+   ============================================ */
+.toast-container {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast-container[data-position="top-right"] {
+  top: 1rem;
+  right: 1rem;
+}
+
+.toast-container[data-position="top-left"] {
+  top: 1rem;
+  left: 1rem;
+}
+
+.toast-container[data-position="bottom-right"] {
+  bottom: 1rem;
+  right: 1rem;
+}
+
+.toast-container[data-position="bottom-left"] {
+  bottom: 1rem;
+  left: 1rem;
+}
+
+.toast {
+  pointer-events: auto;
+  animation: toast-enter var(--duration-slow) var(--ease-out) both;
+}
+
+.toast.is-exiting {
+  animation: toast-exit var(--duration-base) var(--ease-in-out) both;
+}
+
+/* ============================================
+   PROGRESS BAR ANIMATIONS
+   ============================================ */
+.progress-bar {
+  overflow: hidden;
+  background: var(--theme-muted, oklch(0.93 0.01 90));
+  border-radius: 9999px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--theme-primary, oklch(0.46 0.1 40));
+  border-radius: 9999px;
+  transition: width var(--duration-slow) var(--ease-in);
+  will-change: width;
+}
+
+.progress-bar.indeterminate .progress-bar-fill {
+  width: 50%;
+  animation: indeterminate 1.5s var(--ease-in-out) infinite;
+}
+
+.progress-bar.striped .progress-bar-fill {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: progress-stripes 1s var(--ease-linear) infinite;
+}
+
+/* ============================================
+   INPUT FIELD ANIMATIONS
+   ============================================ */
+.input-animate {
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.input-animate:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.input-animate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Floating label animation */
+.floating-label {
+  position: relative;
+}
+
+.floating-label label {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    font-size var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+  pointer-events: none;
+  color: var(--theme-muted-foreground, oklch(0.48 0.03 60));
+}
+
+.floating-label input:focus + label,
+.floating-label input:not(:placeholder-shown) + label,
+.floating-label textarea:focus + label,
+.floating-label textarea:not(:placeholder-shown) + label {
+  transform: translateY(-140%) scale(0.85);
+  color: var(--theme-primary, oklch(0.46 0.1 40));
+}
+
+/* ============================================
+   SCROLL REVEAL ANIMATIONS
+   ============================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.reveal-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(30px);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.reveal-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-spring);
+  will-change: opacity, transform;
+}
+
+.reveal-scale.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Stagger reveal container */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+}
+
+.reveal-stagger.is-visible > *:nth-child(1) { transition-delay: calc(var(--stagger-increment) * 0); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: calc(var(--stagger-increment) * 1); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: calc(var(--stagger-increment) * 2); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: calc(var(--stagger-increment) * 3); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: calc(var(--stagger-increment) * 4); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: calc(var(--stagger-increment) * 5); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(7) { transition-delay: calc(var(--stagger-increment) * 6); opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(8) { transition-delay: calc(var(--stagger-increment) * 7); opacity: 1; transform: translateY(0); }
+
+/* ============================================
+   PAGE TRANSITION ANIMATIONS
+   ============================================ */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-slower) var(--ease-out),
+    transform var(--duration-slower) var(--ease-out);
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    opacity var(--duration-base) var(--ease-in-out),
+    transform var(--duration-base) var(--ease-in-out);
+}
+
+/* ============================================
+   ERROR/VALIDATION ANIMATIONS
+   ============================================ */
+.field-error {
+  animation: shake 0.5s var(--ease-in-out) both;
+}
+
+.validation-success {
+  animation: scale-spring 0.4s var(--ease-spring) both;
+}
+
+/* ============================================
+   HOVER EFFECTS
+   ============================================ */
+.hover-lift {
+  transition: transform var(--duration-base) var(--ease-out);
+  will-change: transform;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.hover-scale {
+  transition: transform var(--duration-base) var(--ease-out);
+  will-change: transform;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow {
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(var(--theme-primary-rgb, 118, 74, 46), 0.3);
+}
+
+/* ============================================
+   REDUCED MOTION FALLBACKS
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .btn-animate:hover,
+  .card-animate:hover,
+  .input-animate:focus,
+  .hover-lift:hover,
+  .hover-scale:hover {
+    transform: none;
+  }
+
+  .reveal,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale,
+  .reveal-stagger > * {
+    opacity: 1;
+    transform: none;
+    transition: opacity var(--reduced-motion-duration) linear;
+  }
+
+  .progress-bar-fill {
+    transition: none;
+  }
+
+  .field-error {
+    animation: none;
+  }
+
+  .skeleton {
+    animation: none;
+    background: var(--theme-muted, oklch(0.93 0.01 90));
+  }
+}

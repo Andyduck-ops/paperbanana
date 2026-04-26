@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../hooks';
+import { Button } from './atoms';
 import { exportAsPng, exportAsSvg, exportAsPdf } from '../lib/export';
 
 export type ExportFormat = 'png' | 'svg' | 'pdf';
@@ -114,19 +115,23 @@ export function ExportModal({
           )}
 
           <div className="flex gap-2 pt-4">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded border border-border text-foreground hover:bg-muted transition-colors"
             >
               {t('common.cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              fullWidth
+              isLoading={isExporting}
               onClick={handleExport}
-              disabled={isExporting}
-              className="flex-1 px-4 py-2 rounded bg-primary text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
-              {isExporting ? t('export.exporting') : t('export.download')}
-            </button>
+              {t('export.download')}
+            </Button>
           </div>
         </div>
       </div>

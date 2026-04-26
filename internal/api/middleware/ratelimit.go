@@ -24,9 +24,9 @@ type tokenBucket struct {
 
 // rateLimiter manages rate limiting for multiple keys.
 type rateLimiter struct {
-	buckets    map[string]*tokenBucket
-	mu         sync.RWMutex
-	config     RateLimitConfig
+	buckets     map[string]*tokenBucket
+	mu          sync.RWMutex
+	config      RateLimitConfig
 	stopCleanup chan struct{}
 }
 
@@ -143,8 +143,8 @@ func RateLimit(config RateLimitConfig) gin.HandlerFunc {
 		if !allowed {
 			c.Header("Retry-After", "60")
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error":   "Rate limit exceeded",
-				"code":    "rate_limit_exceeded",
+				"error":       "Rate limit exceeded",
+				"code":        "rate_limit_exceeded",
 				"retry_after": 60,
 			})
 			return
@@ -171,8 +171,8 @@ func RateLimitByIP(config RateLimitConfig) gin.HandlerFunc {
 		if !allowed {
 			c.Header("Retry-After", "60")
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error":   "Rate limit exceeded",
-				"code":    "rate_limit_exceeded",
+				"error":       "Rate limit exceeded",
+				"code":        "rate_limit_exceeded",
 				"retry_after": 60,
 			})
 			return

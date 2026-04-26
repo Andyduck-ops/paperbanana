@@ -1,0 +1,578 @@
+/**
+ * PaperBanana Animation Keyframes Library
+ * GPU-accelerated, compositor-only animations
+ */
+
+/* ============================================
+   MOTION TOKENS (CSS Custom Properties)
+   ============================================ */
+:root {
+  /* Easing functions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-linear: linear;
+
+  /* Duration scale */
+  --duration-fast: 0.15s;
+  --duration-base: 0.3s;
+  --duration-slow: 0.6s;
+  --duration-slower: 0.8s;
+  --duration-slowest: 1.2s;
+
+  /* Stagger */
+  --stagger-increment: 0.05s;
+  --stagger-max-items: 8;
+
+  /* Reduced motion override */
+  --reduced-motion-duration: 0.01ms;
+}
+
+/* ============================================
+   FADE ANIMATIONS
+   ============================================ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-left {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-right {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   SLIDE ANIMATIONS
+   ============================================ */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-down {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   SCALE ANIMATIONS
+   ============================================ */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes scale-spring {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scale-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* ============================================
+   LOADING ANIMATIONS
+   ============================================ */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes dots {
+  0%, 80%, 100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   PROGRESS ANIMATIONS
+   ============================================ */
+@keyframes progress-stripes {
+  from {
+    background-position: 1rem 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   MODAL/TOAST ANIMATIONS
+   ============================================ */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+}
+
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   PAGE TRANSITION ANIMATIONS
+   ============================================ */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes page-fade-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes page-fade-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   ATTENTION ANIMATIONS
+   ============================================ */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+/* ============================================
+   UTILITY ANIMATION CLASSES
+   ============================================ */
+
+/* Fade utilities */
+.animate-fade-in {
+  animation: fade-in var(--duration-base) var(--ease-out) both;
+}
+
+.animate-fade-out {
+  animation: fade-out var(--duration-base) var(--ease-in-out) both;
+}
+
+.animate-fade-up {
+  animation: fade-up var(--duration-slow) var(--ease-out) both;
+}
+
+.animate-fade-down {
+  animation: fade-down var(--duration-slow) var(--ease-out) both;
+}
+
+.animate-fade-left {
+  animation: fade-left var(--duration-slow) var(--ease-out) both;
+}
+
+.animate-fade-right {
+  animation: fade-right var(--duration-slow) var(--ease-out) both;
+}
+
+/* Slide utilities */
+.animate-slide-in-left {
+  animation: slide-in-left var(--duration-slower) var(--ease-out) both;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right var(--duration-slower) var(--ease-out) both;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up var(--duration-slower) var(--ease-out) both;
+}
+
+.animate-slide-in-down {
+  animation: slide-in-down var(--duration-slower) var(--ease-out) both;
+}
+
+/* Scale utilities */
+.animate-scale-in {
+  animation: scale-in var(--duration-slow) var(--ease-out) both;
+}
+
+.animate-scale-out {
+  animation: scale-out var(--duration-base) var(--ease-in-out) both;
+}
+
+.animate-scale-spring {
+  animation: scale-spring var(--duration-slow) var(--ease-spring) both;
+}
+
+/* Loading utilities */
+.animate-spin {
+  animation: spin 1s var(--ease-linear) infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s var(--ease-out) infinite;
+}
+
+/* Modal utilities */
+.animate-modal-enter {
+  animation: modal-enter var(--duration-base) var(--ease-spring) both;
+}
+
+.animate-modal-exit {
+  animation: modal-exit var(--duration-fast) var(--ease-in-out) both;
+}
+
+.animate-toast-enter {
+  animation: toast-enter var(--duration-slow) var(--ease-out) both;
+}
+
+.animate-toast-exit {
+  animation: toast-exit var(--duration-base) var(--ease-in-out) both;
+}
+
+/* Page utilities */
+.animate-page-enter {
+  animation: page-enter var(--duration-slower) var(--ease-out) both;
+}
+
+.animate-page-exit {
+  animation: page-exit var(--duration-base) var(--ease-in-out) both;
+}
+
+/* Attention utilities */
+.animate-shake {
+  animation: shake 0.5s var(--ease-in-out) both;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.3s var(--ease-in-out) both;
+}
+
+/* Stagger children */
+.stagger-children > * {
+  opacity: 0;
+  animation: fade-up var(--duration-slow) var(--ease-out) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: calc(var(--stagger-increment) * 0); }
+.stagger-children > *:nth-child(2) { animation-delay: calc(var(--stagger-increment) * 1); }
+.stagger-children > *:nth-child(3) { animation-delay: calc(var(--stagger-increment) * 2); }
+.stagger-children > *:nth-child(4) { animation-delay: calc(var(--stagger-increment) * 3); }
+.stagger-children > *:nth-child(5) { animation-delay: calc(var(--stagger-increment) * 4); }
+.stagger-children > *:nth-child(6) { animation-delay: calc(var(--stagger-increment) * 5); }
+.stagger-children > *:nth-child(7) { animation-delay: calc(var(--stagger-increment) * 6); }
+.stagger-children > *:nth-child(8) { animation-delay: calc(var(--stagger-increment) * 7); }
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--reduced-motion-duration) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--reduced-motion-duration) !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep opacity transitions for state changes but make them instant */
+  .animate-fade-in,
+  .animate-fade-out,
+  .animate-fade-up,
+  .animate-fade-down,
+  .animate-fade-left,
+  .animate-fade-right {
+    animation-name: fade-in;
+  }
+
+  /* Disable transform-based animations */
+  .animate-slide-in-left,
+  .animate-slide-in-right,
+  .animate-slide-in-up,
+  .animate-slide-in-down,
+  .animate-scale-spring,
+  .animate-bounce,
+  .animate-shake,
+  .animate-wiggle {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Disable infinite animations */
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none;
+  }
+}

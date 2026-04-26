@@ -24,6 +24,10 @@
       "japanese-bw": {
         "label": "夜色黑白",
         "description": "深色背景、克制灰阶与静谧留白。"
+      },
+      "academic": {
+        "label": "学术",
+        "description": "深藏青主色、暖纸底色与克制的学术排版。"
       }
     }
   },
@@ -66,10 +70,43 @@
     },
     "newProject": "新建项目",
     "openProject": "打开项目",
-    "noProjects": "暂无项目"
+    "noProjects": "暂无项目",
+    "heroTitle": "扎根论文上下文的学术配图",
+    "heroDescription": "将论文摘录、参考文献和审稿约束转化为适合发表的插图——再叠加分栏结构、标注和精修风格。",
+    "heroCards": {
+      "contextLabel": "上下文",
+      "contextBody": "粘贴方法描述、相关配图和审稿意见，为每个视觉决策提供依据。",
+      "outputLabel": "输出",
+      "outputBody": "获得整洁的论文幅宽配图，包含分栏、图例和学术配色。",
+      "workflowLabel": "工作流",
+      "workflowBody": "从标注到成稿配图，配合自动评审与迭代精修。"
+    },
+    "quickActionsTitle": "快捷操作",
+    "quickActions": {
+      "primaryLabel": "开始论文配图",
+      "primaryBody": "粘贴文本与说明，选择可视化节点，逐步推进生成流水线。",
+      "history": "工作记录",
+      "settings": "配置通道"
+    }
+  },
+  "projects": {
+    "title": "项目",
+    "newProject": "新建项目",
+    "createProject": "创建项目",
+    "noProjects": "暂无项目",
+    "createFirst": "创建第一个项目开始使用",
+    "created": "创建于",
+    "name": "名称",
+    "namePlaceholder": "输入项目名称",
+    "description": "描述",
+    "descriptionPlaceholder": "输入项目描述（可选）",
+    "deleteTitle": "删除项目",
+    "deleteConfirm": "此操作无法撤销",
+    "projectName": "项目名称"
   },
   "generate": {
     "title": "论文配图生成",
+    "subtitle": "输入论文上下文与目标描述，AI 自动生成学术插图",
     "panelTitle": "先对齐论文上下文，再定义最终配图。",
     "panelDescription": "左侧输入论文摘录、相关工作、参考配图和说明；右侧定义目标配图的结构、风格、标注与限制。",
     "descriptionLabel": "描述您的任务",
@@ -136,7 +173,16 @@
     "running": "运行中...",
     "downloadAll": "下载全部为 ZIP",
     "downloading": "下载中...",
-    "configureProviders": "先在设置中配置通道"
+    "configureProviders": "先在设置中配置通道",
+    "compare": "对比",
+    "maxSelectionReached": "最多选择 {{max}} 个候选",
+    "selectToCompare": "选择 2-{{max}} 个候选进行对比",
+    "noCompletedCandidates": "没有已完成的候选可对比",
+    "compareCandidates": "对比候选",
+    "candidatesSelected": "个候选已选中",
+    "noImage": "无图像",
+    "enableComparison": "启用对比模式",
+    "selected": "已选中"
   },
   "history": {
     "title": "工作记录",
@@ -161,7 +207,15 @@
       "failed": "失败",
       "running": "运行中",
       "pending": "等待中"
-    }
+    },
+    "search": "搜索历史...",
+    "filter": "筛选",
+    "dateRange": "日期范围",
+    "from": "开始日期",
+    "to": "结束日期",
+    "clearFilters": "清除筛选",
+    "noResults": "未找到匹配的历史记录",
+    "savedToHistory": "结果已保存到历史"
   },
   "export": {
     "title": "导出",
@@ -266,7 +320,11 @@
     "testing": "测试中...",
     "clear": "清除",
     "add": "添加",
-    "remove": "移除"
+    "remove": "移除",
+    "create": "创建",
+    "creating": "创建中...",
+    "deleting": "删除中...",
+    "next": "下一步"
   },
   "refine": {
     "title": "论文配图精修",
@@ -305,6 +363,17 @@
     "shellDescription": "历史记录、批量结果和笔记集中放在侧栏，不打断当前编辑。",
     "nextPass": "下一步",
     "nextPassDescription": "继续收紧层级、间距和按钮文案，让界面更稳。"
+  },
+  "wizard": {
+    "welcome": "欢迎使用 PaperBanana",
+    "welcomeDesc": "让我们为您的工作区配置生成论文配图的能力。",
+    "configure": "配置提供商",
+    "configureDesc": "连接 AI 提供商以启用配图生成功能。",
+    "goToSettings": "前往设置",
+    "start": "开始生成",
+    "startDesc": "配置完成！开始为您的论文创建配图。",
+    "skip": "暂时跳过",
+    "getStarted": "开始使用"
   },
   "footer": {
     "github": "GitHub",
@@ -354,6 +423,13 @@
     "channels": "通道",
     "models": "模型",
     "enabled": "已启用",
+    "addProvider": "添加提供商",
+    "editProvider": "编辑提供商",
+    "deleteProvider": "删除提供商",
+    "confirmDeleteProvider": "删除提供商？",
+    "deleteProviderWarning": "这将永久删除 {{name}} 及其所有模型配置。",
+    "noProviders": "未配置提供商",
+    "addProviderHint": "添加提供商以开始使用模型",
     "addChannel": "添加通道",
     "editChannel": "编辑通道",
     "deleteChannel": "删除通道",
@@ -383,13 +459,16 @@
     "removeModel": "移除模型",
     "noModelsAvailable": "无可用模型",
     "fetchModelsHint": "从通道获取模型以开始使用",
+    "fetchProviderModelsHint": "从提供商获取模型以开始使用",
     "hiddenSystemChannelsHint": "添加并配置一个通道后，这里才会显示可选模型。",
+    "hiddenSystemProvidersHint": "添加并配置一个提供商后，这里才会显示可选模型。",
     "noEnabledModels": "无已启用模型",
     "enableModelsHint": "使用 + 按钮启用模型",
     "noMatchingModels": "无匹配模型",
     "tryDifferentSearch": "尝试不同的搜索词",
     "searchModels": "搜索模型...",
     "allChannels": "所有通道",
+    "allProviders": "所有提供商",
     "selected": "已选择",
     "selectorDisabled": "模型选择器已禁用",
     "noModels": "无可用模型",
@@ -408,6 +487,7 @@
     "noAssignments": "未配置角色分配",
     "assignRolesHint": "在上面为工作流角色分配模型",
     "totalChannels": "已配置通道",
+    "totalProviders": "已配置提供商",
     "imageGenAssigned": "图像生成已分配",
     "totalAssignments": "已分配角色",
     "currentAssignments": "当前分配",
@@ -433,5 +513,70 @@
         "cap3": "质量评估"
       }
     }
+  },
+
+  "folder": {
+    "title": "文件夹",
+    "root": "首页",
+    "newFolder": "新建文件夹",
+    "rename": "重命名",
+    "delete": "删除",
+    "empty": "暂无内容",
+    "create": "创建文件夹",
+    "createPlaceholder": "输入文件夹名称...",
+    "renamePlaceholder": "输入新名称...",
+    "confirmDelete": "确定要删除'{{name}}'吗？",
+    "created": "文件夹已创建",
+    "renamed": "文件夹已重命名",
+    "deleted": "文件夹已删除",
+    "error": "操作失败"
+  },
+  "version": {
+    "title": "版本历史",
+    "v": "版本",
+    "versions": "个版本",
+    "latest": "最新",
+    "preview": "预览",
+    "restore": "恢复",
+    "restored": "版本已恢复",
+    "artifacts": "产物",
+    "loading": "加载版本中...",
+    "noVersions": "暂无版本",
+    "error": "加载版本失败"
+  },
+  "template": {
+    "title": "模板管理",
+    "new": "新建模板",
+    "edit": "编辑模板",
+    "create": "创建模板",
+    "name": "名称",
+    "category": "分类",
+    "description": "描述",
+    "content": "内容",
+    "allCategories": "全部",
+    "noTemplates": "暂无模板",
+    "loading": "加载模板中...",
+    "confirmDelete": "确定要删除此模板吗？",
+    "created": "模板已创建",
+    "updated": "模板已更新",
+    "deleted": "模板已删除",
+    "error": "操作失败"
+  },
+  "templates": {
+    "title": "提示词模板",
+    "select": "选择模板",
+    "save": "保存为模板",
+    "delete": "删除模板",
+    "empty": "暂无模板",
+    "createHint": "保存当前提示词为模板以便重复使用",
+    "namePlaceholder": "模板名称..."
+  },
+  "shortcuts": {
+    "title": "键盘快捷键",
+    "newGeneration": "新建生成",
+    "export": "导出结果",
+    "focusHistory": "聚焦历史",
+    "closeModal": "关闭弹窗",
+    "showHelp": "显示快捷键帮助"
   }
 }

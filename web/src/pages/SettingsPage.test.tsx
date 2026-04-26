@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
-import { SettingsPage } from './SettingsPage';
 
-const mockUseModelConfig = vi.fn();
+import { SettingsPage } from './SettingsPage';
+import type { Provider } from '../stores';
+
+const mockUseProviderStore = vi.fn();
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -11,9 +12,8 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../context/ModelConfigContext', () => ({
-  ModelConfigProvider: ({ children }: { children: ReactNode }) => children,
-  useModelConfig: () => mockUseModelConfig(),
+vi.mock('../stores', () => ({
+  useProviderStore: (selector: (state: unknown) => unknown) => mockUseProviderStore(selector),
 }));
 
 vi.mock('../components', () => ({
@@ -30,46 +30,51 @@ vi.mock('../components', () => ({
 
 describe('SettingsPage', () => {
   beforeEach(() => {
-    mockUseModelConfig.mockReset();
+    mockUseProviderStore.mockReset();
   });
 
   it('keeps custom draft channels visible while still hiding untouched system presets', () => {
-    mockUseModelConfig.mockReturnValue({
-      channels: [
-        {
-          id: 'system-openai',
-          name: 'openai',
-          type: 'openai',
-          display_name: 'OpenAI',
-          timeout: 60,
-          enabled: true,
-          models: [],
-          status: 'no_keys',
-          is_system: true,
-        },
-        {
-          id: 'lab-proxy',
-          name: 'lab-proxy',
-          type: 'custom',
-          display_name: 'Lab Proxy',
-          timeout: 60,
-          enabled: true,
-          models: [],
-          status: 'no_keys',
-          is_system: false,
-        },
-      ],
-      role_assignments: {
-        image_generation: null,
-        retrieval_reasoning: null,
+    const mockProviders: Provider[] = [
+      {
+        id: 'system-openai',
+        name: 'openai',
+        type: 'openai',
+        display_name: 'OpenAI',
+        timeout: 60,
+        enabled: true,
+        models: [],
+        status: 'no_keys',
+        is_system: true,
       },
-      loading: false,
-      addChannel: vi.fn(),
-      updateChannel: vi.fn(),
-      deleteChannel: vi.fn(),
-      fetchChannelModels: vi.fn(),
-      assignRole: vi.fn(),
-      clearRole: vi.fn(),
+      {
+        id: 'lab-proxy',
+        name: 'lab-proxy',
+        type: 'custom',
+        display_name: 'Lab Proxy',
+        timeout: 60,
+        enabled: true,
+        models: [],
+        status: 'no_keys',
+        is_system: false,
+      },
+    ];
+
+    mockUseProviderStore.mockImplementation((selector) => {
+      const state = {
+        providers: mockProviders,
+        role_assignments: {
+          image_generation: null,
+          retrieval_reasoning: null,
+        },
+        loading: false,
+        addProvider: vi.fn(),
+        updateProvider: vi.fn(),
+        deleteProvider: vi.fn(),
+        fetchProviderModels: vi.fn(),
+        setRoleAssignment: vi.fn(),
+        clearRoleAssignment: vi.fn(),
+      };
+      return selector(state);
     });
 
     render(<SettingsPage onBack={vi.fn()} />);
@@ -80,31 +85,36 @@ describe('SettingsPage', () => {
   });
 
   it('shows configured channels in models and role mapping sections', () => {
-    mockUseModelConfig.mockReturnValue({
-      channels: [
-        {
-          id: 'configured-openai',
-          name: 'openai',
-          type: 'openai',
-          display_name: 'OpenAI',
-          timeout: 60,
-          enabled: true,
-          models: [{ id: 'gpt-4.1', name: 'gpt-4.1', enabled: true }],
-          status: 'configured',
-          is_system: true,
-        },
-      ],
-      role_assignments: {
-        image_generation: null,
-        retrieval_reasoning: null,
+    const mockProviders: Provider[] = [
+      {
+        id: 'configured-openai',
+        name: 'openai',
+        type: 'openai',
+        display_name: 'OpenAI',
+        timeout: 60,
+        enabled: true,
+        models: [{ id: 'gpt-4.1', name: 'gpt-4.1', enabled: true }],
+        status: 'configured',
+        is_system: true,
       },
-      loading: false,
-      addChannel: vi.fn(),
-      updateChannel: vi.fn(),
-      deleteChannel: vi.fn(),
-      fetchChannelModels: vi.fn(),
-      assignRole: vi.fn(),
-      clearRole: vi.fn(),
+    ];
+
+    mockUseProviderStore.mockImplementation((selector) => {
+      const state = {
+        providers: mockProviders,
+        role_assignments: {
+          image_generation: null,
+          retrieval_reasoning: null,
+        },
+        loading: false,
+        addProvider: vi.fn(),
+        updateProvider: vi.fn(),
+        deleteProvider: vi.fn(),
+        fetchProviderModels: vi.fn(),
+        setRoleAssignment: vi.fn(),
+        clearRoleAssignment: vi.fn(),
+      };
+      return selector(state);
     });
 
     render(<SettingsPage onBack={vi.fn()} />);

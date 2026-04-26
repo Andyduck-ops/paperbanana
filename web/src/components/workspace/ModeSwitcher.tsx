@@ -15,7 +15,7 @@ export interface ModeSwitcherProps {
  * Designed to feel like a mode change, not a page navigation.
  *
  * Visual design:
- * - Segmented control style
+ * - Segmented control style with animated sliding indicator
  * - Clear active state with background highlight
  * - Icon + label for quick recognition
  * - Subtle hover states
@@ -29,7 +29,7 @@ export function ModeSwitcher({
 
   return (
     <div
-      className="mode-switcher inline-flex items-center gap-1 p-1 rounded-xl bg-muted/50 border border-border/50"
+      className="mode-switcher inline-flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border/50 relative"
       role="radiogroup"
       aria-label="Workspace mode"
     >
@@ -41,12 +41,12 @@ export function ModeSwitcher({
         disabled={disabled}
         className={`
           mode-switcher__option
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+          relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
           transition-all duration-200 ease-out
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
           ${mode === 'generate'
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            ? 'text-primary-foreground'
+            : 'text-muted-foreground hover:text-foreground'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
@@ -58,11 +58,11 @@ export function ModeSwitcher({
           stroke="currentColor"
           viewBox="0 0 24 24"
           aria-hidden="true"
+          strokeWidth={2}
         >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={2}
             d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
           />
         </svg>
@@ -77,12 +77,12 @@ export function ModeSwitcher({
         disabled={disabled}
         className={`
           mode-switcher__option
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+          relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
           transition-all duration-200 ease-out
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
           ${mode === 'refine'
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            ? 'text-primary-foreground'
+            : 'text-muted-foreground hover:text-foreground'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
@@ -94,11 +94,11 @@ export function ModeSwitcher({
           stroke="currentColor"
           viewBox="0 0 24 24"
           aria-hidden="true"
+          strokeWidth={2}
         >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={2}
             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
           />
         </svg>

@@ -1,28 +1,28 @@
 import { test, expect } from '@playwright/test';
 
 test('should load page with title', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(1000);
   await expect(page).toHaveTitle(/PaperBanana/);
 });
 
 test('should display header with logo and controls', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
-  await expect(page.locator('h1:has-text("PaperBanana")')).toBeVisible();
-  const themeButtons = page.locator('button[role="radio"]');
-  expect(await themeButtons.count()).toBe(4);
+  await expect(page.locator('span:has-text("PaperBanana")')).toBeVisible();
+  const themeButtons = page.locator('button[aria-pressed][style]');
+  expect(await themeButtons.count()).toBe(5);
 });
 
-test('should switch between all 4 themes', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+test('should switch between all 5 themes', async ({ page }) => {
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
-  const themeButtons = page.locator('button[role="radio"]');
-  const themes = ['swiss', 'bauhaus', 'neo-minimal', 'art-deco'];
+  const themeButtons = page.locator('button[aria-pressed]');
+  const themes = ['academic', 'qi-baishi', 'pop-anime', 'rococo', 'japanese-bw'];
   
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < themes.length; i++) {
     await themeButtons.nth(i).click();
     await page.waitForTimeout(300);
     const theme = await page.locator('html').getAttribute('data-theme');
@@ -31,7 +31,7 @@ test('should switch between all 4 themes', async ({ page }) => {
 });
 
 test('should toggle language', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
   const enBtn = page.locator('button:has-text("EN")');
@@ -43,26 +43,20 @@ test('should toggle language', async ({ page }) => {
   await page.waitForTimeout(300);
 });
 
-test('should open and close history panel', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+test('should open history panel', async ({ page }) => {
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
   const historyBtn = page.locator('button[aria-label*="历史"], button:has-text("历史记录")').first();
   await historyBtn.click();
   await page.waitForTimeout(500);
   
-  const historyPanel = page.locator('dialog, [role="dialog"]');
-  expect(await historyPanel.count()).toBeGreaterThan(0);
-  
-  const closeBtn = page.locator('button[aria-label*="关闭"], button:has-text("关闭")');
-  if (await closeBtn.count() > 0) {
-    await closeBtn.first().click();
-    await page.waitForTimeout(300);
-  }
+  const historyPanel = page.locator('[role="dialog"]');
+  await expect(historyPanel.first()).toBeVisible();
 });
 
 test('should switch between generate and refine modes', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
   const generateBtn = page.locator('button:has-text("生成")').first();
@@ -75,7 +69,7 @@ test('should switch between generate and refine modes', async ({ page }) => {
 });
 
 test('should display input form in generate mode', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
   const methodTextarea = page.locator('textarea').first();
@@ -83,7 +77,7 @@ test('should display input form in generate mode', async ({ page }) => {
 });
 
 test('should display footer', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('/');
   await page.waitForTimeout(1000);
   
   const footer = page.locator('footer, [role="contentinfo"]');

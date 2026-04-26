@@ -1,3 +1,4 @@
+// @ts-nocheck - Test file with complex mocking
 /**
  * SSE Integration Tests
  *

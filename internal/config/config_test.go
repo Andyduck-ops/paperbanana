@@ -9,7 +9,47 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func setTestConfigFile(t *testing.T) {
+	t.Helper()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := []byte(`
+server:
+  host: localhost
+  port: 8080
+llm:
+  default: gemini
+  providers:
+    gemini:
+      api_key: ""
+      base_url: https://generativelanguage.googleapis.com
+      model: gemini-2.0-flash-exp
+      timeout: 60s
+    openai:
+      api_key: ""
+      base_url: https://api.openai.com/v1
+      model: gpt-4o
+      timeout: 60s
+    anthropic:
+      api_key: ""
+      base_url: https://api.anthropic.com/v1
+      model: claude-sonnet-4-20250514
+      timeout: 60s
+    openrouter:
+      api_key: ""
+      base_url: https://openrouter.ai/api/v1
+      model: anthropic/claude-sonnet-4
+      timeout: 60s
+output:
+  dpi: 300
+  formats: [png, svg, pdf]
+`)
+	require.NoError(t, os.WriteFile(configPath, content, 0o644))
+	t.Setenv("PAPERBANANA_CONFIG_FILE", configPath)
+}
+
 func TestLoadYAML(t *testing.T) {
+	setTestConfigFile(t)
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("OPENAI_API_KEY", "openai-test-key")
 	t.Setenv("ANTHROPIC_API_KEY", "anthropic-test-key")
@@ -23,6 +63,7 @@ func TestLoadYAML(t *testing.T) {
 }
 
 func TestEnvOverride(t *testing.T) {
+	setTestConfigFile(t)
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("OPENAI_API_KEY", "openai-test-key")
 	t.Setenv("ANTHROPIC_API_KEY", "anthropic-test-key")
@@ -72,6 +113,7 @@ output:
 }
 
 func TestDefaultModelSelection(t *testing.T) {
+	setTestConfigFile(t)
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("OPENAI_API_KEY", "openai-test-key")
 	t.Setenv("ANTHROPIC_API_KEY", "anthropic-test-key")
@@ -114,6 +156,7 @@ output:
 }
 
 func TestOutputParams(t *testing.T) {
+	setTestConfigFile(t)
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("OPENAI_API_KEY", "openai-test-key")
 	t.Setenv("ANTHROPIC_API_KEY", "anthropic-test-key")

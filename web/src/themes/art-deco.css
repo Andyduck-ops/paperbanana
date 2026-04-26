@@ -1,0 +1,77 @@
+/* Art Deco Digital Elegance Theme - Refined ornament, strong form, selective drama */
+[data-theme="art-deco"] {
+  /* Art Deco color palette - elegant, dramatic, refined */
+  --theme-primary: oklch(0.35 0.08 260);       /* Midnight blue - sophistication */
+  --theme-secondary: oklch(0.75 0.12 85);      /* Champagne gold - luxury */
+  --theme-background: oklch(0.95 0.02 280);    /* Pearl white - elegance */
+  --theme-foreground: oklch(0.20 0.04 260);    /* Deep ink - formality */
+  --theme-accent: oklch(0.55 0.18 30);         /* Rose gold - warmth */
+  --theme-muted: oklch(0.88 0.04 280);         /* Silver - subtlety */
+  --theme-border: oklch(0.40 0.06 260);        /* Graphite - defined edges */
+
+  /* Status colors - Art Deco sophistication */
+  --theme-status-success: oklch(0.45 0.10 145);   /* Emerald */
+  --theme-status-warning: oklch(0.65 0.12 80);    /* Amber gold */
+  --theme-status-error: oklch(0.50 0.14 25);      /* Ruby */
+  --theme-status-info: oklch(0.45 0.08 240);      /* Sapphire */
+  --theme-status-pending: oklch(0.70 0.05 280);   /* Platinum */
+  --theme-status-running: oklch(0.60 0.10 200);   /* Aquamarine */
+
+  /* Art Deco typography - elegant, geometric */
+  --theme-font-heading: "Cinzel", "Playfair Display", "Georgia", serif;
+  --theme-font-body: "Cormorant Garamond", "Georgia", serif;
+}
+
+/* Art Deco elegant styling */
+[data-theme="art-deco"] h1,
+[data-theme="art-deco"] h2,
+[data-theme="art-deco"] h3 {
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+[data-theme="art-deco"] .card {
+  border: 1px solid var(--theme-border);
+  position: relative;
+}
+
+[data-theme="art-deco"] .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--theme-secondary) 20%,
+    var(--theme-secondary) 80%,
+    transparent 100%
+  );
+}
+
+[data-theme="art-deco"] button {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.85rem;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="art-deco"] button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--theme-secondary);
+  transition: width 0.3s ease;
+}
+
+[data-theme="art-deco"] button:hover::after {
+  width: 80%;
+}

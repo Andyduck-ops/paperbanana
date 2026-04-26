@@ -1,0 +1,18 @@
+custom_nodes:
+  - name: external_analyzer
+    url: ${EXTERNAL_ANALYZER_URL}
+    method: POST
+    headers:
+      Authorization: Bearer ${EXTERNAL_ANALYZER_API_KEY}
+      Content-Type: application/json
+    request_template:
+      prompt: ${EXTERNAL_ANALYZER_PROMPT}
+      include_metadata: true
+      metadata:
+        source: paperbanana
+    response_parser: json_path
+    response_selectors:
+      image_base64: $.artifact.image_base64
+      mime_type: $.artifact.mime_type
+      summary: $.artifact.summary
+      plot_code: $.artifact.plot_code

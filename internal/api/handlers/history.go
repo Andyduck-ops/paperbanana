@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"sort"
 	"strconv"
@@ -78,19 +77,19 @@ type ListRecentSessionsRequest struct {
 
 // RecentSessionResponse represents a lightweight session item for history panels.
 type RecentSessionResponse struct {
-	ID              string  `json:"id"`
-	ProjectID       string  `json:"project_id"`
-	VisualizationID *string `json:"visualization_id,omitempty"`
-	Status          string  `json:"status"`
-	CurrentStage    string  `json:"current_stage"`
-	SchemaVersion   string  `json:"schema_version"`
-	CreatedAt       string  `json:"created_at"`
-	UpdatedAt       string  `json:"updated_at"`
-	CompletedAt     *string `json:"completed_at,omitempty"`
-	Prompt          string  `json:"prompt,omitempty"`
-	Summary         string  `json:"summary,omitempty"`
-	Mode            string   `json:"mode,omitempty"`
-	BatchID         string   `json:"batch_id,omitempty"`
+	ID                  string   `json:"id"`
+	ProjectID           string   `json:"project_id"`
+	VisualizationID     *string  `json:"visualization_id,omitempty"`
+	Status              string   `json:"status"`
+	CurrentStage        string   `json:"current_stage"`
+	SchemaVersion       string   `json:"schema_version"`
+	CreatedAt           string   `json:"created_at"`
+	UpdatedAt           string   `json:"updated_at"`
+	CompletedAt         *string  `json:"completed_at,omitempty"`
+	Prompt              string   `json:"prompt,omitempty"`
+	Summary             string   `json:"summary,omitempty"`
+	Mode                string   `json:"mode,omitempty"`
+	BatchID             string   `json:"batch_id,omitempty"`
 	CandidateSessionIDs []string `json:"candidate_session_ids,omitempty"`
 }
 
@@ -395,7 +394,7 @@ func mapRecentSessionResponse(session *domainworkspace.SessionRecord) RecentSess
 }
 
 type recentSessionAggregate struct {
-	latest    *domainworkspace.SessionRecord
+	latest     *domainworkspace.SessionRecord
 	candidates []*domainworkspace.SessionRecord
 }
 
@@ -470,8 +469,8 @@ func cloneBatchSnapshot(
 	if snapshot == nil {
 		return &domainagent.SessionState{
 			Metadata: map[string]string{
-				"history.mode":    "batch",
-				"batch.group_id":  groupID,
+				"history.mode":      "batch",
+				"batch.group_id":    groupID,
 				"batch.session_ids": strings.Join(candidateSessionIDs(candidates), ","),
 			},
 		}
@@ -747,8 +746,6 @@ func normalizeSessionText(limit int, values ...string) string {
 
 // isNotFoundError checks if an error indicates a not found condition.
 func isNotFoundError(err error) bool {
-	return errors.Is(err, errors.New("not found")) ||
-		errors.Is(err, errors.New("no resumable session found")) ||
-		err.Error() == "not found" ||
+	return err.Error() == "not found" ||
 		err.Error() == "no resumable session found"
 }

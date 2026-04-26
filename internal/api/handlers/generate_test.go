@@ -421,5 +421,5 @@ func TestGenerate_ProjectScopedPersistence(t *testing.T) {
 	// Verify artifacts have project scope
 	require.Len(t, resp.GeneratedArtifacts, 1, "Should have one artifact")
 	assert.Equal(t, "asset-123", resp.GeneratedArtifacts[0].AssetID, "Artifact should have AssetID")
-	assert.Equal(t, "test-project", resp.GeneratedArtifacts[0].Metadata["project_id"], "Artifact metadata should have project_id")
+	assert.Equal(t, "test-project", resp.GeneratedArtifacts[0].ProjectID, "Artifact should have ProjectID")
 }

@@ -1,12 +1,12 @@
 import "./themes/base.css";
+import "./themes/academic.css";
 import "./themes/qi-baishi.css";
 import "./themes/pop-anime.css";
 import "./themes/rococo.css";
 import "./themes/japanese-bw.css";
 import "./themes/workspace.css";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { Layout, Header, Footer, Toast, ErrorBoundary, SettingsDrawer, WelcomeWizard, isWizardCompleted, ShortcutsHelpPanel } from "./components";
-import { ProjectsPage } from "./pages/ProjectsPage";
 import {
   GeneratePanel,
   HistoryPanel,
@@ -14,48 +14,28 @@ import {
   ExportModal,
   RefinePanel,
   type Artifact,
-  type GenerateOptions,
+
 } from "./components";
 import {
-  useBatchGeneration,
-  useGenerate,
-  useRefine,
+  useGenerationFlow,
   useToast,
   useKeyboardShortcuts,
   useLanguage,
   useHistory,
   useLocalWorkRecords,
+  useTheme,
 } from "./hooks";
+
 import { getArtifactImageUrl } from "./components/ArtifactPreview";
 import { copyImageToClipboard } from "./lib/clipboard";
-import { ProviderEditPage } from "./pages/ProviderEditPage";
 
-type Page = "main" | "provider-new" | "provider-edit";
-type MainTab = "generate" | "refine";
-type LocalWorkMode = "generate" | "batch" | "refine";
 
-async function imageSourceToFile(imageSource: string, filename: string) {
-  if (imageSource.startsWith("data:")) {
-    const [header, base64 = ""] = imageSource.split(",");
-    const mimeType = header.match(/data:(.*?);base64/)?.[1] || "image/png";
-    const binary = window.atob(base64);
-    const bytes = new Uint8Array(binary.length);
+// Lazy loaded pages for code splitting
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
+const ProviderEditPage = lazy(() => import("./pages/ProviderEditPage"));
 
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-
-    return new File([bytes], filename, { type: mimeType });
-  }
-
-  const response = await fetch(imageSource);
-  if (!response.ok) {
-    throw new Error(`Failed to load refine source: HTTP ${response.status}`);
-  }
-
-  const blob = await response.blob();
-  return new File([blob], filename, { type: blob.type || "image/png" });
-}
+// New Zustand store imports
+import { useAppStore, useGenerationStore } from "./stores";
 
 function toArtifactPreview(artifact: {
   kind: string;
@@ -78,211 +58,114 @@ function toArtifactPreview(artifact: {
 }
 
 export function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("main");
-  const [editingProvider, setEditingProvider] = useState<string>();
-  const [mainTab, setMainTab] = useState<MainTab>("generate");
+  // Initialize theme at app level
+  useTheme();
+
+  // Migration: App UI state moved to Zustand store
+  const currentPage = useAppStore((state) => state.currentPage);
+  const editingProvider = useAppStore((state) => state.editingProvider);
+  const mainTab = useAppStore((state) => state.mainTab);
+  const drawers = useAppStore((state) => state.drawers);
+  const modals = useAppStore((state) => state.modals);
+  const examplePrompt = useAppStore((state) => state.examplePrompt);
+
+  // Actions
+  const setCurrentPage = useAppStore((state) => state.setCurrentPage);
+  const setEditingProvider = useAppStore((state) => state.setEditingProvider);
+  const setMainTab = useAppStore((state) => state.setMainTab);
+  const openDrawer = useAppStore((state) => state.openDrawer);
+  const closeDrawer = useAppStore((state) => state.closeDrawer);
+  const openModal = useAppStore((state) => state.openModal);
+  const closeModal = useAppStore((state) => state.closeModal);
+  const setExamplePrompt = useAppStore((state) => state.setExamplePrompt);
+  const setShowWelcomeWizard = useAppStore((state) => state.setShowWelcomeWizard);
+
+  // Migration: Generation state moved to Zustand store
+  const currentPath = useGenerationStore((state) => state.currentPath);
+  const selectedSessionId = useGenerationStore((state) => state.selectedSessionId);
+  const selectedBatchCandidateId = useGenerationStore((state) => state.selectedBatchCandidateId);
+  const refineSeedImageData = useGenerationStore((state) => state.refineSeedImageData);
+  const exportArtifact = useGenerationStore((state) => state.exportArtifact);
+  const pendingHistoryContext = useGenerationStore((state) => state.pendingHistoryContext);
+
+  // Generation actions
+  const setCurrentPath = useGenerationStore((state) => state.setCurrentPath);
+  const setSelectedBatchCandidateId = useGenerationStore((state) => state.setSelectedBatchCandidateId);
+  const setRefineSeedImageData = useGenerationStore((state) => state.setRefineSeedImageData);
+  const clearSelectedBatchCandidateId = useGenerationStore((state) => state.clearSelectedBatchCandidateId);
+  const clearRefineSeedImageData = useGenerationStore((state) => state.clearRefineSeedImageData);
+
   const { t } = useLanguage();
 
-  const { isGenerating, stages, result, error, generate, cancel, reset, restore: restoreGenerate } =
-    useGenerate();
+  const {
+    isGenerating,
+    isBatchGenerating,
+    isRefining,
+    stages,
+    result,
+    batchResult,
+    batchProgress,
+    batchError,
+    refineResult,
+    refineArtifact,
+    refineError,
+    error,
+    handleGenerate,
+    handleRefine,
+    handleExport,
+    handleSelectSession,
+    resetGenerate,
+    resetBatch,
+    resetRefine,
+    cancel,
+  } = useGenerationFlow();
   const { toasts, addToast, removeToast } = useToast();
 
-  // Simple router based on URL path
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
-
+  // Simple router based on URL path - sync with store
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [setCurrentPath]);
 
-  // Render projects page for /projects route
-  if (currentPath === '/projects') {
-    return (
-      <ErrorBoundary>
-        <ProjectsPage />
-        <Toast toasts={toasts} onRemove={removeToast} />
-      </ErrorBoundary>
-    );
-  }
-  const [selectedSessionId, setSelectedSessionId] = useState<string>();
-  const [selectedBatchCandidateId, setSelectedBatchCandidateId] = useState<string | null>(null);
-  const [refineSeedImageData, setRefineSeedImageData] = useState<string | null>(null);
-  const [exportArtifact, setExportArtifact] = useState<Artifact>();
-  const [showExport, setShowExport] = useState(false);
-  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [showWelcomeWizard, setShowWelcomeWizard] = useState(false);
-  const [examplePrompt, setExamplePrompt] = useState<string | null>(null);
-  const [pendingHistoryContext, setPendingHistoryContext] = useState<{
-    prompt: string;
-    mode: LocalWorkMode;
-  } | null>(null);
   const lastRecordedHistoryId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isWizardCompleted()) {
       setShowWelcomeWizard(true);
     }
-  }, []);
+  }, [setShowWelcomeWizard]);
 
   // History hook for count badge
-  const { count: historyCount, restoreSession: restoreHistorySession } = useHistory();
-  
+  const { count: historyCount } = useHistory();
+
   // Local work records hook for fallback when server history unavailable
   const { addRecord: addLocalWorkRecord } = useLocalWorkRecords();
 
-  const {
-    isGenerating: isBatchGenerating,
-    progress: batchProgress,
-    result: batchResult,
-    error: batchError,
-    startBatch,
-    resetBatch,
-    restoreBatch,
-  } = useBatchGeneration();
-  const {
-    isRefining,
-    result: refineResult,
-    error: refineError,
-    refine,
-    reset: resetRefine,
-    restore: restoreRefine,
-  } = useRefine({
-    onSuccess: () => {
-      addToast("Image refined successfully", "success");
-    },
-    onError: (refineError) => {
-      addToast(refineError.message || "Refinement failed", "error");
-    },
-  });
+
 
   useEffect(() => {
     const handleLoadExample = (event: CustomEvent<{ prompt: string }>) => {
       setExamplePrompt(event.detail.prompt);
       setMainTab("generate");
-      reset();
+      resetGenerate();
       resetBatch();
       resetRefine();
-      setSelectedBatchCandidateId(null);
-      setRefineSeedImageData(null);
+      clearSelectedBatchCandidateId();
+      clearRefineSeedImageData();
     };
 
     window.addEventListener('workspace:loadExample', handleLoadExample as EventListener);
     return () => {
       window.removeEventListener('workspace:loadExample', handleLoadExample as EventListener);
     };
-  }, [reset, resetBatch, resetRefine]);
+  }, [resetGenerate, resetBatch, resetRefine, setExamplePrompt, setMainTab, clearSelectedBatchCandidateId, clearRefineSeedImageData]);
 
-  const handleGenerate = async (prompt: string, options?: GenerateOptions) => {
-    setMainTab("generate");
-    setRefineSeedImageData(null);
-    resetRefine();
 
-    setPendingHistoryContext({
-      prompt,
-      mode: options?.numCandidates && options.numCandidates > 1 ? "batch" : "generate",
-    });
 
-    if (options?.numCandidates && options.numCandidates > 1) {
-      reset();
-      setSelectedBatchCandidateId(null);
-      // Batch generation
-      await handleBatchGenerate(
-        prompt,
-        options.numCandidates,
-        options.visualizerNode,
-        options.config,
-        options.content,
-        options.visualIntent
-      );
-    } else {
-      resetBatch();
-      setSelectedBatchCandidateId(null);
-      // Single generation
-      await generate(prompt, {
-        content: options?.content,
-        visualIntent: options?.visualIntent,
-        visualizerNode: options?.visualizerNode,
-        config: options?.config
-          ? {
-              aspect_ratio: options.config.aspectRatio,
-              critic_rounds: options.config.criticRounds,
-              retrieval_mode: options.config.retrievalMode,
-              pipeline_mode: options.config.pipelineMode,
-              query_model: options.config.queryModel,
-              gen_model: options.config.genModel,
-            }
-          : undefined,
-      });
-    }
-  };
 
-  const handleBatchGenerate = async (
-    prompt: string,
-    numCandidates: number,
-    visualizerNode?: string,
-    config?: GenerateOptions['config'],
-    content?: string,
-    visualIntent?: string
-  ) => {
-    setSelectedBatchCandidateId(null);
-    await startBatch(prompt, numCandidates, {
-      content,
-      visualIntent,
-      visualizerNode,
-      config: config
-        ? {
-            aspect_ratio: config.aspectRatio,
-            critic_rounds: config.criticRounds,
-            retrieval_mode: config.retrievalMode,
-            pipeline_mode: config.pipelineMode,
-            query_model: config.queryModel,
-            gen_model: config.genModel,
-          }
-        : undefined,
-    });
-  };
-
-  const handleRefine = async (request: {
-    imageData: string;
-    instructions: string;
-    resolution: "2K" | "4K";
-    enableIteration?: boolean;
-    maxIterations?: number;
-  }) => {
-    setPendingHistoryContext({
-      prompt: request.instructions || "Refinement task",
-      mode: "refine",
-    });
-    await refine({
-      image: {
-        file: await imageSourceToFile(request.imageData, "refine-input.png"),
-        previewUrl: request.imageData,
-      },
-      instructions: request.instructions,
-      resolution: request.resolution,
-      enable_iteration: request.enableIteration,
-      max_iterations: request.enableIteration ? request.maxIterations : 1,
-    });
-  };
-
-  const refineArtifact = refineResult
-    ? {
-        kind: "image" as const,
-        mimeType: refineResult.image.mimeType,
-        summary: "Refined image",
-        data: refineResult.image.data,
-      }
-    : null;
-
-  const handleExport = (artifact: Artifact) => {
-    setExportArtifact(artifact);
-    setShowExport(true);
-  };
 
   const handleCopy = async (artifact: Artifact) => {
     if (artifact.data) {
@@ -295,95 +178,16 @@ export function App() {
     }
   };
 
-  const handleSelectSession = useCallback(async (sessionId: string) => {
-    setSelectedSessionId(sessionId);
-    addToast(t('history.restore') + '...', "info");
 
-    const restored = await restoreHistorySession(sessionId);
-    if (!restored) {
-      addToast(t('history.restoreFailed') || "Failed to restore session", "error");
-      return;
-    }
-
-    setPendingHistoryContext(null);
-
-    if (restored.mode === "batch" && restored.candidates) {
-      reset();
-      resetRefine();
-      setRefineSeedImageData(null);
-      setMainTab("generate");
-      restoreBatch({
-        batchId: restored.batchId,
-        status: "completed",
-        candidates: restored.candidates.map((candidate) => ({
-          candidateId: candidate.candidateId,
-          sessionId: candidate.sessionId,
-          status: candidate.status === "completed" ? "completed" : "failed",
-          artifacts: candidate.artifacts.map((artifact) => ({
-            id: artifact.assetId || `${candidate.sessionId}-${artifact.kind}`,
-            kind: artifact.kind,
-            mimeType: artifact.mimeType,
-            summary: artifact.summary || artifact.kind,
-            data: artifact.data,
-            assetId: artifact.assetId,
-          })),
-          error: candidate.error,
-        })),
-        successful: restored.successful,
-        failed: restored.failed,
-        startedAt: restored.startedAt,
-        completedAt: restored.completedAt,
-      });
-      setSelectedBatchCandidateId(
-        restored.candidates.find((candidate) => candidate.status === "completed")?.sessionId ||
-          restored.candidates[0]?.sessionId ||
-          null
-      );
-      addToast(`${t('history.restore')}: ${sessionId.slice(0, 8)}...`, "success");
-      return;
-    }
-
-    reset();
-    resetBatch();
-    setSelectedBatchCandidateId(null);
-
-    if (restored.mode === "refine") {
-      setMainTab("refine");
-      setRefineSeedImageData(null);
-      restoreRefine({
-        sessionId: restored.id,
-        status: restored.status === "completed" ? "completed" : "failed",
-        content: restored.prompt,
-        image: {
-          data: restored.artifacts[0]?.data || "",
-          mimeType: restored.artifacts[0]?.mimeType || "image/png",
-        },
-      });
-      addToast(`${t('history.restore')}: ${sessionId.slice(0, 8)}...`, "success");
-      return;
-    }
-
-    setMainTab("generate");
-    resetRefine();
-    setRefineSeedImageData(null);
-    restoreGenerate({
-      sessionId: restored.id,
-      artifacts: restored.artifacts.map(toArtifactPreview),
-      stages: restored.stages || [],
-      error: restored.error,
-      resumeMetadata: restored.resumeMetadata,
-    });
-    addToast(`${t('history.restore')}: ${sessionId.slice(0, 8)}...`, "success");
-  }, [addToast, reset, resetBatch, resetRefine, restoreBatch, restoreGenerate, restoreHistorySession, restoreRefine, t]);
 
   useKeyboardShortcuts({
     onNewGeneration: () => {
       if (!isGenerating && !isBatchGenerating) {
-        reset();
+        resetGenerate();
         resetBatch();
         resetRefine();
-        setSelectedBatchCandidateId(null);
-        setRefineSeedImageData(null);
+        clearSelectedBatchCandidateId();
+        clearRefineSeedImageData();
         setMainTab("generate");
       }
     },
@@ -398,11 +202,11 @@ export function App() {
       }
     },
     onEscape: () => {
-      setShowExport(false);
-      setShowShortcutsHelp(false);
+      closeModal('export');
+      closeModal('shortcutsHelp');
     },
     onShowShortcuts: () => {
-      setShowShortcutsHelp(true);
+      openModal('shortcutsHelp');
     },
   });
 
@@ -420,7 +224,7 @@ export function App() {
     lastRecordedHistoryId.current = result.sessionId;
     // Show toast when generation completes
     addToast(t('history.savedToHistory') || 'Results saved to history', 'success');
-  }, [pendingHistoryContext, result, addToast, t]);
+  }, [pendingHistoryContext, result, addToast, t, addLocalWorkRecord]);
 
   useEffect(() => {
     if (!batchResult || pendingHistoryContext?.mode !== "batch") return;
@@ -433,11 +237,10 @@ export function App() {
       prompt: pendingHistoryContext.prompt,
       mode: "batch",
       candidateSessionIds: batchResult.candidates
-        .map((candidate) => candidate.sessionId)
-        .filter((value): value is string => Boolean(value)),
+        .map((candidate) => `${batchResult.batchId}-${candidate.candidateId}`),
     });
     lastRecordedHistoryId.current = batchResult.batchId;
-  }, [batchResult, pendingHistoryContext]);
+  }, [batchResult, pendingHistoryContext, addLocalWorkRecord]);
 
   useEffect(() => {
     if (!refineResult || pendingHistoryContext?.mode !== "refine") return;
@@ -451,23 +254,22 @@ export function App() {
       mode: "refine",
     });
     lastRecordedHistoryId.current = refineResult.sessionId;
-  }, [pendingHistoryContext, refineResult]);
+  }, [pendingHistoryContext, refineResult, addLocalWorkRecord]);
 
   useEffect(() => {
     if (!batchResult?.candidates.length || selectedBatchCandidateId) return;
 
     const preferredCandidateId =
-      batchResult.candidates.find((candidate) => candidate.status === "completed")?.sessionId ||
       batchResult.candidates.find((candidate) => candidate.status === "completed")
         ?.candidateId?.toString();
 
     if (preferredCandidateId) {
       setSelectedBatchCandidateId(preferredCandidateId);
     }
-  }, [batchResult, selectedBatchCandidateId]);
+  }, [batchResult, selectedBatchCandidateId, setSelectedBatchCandidateId]);
 
   const batchCandidates = (batchResult?.candidates || []).map((candidate) => {
-    const candidateId = candidate.sessionId || `${batchResult?.batchId || "batch"}-${candidate.candidateId}`;
+    const candidateId = `${batchResult?.batchId || "batch"}-${candidate.candidateId}`;
 
     return {
       id: candidateId,
@@ -476,11 +278,11 @@ export function App() {
       artifacts: (candidate.artifacts || []).map((artifact) =>
         toArtifactPreview({
           kind: artifact.kind,
-          mimeType: artifact.mimeType,
-          summary: artifact.summary,
+          mimeType: artifact.mime_type,
+          summary: artifact.kind,
           data: artifact.data,
-          assetId: artifact.assetId || artifact.id,
-          projectId: artifact.projectId,
+          assetId: artifact.asset_id || artifact.id,
+          projectId: artifact.metadata?.project_id,
           uri: artifact.uri,
         })
       ),
@@ -513,20 +315,34 @@ export function App() {
       ? refineError?.message || null
       : error || batchError;
 
+  // Render projects page for /projects route
+  if (currentPath === '/projects') {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="loading-screen">Loading...</div>}>
+          <ProjectsPage />
+        </Suspense>
+        <Toast toasts={toasts} onRemove={removeToast} />
+      </ErrorBoundary>
+    );
+  }
+
   // Provider edit/new page
   if (currentPage === "provider-new" || currentPage === "provider-edit") {
     return (
       <ErrorBoundary>
-        <ProviderEditPage
-          providerId={editingProvider}
-          isNew={currentPage === "provider-new"}
-          onBack={() => {
-            setEditingProvider(undefined);
-            setCurrentPage("main");
-            setIsSettingsOpen(true);
-          }}
-          onSaveSuccess={() => addToast(t('settings.providerSaved') || 'Provider saved successfully', 'success')}
-        />
+        <Suspense fallback={<div className="loading-screen">Loading...</div>}>
+          <ProviderEditPage
+            providerId={editingProvider}
+            isNew={currentPage === "provider-new"}
+            onBack={() => {
+              setEditingProvider(undefined);
+              setCurrentPage("main");
+              openDrawer('settings');
+            }}
+            onSaveSuccess={() => addToast(t('settings.providerSaved') || 'Provider saved successfully', 'success')}
+          />
+        </Suspense>
         <Toast toasts={toasts} onRemove={removeToast} />
       </ErrorBoundary>
     );
@@ -536,40 +352,40 @@ export function App() {
   return (
     <ErrorBoundary>
       {/* Welcome Wizard for first-time users */}
-      {showWelcomeWizard && (
+      {modals.welcomeWizard && (
         <WelcomeWizard
-          onComplete={() => setShowWelcomeWizard(false)}
+          onComplete={() => closeModal('welcomeWizard')}
           onNavigateToSettings={() => {
-            setShowWelcomeWizard(false);
-            setIsSettingsOpen(true);
+            closeModal('welcomeWizard');
+            openDrawer('settings');
           }}
         />
       )}
 
       {/* History Panel - Sliding from left */}
-      {isHistoryPanelOpen && (
+      {drawers.history && (
         <HistoryPanel
-          isOpen={isHistoryPanelOpen}
-          onClose={() => setIsHistoryPanelOpen(false)}
+          isOpen={drawers.history}
+          onClose={() => closeDrawer('history')}
           onSelectSession={handleSelectSession}
           selectedSessionId={selectedSessionId}
         />
       )}
 
-      {isSettingsOpen && (
+      {drawers.settings && (
         <SettingsDrawer
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
+          isOpen={drawers.settings}
+          onClose={() => closeDrawer('settings')}
         />
       )}
 
       <Layout
         header={
           <Header
-            onSettingsClick={() => setIsSettingsOpen(true)}
-            onHistoryClick={() => setIsHistoryPanelOpen(true)}
-            isHistoryOpen={isHistoryPanelOpen}
-            isSettingsOpen={isSettingsOpen}
+            onSettingsClick={() => openDrawer('settings')}
+            onHistoryClick={() => openDrawer('history')}
+            isHistoryOpen={drawers.history}
+            isSettingsOpen={drawers.settings}
             historyCount={historyCount}
           />
         }
@@ -599,7 +415,7 @@ export function App() {
                   <GeneratePanel
                     onGenerate={handleGenerate}
                     isGenerating={isGenerating || isBatchGenerating}
-                    onNavigateToSettings={() => setIsSettingsOpen(true)}
+                    onNavigateToSettings={() => openDrawer('settings')}
                     initialCaption={examplePrompt || undefined}
                   />
                 }
@@ -629,11 +445,11 @@ export function App() {
                   resetRefine();
                 }}
                 onNewGeneration={() => {
-                  reset();
+                  resetGenerate();
                   resetBatch();
                   resetRefine();
-                  setSelectedBatchCandidateId(null);
-                  setRefineSeedImageData(null);
+                  clearSelectedBatchCandidateId();
+                  clearRefineSeedImageData();
                   setMainTab("generate");
                 }}
                 onSelectCandidate={setSelectedBatchCandidateId}
@@ -662,16 +478,16 @@ export function App() {
         </div>
 
         <ExportModal
-          isOpen={showExport}
-          onClose={() => setShowExport(false)}
+          isOpen={modals.export}
+          onClose={() => closeModal('export')}
           imageData={exportArtifact?.data}
         />
 
         <Toast toasts={toasts} onRemove={removeToast} />
 
         <ShortcutsHelpPanel
-          isOpen={showShortcutsHelp}
-          onClose={() => setShowShortcutsHelp(false)}
+          isOpen={modals.shortcutsHelp}
+          onClose={() => closeModal('shortcutsHelp')}
         />
       </Layout>
     </ErrorBoundary>

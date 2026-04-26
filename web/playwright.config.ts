@@ -1,17 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: '.',
-  testMatch: 'test-ui.spec.ts',
+  testDir: './e2e',
+  testMatch: '*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    screenshot: { mode: 'on', fullPage: true },
   },
   projects: [
     {
@@ -19,9 +19,5 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'echo "Server already running"',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-  },
+
 });

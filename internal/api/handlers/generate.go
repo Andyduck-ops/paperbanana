@@ -18,7 +18,7 @@ import (
 type Handler struct {
 	runner       Runner
 	logger       *zap.Logger
-	registry     *SessionRegistry // Optional: for session cancellation
+	registry     *SessionRegistry     // Optional: for session cancellation
 	assetService *AssetServiceAdapter // Optional: for persisting artifacts
 }
 
@@ -112,12 +112,18 @@ func (h *Handler) Generate(c *gin.Context) {
 		return
 	}
 
+	// Drain events to prevent producer blocking.
+	// The goroutine exits naturally when the events channel is closed.
+	eventsDone := make(chan struct{})
 	go func() {
+		defer close(eventsDone)
 		for range handle.Events() {
 		}
 	}()
 
 	result, err := handle.Wait()
+	// Ensure the events goroutine has finished before responding.
+	<-eventsDone
 	if err != nil {
 		h.respondRunError(c, err)
 		return
@@ -237,16 +243,16 @@ func (h *Handler) respondRunError(c *gin.Context, err error) {
 
 // Validation constants for input validation.
 const (
-	MaxPromptLength      = 100000 // Maximum prompt length in characters
-	MaxContentLength     = 500000 // Maximum content length in characters
-	MaxVisualIntentLength = 10000 // Maximum visual_intent length in characters
-	MaxTemperature       = 2.0
-	MinTemperature       = 0.0
-	MaxMaxTokens         = 100000
+	MaxPromptLength       = 100000 // Maximum prompt length in characters
+	MaxContentLength      = 500000 // Maximum content length in characters
+	MaxVisualIntentLength = 10000  // Maximum visual_intent length in characters
+	MaxTemperature        = 2.0
+	MinTemperature        = 0.0
+	MaxMaxTokens          = 100000
 )
 
 var validModes = map[string]bool{
-	"":       true, // Default mode
+	"":        true, // Default mode
 	"diagram": true,
 	"plot":    true,
 }
@@ -422,11 +428,8 @@ func cloneArtifactsWithProjectID(artifacts []domainagent.Artifact, projectID str
 			cloned[i].Bytes = append([]byte(nil), artifact.Bytes...)
 		}
 		// Set project_id on each artifact for frontend URL construction
-		if cloned[i].AssetID != "" && cloned[i].Metadata == nil {
-			cloned[i].Metadata = make(map[string]string)
-		}
 		if cloned[i].AssetID != "" {
-			cloned[i].Metadata["project_id"] = projectID
+			cloned[i].ProjectID = projectID
 		}
 	}
 

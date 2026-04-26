@@ -13,8 +13,8 @@ import (
 
 // ValidationConfig holds input validation configuration.
 type ValidationConfig struct {
-	MaxBodySize        int64    // Maximum request body size in bytes
-	MaxPromptLength    int      // Maximum prompt length
+	MaxBodySize         int64    // Maximum request body size in bytes
+	MaxPromptLength     int      // Maximum prompt length
 	AllowedContentTypes []string // Allowed content types for uploads
 }
 
@@ -40,8 +40,8 @@ func RequestSizeLimit(maxSize int64) gin.HandlerFunc {
 		// Check Content-Length header
 		if c.Request.ContentLength > maxSize {
 			c.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, gin.H{
-				"error": "Request body too large",
-				"code":  "request_too_large",
+				"error":          "Request body too large",
+				"code":           "request_too_large",
 				"max_size_bytes": maxSize,
 			})
 			return
@@ -186,10 +186,10 @@ func ValidateFileUpload(c *gin.Context, fileHeader *multipart.FileHeader, config
 			Err:  gin.Error{}.Err,
 			Type: gin.ErrorTypePrivate,
 			Meta: gin.H{
-				"error":           "File type not allowed",
-				"code":            "invalid_file_type",
-				"detected_type":   detectedType,
-				"allowed_types":   config.AllowedContentTypes,
+				"error":         "File type not allowed",
+				"code":          "invalid_file_type",
+				"detected_type": detectedType,
+				"allowed_types": config.AllowedContentTypes,
 			},
 		}
 	}

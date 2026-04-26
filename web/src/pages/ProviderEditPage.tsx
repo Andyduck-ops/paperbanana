@@ -6,9 +6,10 @@ interface ProviderEditPageProps {
   providerId?: string;
   isNew: boolean;
   onBack: () => void;
+  onSaveSuccess?: () => void;
 }
 
-export function ProviderEditPage({ providerId, isNew, onBack }: ProviderEditPageProps) {
+export default function ProviderEditPage({ providerId, isNew, onBack, onSaveSuccess }: ProviderEditPageProps) {
   const { t } = useTranslation();
   const { provider, loading, error } = useProvider(isNew ? '' : providerId || '');
   const { presets } = usePresets();
@@ -83,6 +84,7 @@ export function ProviderEditPage({ providerId, isNew, onBack }: ProviderEditPage
         }
       }
 
+      onSaveSuccess?.();
       onBack();
       return;
     }
@@ -118,6 +120,7 @@ export function ProviderEditPage({ providerId, isNew, onBack }: ProviderEditPage
       }
     }
 
+    onSaveSuccess?.();
     onBack();
   };
 

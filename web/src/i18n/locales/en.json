@@ -24,6 +24,10 @@
       "japanese-bw": {
         "label": "Night Mono",
         "description": "Dark monochrome, restrained contrast, and quiet negative space."
+      },
+      "academic": {
+        "label": "Academic",
+        "description": "Deep navy primary, warm paper background, and restrained scholarly typography."
       }
     }
   },
@@ -66,10 +70,43 @@
     },
     "newProject": "New Project",
     "openProject": "Open Project",
-    "noProjects": "No projects yet"
+    "noProjects": "No projects yet",
+    "heroTitle": "Academic figures, grounded in context",
+    "heroDescription": "Connect paper excerpts, references, and reviewer constraints into publication-ready illustrations — then layer on panel structure, labels, and finishing style.",
+    "heroCards": {
+      "contextLabel": "Context",
+      "contextBody": "Paste method descriptions, related figures, and reviewer notes to ground every visual decision.",
+      "outputLabel": "Output",
+      "outputBody": "Get clean paper-width figures with panels, captions, and academic color palettes.",
+      "workflowLabel": "Workflow",
+      "workflowBody": "Go from annotation to polished figure with auto-critique and revision passes."
+    },
+    "quickActionsTitle": "Quick Actions",
+    "quickActions": {
+      "primaryLabel": "Start a paper figure",
+      "primaryBody": "Paste text and brief, pick a visualizer node, and step through the pipeline.",
+      "history": "Work history",
+      "settings": "Configure channels"
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "createProject": "Create Project",
+    "noProjects": "No projects yet",
+    "createFirst": "Create your first project to get started",
+    "created": "Created",
+    "name": "Name",
+    "namePlaceholder": "Enter project name",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter project description (optional)",
+    "deleteTitle": "Delete Project",
+    "deleteConfirm": "This action cannot be undone",
+    "projectName": "Project name"
   },
   "generate": {
     "title": "Paper Figure Generation",
+    "subtitle": "Enter paper context and target description, AI generates academic figures automatically",
     "panelTitle": "Ground the figure in paper context, then define the final visual.",
     "panelDescription": "Use the left side for paper excerpts, related work, figure references, and notes. Use the right side for the target figure layout, style, labels, and constraints.",
     "descriptionLabel": "Describe your task",
@@ -136,7 +173,16 @@
     "running": "Running...",
     "downloadAll": "Download All as ZIP",
     "downloading": "Downloading...",
-    "configureProviders": "Configure a channel in Settings"
+    "configureProviders": "Configure a channel in Settings",
+    "compare": "Compare",
+    "maxSelectionReached": "Maximum {{max}} candidates can be selected",
+    "selectToCompare": "Select 2-{{max}} candidates to compare",
+    "noCompletedCandidates": "No completed candidates to compare",
+    "compareCandidates": "Compare Candidates",
+    "candidatesSelected": "candidates selected",
+    "noImage": "No image",
+    "enableComparison": "Enable comparison mode",
+    "selected": "selected"
   },
   "history": {
     "title": "Work Records",
@@ -161,7 +207,15 @@
       "failed": "Failed",
       "running": "Running",
       "pending": "Pending"
-    }
+    },
+    "search": "Search history...",
+    "filter": "Filter",
+    "dateRange": "Date Range",
+    "from": "From",
+    "to": "To",
+    "clearFilters": "Clear Filters",
+    "noResults": "No matching history found",
+    "savedToHistory": "Results saved to history"
   },
   "export": {
     "title": "Export",
@@ -266,7 +320,11 @@
     "testing": "Testing...",
     "clear": "Clear",
     "add": "Add",
-    "remove": "Remove"
+    "remove": "Remove",
+    "create": "Create",
+    "creating": "Creating...",
+    "deleting": "Deleting...",
+    "next": "Next"
   },
   "refine": {
     "title": "Paper Figure Refinement",
@@ -305,6 +363,17 @@
     "shellDescription": "History, batch results, and notes stay in the side panel without interrupting the current task.",
     "nextPass": "Next step",
     "nextPassDescription": "Tighten the hierarchy, spacing, and button copy to make the UI feel calmer."
+  },
+  "wizard": {
+    "welcome": "Welcome to PaperBanana",
+    "welcomeDesc": "Let's set up your workspace for generating publication-ready figures.",
+    "configure": "Configure Providers",
+    "configureDesc": "Connect to AI providers to enable figure generation.",
+    "goToSettings": "Go to Settings",
+    "start": "Start Generating",
+    "startDesc": "You're all set! Start creating figures for your papers.",
+    "skip": "Skip for now",
+    "getStarted": "Get Started"
   },
   "footer": {
     "github": "GitHub",
@@ -349,11 +418,65 @@
     "refinedImage": "Refined image",
     "artifact": "Artifact {{number}}"
   },
+  "folder": {
+    "title": "Folders",
+    "root": "Home",
+    "newFolder": "New Folder",
+    "rename": "Rename",
+    "delete": "Delete",
+    "empty": "No items",
+    "create": "Create Folder",
+    "createPlaceholder": "Enter folder name...",
+    "renamePlaceholder": "Enter new name...",
+    "confirmDelete": "Are you sure you want to delete '{{name}}'?",
+    "created": "Folder created",
+    "renamed": "Folder renamed",
+    "deleted": "Folder deleted",
+    "error": "Failed to perform action"
+  },
+  "version": {
+    "title": "Version History",
+    "v": "v",
+    "versions": "versions",
+    "latest": "Latest",
+    "preview": "Preview",
+    "restore": "Restore",
+    "restored": "Version restored successfully",
+    "artifacts": "Artifacts",
+    "loading": "Loading versions...",
+    "noVersions": "No versions yet",
+    "error": "Failed to load versions"
+  },
+  "template": {
+    "title": "Template Management",
+    "new": "New Template",
+    "edit": "Edit Template",
+    "create": "Create Template",
+    "name": "Name",
+    "category": "Category",
+    "description": "Description",
+    "content": "Content",
+    "allCategories": "All",
+    "noTemplates": "No templates yet",
+    "loading": "Loading templates...",
+    "confirmDelete": "Are you sure you want to delete this template?",
+    "created": "Template created",
+    "updated": "Template updated",
+    "deleted": "Template deleted",
+    "error": "Failed to perform action"
+  },
   "modelConfig": {
     "title": "Model Configuration",
     "channels": "Channels",
     "models": "Models",
     "enabled": "enabled",
+    "addProvider": "Add Provider",
+    "editProvider": "Edit Provider",
+    "deleteProvider": "Delete Provider",
+    "confirmDeleteProvider": "Delete Provider?",
+    "deleteProviderWarning": "This will permanently delete {{name}} and all its model configurations.",
+    "noProviders": "No providers configured",
+    "addProviderHint": "Add a provider to start using models",
     "addChannel": "Add Channel",
     "editChannel": "Edit Channel",
     "deleteChannel": "Delete Channel",
@@ -383,13 +506,16 @@
     "removeModel": "Remove model",
     "noModelsAvailable": "No models available",
     "fetchModelsHint": "Fetch models from a channel to get started",
+    "fetchProviderModelsHint": "Fetch models from a provider to get started",
     "hiddenSystemChannelsHint": "Add and configure a channel before models appear here.",
+    "hiddenSystemProvidersHint": "Add and configure a provider before models appear here.",
     "noEnabledModels": "No enabled models",
     "enableModelsHint": "Enable models using the + button",
     "noMatchingModels": "No matching models",
     "tryDifferentSearch": "Try a different search term",
     "searchModels": "Search models...",
     "allChannels": "All Channels",
+    "allProviders": "All Providers",
     "selected": "Selected",
     "selectorDisabled": "Model selector is disabled",
     "noModels": "No models available",
@@ -408,6 +534,7 @@
     "noAssignments": "No role assignments configured",
     "assignRolesHint": "Assign models to workflow roles above",
     "totalChannels": "Configured Channels",
+    "totalProviders": "Configured Providers",
     "imageGenAssigned": "Image Gen Assigned",
     "totalAssignments": "Assigned Roles",
     "currentAssignments": "Current Assignments",
@@ -433,5 +560,23 @@
         "cap3": "Quality evaluation"
       }
     }
+  },
+
+  "templates": {
+    "title": "Prompt Templates",
+    "select": "Select Template",
+    "save": "Save as Template",
+    "delete": "Delete Template",
+    "empty": "No templates yet",
+    "createHint": "Save current prompt as a template for reuse",
+    "namePlaceholder": "Template name..."
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "newGeneration": "New Generation",
+    "export": "Export Result",
+    "focusHistory": "Focus History",
+    "closeModal": "Close Modal",
+    "showHelp": "Show Shortcuts Help"
   }
 }

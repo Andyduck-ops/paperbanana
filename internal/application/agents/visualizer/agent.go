@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/paperbanana/paperbanana/internal/application/agents/modelselection"
 	pbconfig "github.com/paperbanana/paperbanana/internal/config"
 	domainagent "github.com/paperbanana/paperbanana/internal/domain/agent"
@@ -445,7 +446,7 @@ func critiqueRequestsNoChange(rounds []domainagent.CritiqueRound) bool {
 
 func renderedArtifact(mode domainagent.VisualMode, mimeType string, bytes []byte) domainagent.Artifact {
 	artifact := domainagent.Artifact{
-		ID:       fmt.Sprintf("visualizer-%s-rendered", mode),
+		ID:       fmt.Sprintf("visualizer-%s-%s", mode, uuid.New().String()),
 		Kind:     domainagent.ArtifactKindRenderedFigure,
 		MIMEType: mimeType,
 		URI:      fmt.Sprintf("memory://visualizer/%s/rendered", mode),

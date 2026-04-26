@@ -75,17 +75,17 @@ func GetRequestID(c *gin.Context) string {
 
 // AuditEvent represents an audit event for custom logging.
 type AuditEvent struct {
-	RequestID   string                 `json:"request_id"`
-	EventType   string                 `json:"event_type"`
-	UserID      string                 `json:"user_id,omitempty"`
-	APIKeyID    string                 `json:"api_key_id,omitempty"`
-	Resource    string                 `json:"resource"`
-	Action      string                 `json:"action"`
-	Details     map[string]interface{} `json:"details,omitempty"`
-	Status      string                 `json:"status"`
-	Error       string                 `json:"error,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Duration    time.Duration          `json:"duration"`
+	RequestID string                 `json:"request_id"`
+	EventType string                 `json:"event_type"`
+	UserID    string                 `json:"user_id,omitempty"`
+	APIKeyID  string                 `json:"api_key_id,omitempty"`
+	Resource  string                 `json:"resource"`
+	Action    string                 `json:"action"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	Status    string                 `json:"status"`
+	Error     string                 `json:"error,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Duration  time.Duration          `json:"duration"`
 }
 
 // LogAudit logs a custom audit event.

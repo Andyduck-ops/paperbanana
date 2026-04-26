@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -31,12 +32,26 @@ type BatchResultStore interface {
 	Get(batchID string) (*domainagent.BatchResult, error)
 }
 
+// BatchProgress 表示批处理的中间进度状态
+type BatchProgress struct {
+	BatchID     string                        `json:"batch_id"`
+	Status      domainagent.RunStatus         `json:"status"`
+	Total       int                           `json:"total"`
+	Completed   int                           `json:"completed"`
+	Failed      int                           `json:"failed"`
+	Results     []domainagent.CandidateResult `json:"results,omitempty"`
+	StartedAt   time.Time                     `json:"started_at"`
+	UpdatedAt   time.Time                     `json:"updated_at"`
+	ErrorDetail *domainagent.ErrorDetail      `json:"error,omitempty"`
+}
+
 // BatchRunner executes multiple candidates in parallel with shared retriever.
 type BatchRunner struct {
 	agentFactory  AgentFactory
 	maxConcurrent int
 	eventBuffer   int
 	results       map[string]*domainagent.BatchResult
+	progress      map[string]*BatchProgress // 中间进度跟踪
 	resultStore   BatchResultStore
 	mu            sync.RWMutex
 }
@@ -51,6 +66,7 @@ func NewBatchRunner(factory AgentFactory, opts ...BatchOption) *BatchRunner {
 		maxConcurrent: 10,
 		eventBuffer:   256,
 		results:       make(map[string]*domainagent.BatchResult),
+		progress:      make(map[string]*BatchProgress),
 	}
 	for _, opt := range opts {
 		opt(runner)
@@ -104,18 +120,82 @@ func (r *BatchRunner) GetBatchResult(batchID string) (*domainagent.BatchResult, 
 	return nil, fmt.Errorf("batch result not found: %s", batchID)
 }
 
+// GetBatchProgress 获取批处理的当前进度（用于状态检查）
+func (r *BatchRunner) GetBatchProgress(batchID string) (*BatchProgress, error) {
+	r.mu.RLock()
+	progress, ok := r.progress[batchID]
+	r.mu.RUnlock()
+
+	if ok {
+		return progress, nil
+	}
+
+	// 如果没有找到进度，尝试从结果中恢复
+	result, err := r.GetBatchResult(batchID)
+	if err != nil {
+		return nil, fmt.Errorf("batch progress not found: %s", batchID)
+	}
+
+	// 从结果重建进度
+	status := domainagent.StatusCompleted
+	if result.Failed > 0 && result.Successful == 0 {
+		status = domainagent.StatusFailed
+	} else if result.Failed > 0 {
+		status = domainagent.StatusRunning // 部分完成视为进行中
+	}
+
+	return &BatchProgress{
+		BatchID:   batchID,
+		Status:    status,
+		Total:     len(result.Results),
+		Completed: result.Successful,
+		Failed:    result.Failed,
+		Results:   result.Results,
+		StartedAt: result.Timing.StartedAt,
+		UpdatedAt: result.Timing.CompletedAt,
+	}, nil
+}
+
 // storeResult saves a batch result for later retrieval.
 // Persists to the database if a result store is configured.
 func (r *BatchRunner) storeResult(batchID string, result *domainagent.BatchResult) {
 	r.mu.Lock()
 	r.results[batchID] = result
+	// 完成后删除进度跟踪
+	delete(r.progress, batchID)
 	r.mu.Unlock()
 
 	// Persist to database if store is configured
 	if r.resultStore != nil {
 		if err := r.resultStore.Save(result); err != nil {
 			// Log but don't fail - memory storage is still available
-			// In production, this should use proper logging
+			log.Printf("Failed to persist batch result %s: %v", batchID, err)
+		}
+	}
+}
+
+// updateProgress 更新批处理中间进度
+func (r *BatchRunner) updateProgress(progress *BatchProgress) {
+	r.mu.Lock()
+	r.progress[progress.BatchID] = progress
+	r.mu.Unlock()
+
+	// 创建临时结果用于持久化
+	tempResult := &domainagent.BatchResult{
+		BatchID:    progress.BatchID,
+		Results:    progress.Results,
+		Successful: progress.Completed,
+		Failed:     progress.Failed,
+		Timing: domainagent.BatchTiming{
+			StartedAt: progress.StartedAt,
+			UpdatedAt: progress.UpdatedAt,
+		},
+	}
+
+	// 持久化中间进度
+	if r.resultStore != nil {
+		if err := r.resultStore.Save(tempResult); err != nil {
+			log.Printf("Failed to persist batch progress %s: %v", progress.BatchID, err)
 		}
 	}
 }
@@ -178,6 +258,18 @@ func (r *BatchRunner) executeBatch(
 	startTime := time.Now().UTC()
 	publisher := newBatchEventPublisher(batchID, events)
 
+	// 初始化进度跟踪
+	progress := &BatchProgress{
+		BatchID:   batchID,
+		Status:    domainagent.StatusRunning,
+		Total:     len(inputs),
+		Completed: 0,
+		Failed:    0,
+		Results:   make([]domainagent.CandidateResult, len(inputs)),
+		StartedAt: startTime,
+		UpdatedAt: startTime,
+	}
+
 	// Emit batch start
 	publisher.emit(domainagent.EventBatchStarted, 0, domainagent.StatusRunning, startTime, time.Time{}, nil)
 
@@ -186,6 +278,12 @@ func (r *BatchRunner) executeBatch(
 	if err != nil {
 		completedAt := time.Now().UTC()
 		publisher.emit(domainagent.EventBatchCompleted, 0, domainagent.StatusFailed, startTime, completedAt, err)
+
+		progress.Status = domainagent.StatusFailed
+		progress.UpdatedAt = completedAt
+		progress.ErrorDetail = &domainagent.ErrorDetail{Message: err.Error()}
+		r.updateProgress(progress)
+
 		handle.setOutcome(domainagent.BatchResult{
 			BatchID:    batchID,
 			Failed:     len(inputs),
@@ -202,6 +300,7 @@ func (r *BatchRunner) executeBatch(
 	results := make([]domainagent.CandidateResult, len(inputs))
 	var mu sync.Mutex
 	successful, failed := 0, 0
+	completedCount := 0
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(r.maxConcurrent)
@@ -247,8 +346,17 @@ func (r *BatchRunner) executeBatch(
 					Status:      domainagent.StatusFailed,
 					Error:       &domainagent.ErrorDetail{Message: err.Error()},
 				}
+				progress.Results[i] = results[i]
 				failed++
+				completedCount++
+				progress.Failed = failed
+				progress.Completed = completedCount
+				progress.UpdatedAt = time.Now().UTC()
 				mu.Unlock()
+
+				// 每个候选完成后更新进度
+				r.updateProgress(progress)
+
 				publisher.emit(domainagent.EventCandidateComplete, i, domainagent.StatusFailed, time.Now().UTC(), time.Time{}, err)
 				return nil // Don't fail the whole batch
 			}
@@ -265,8 +373,17 @@ func (r *BatchRunner) executeBatch(
 					Status:      domainagent.StatusFailed,
 					Error:       &domainagent.ErrorDetail{Message: err.Error()},
 				}
+				progress.Results[i] = results[i]
 				failed++
+				completedCount++
+				progress.Failed = failed
+				progress.Completed = completedCount
+				progress.UpdatedAt = time.Now().UTC()
 				mu.Unlock()
+
+				// 每个候选完成后更新进度
+				r.updateProgress(progress)
+
 				publisher.emit(domainagent.EventCandidateComplete, i, domainagent.StatusFailed, time.Now().UTC(), time.Time{}, err)
 				return nil
 			}
@@ -278,8 +395,16 @@ func (r *BatchRunner) executeBatch(
 				Status:      domainagent.StatusCompleted,
 				Artifacts:   result.Session.FinalOutput.GeneratedArtifacts,
 			}
+			progress.Results[i] = results[i]
 			successful++
+			completedCount++
+			progress.Completed = completedCount
+			progress.Failed = failed
+			progress.UpdatedAt = time.Now().UTC()
 			mu.Unlock()
+
+			// 每个候选完成后更新进度
+			r.updateProgress(progress)
 
 			publisher.emit(domainagent.EventCandidateComplete, i, domainagent.StatusCompleted, time.Now().UTC(), time.Time{}, nil)
 			return nil
@@ -289,6 +414,12 @@ func (r *BatchRunner) executeBatch(
 	_ = g.Wait() // Wait for all candidates
 
 	completedAt := time.Now().UTC()
+
+	// 最终进度更新
+	progress.Status = domainagent.StatusCompleted
+	progress.UpdatedAt = completedAt
+	r.updateProgress(progress)
+
 	batchResult := domainagent.BatchResult{
 		BatchID:    batchID,
 		Results:    results,
@@ -298,6 +429,7 @@ func (r *BatchRunner) executeBatch(
 			StartedAt:   startTime,
 			CompletedAt: completedAt,
 			Duration:    completedAt.Sub(startTime),
+			UpdatedAt:   completedAt,
 		},
 	}
 

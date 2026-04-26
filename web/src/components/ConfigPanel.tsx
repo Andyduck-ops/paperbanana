@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { useLanguage } from '../hooks';
 import { Provider } from '../hooks/useProviders';
+import { FieldError } from './FieldError';
+
+export interface ConfigValidationErrors {
+  aspectRatio?: string;
+  criticRounds?: string;
+  retrievalMode?: string;
+  pipelineMode?: string;
+  queryModel?: string;
+  genModel?: string;
+}
 
 export interface GenerationConfig {
   aspectRatio: '21:9' | '16:9' | '3:2';
@@ -17,6 +27,7 @@ export interface ConfigPanelProps {
   providers?: Provider[];
   disabled?: boolean;
   onNavigateToSettings?: () => void;
+  validationErrors?: ConfigValidationErrors;
 }
 
 function ChevronIcon({ className }: { className?: string }) {
@@ -38,6 +49,7 @@ export function ConfigPanel({
   providers = [],
   disabled = false,
   onNavigateToSettings,
+  validationErrors,
 }: ConfigPanelProps) {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
@@ -85,15 +97,16 @@ export function ConfigPanel({
     });
   };
 
-  // Filter to only configured providers with models
   const configuredProviders = providers.filter(
     (p) => p.enabled && p.status === 'configured' && p.models && p.models.length > 0
   );
 
-  // Check if any models available
   const hasAvailableModels = configuredProviders.some(
     (p) => p.models && p.models.some((m) => m.enabled)
   );
+
+  const getInputClass = (hasError: boolean) =>
+    `w-full px-3 py-2 rounded-lg border ${hasError ? 'border-red-500' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50`;
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -111,7 +124,6 @@ export function ConfigPanel({
 
       {expanded && (
         <div className="p-4 border-t border-border bg-background grid grid-cols-2 gap-4">
-          {/* Aspect Ratio */}
           <div>
             <label
               htmlFor="aspect-ratio"
@@ -124,16 +136,17 @@ export function ConfigPanel({
               value={config.aspectRatio}
               onChange={handleAspectRatioChange}
               disabled={disabled}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              className={getInputClass(!!validationErrors?.aspectRatio)}
               aria-label={t('generate.aspectRatio')}
+              aria-invalid={!!validationErrors?.aspectRatio}
             >
               <option value="21:9">21:9</option>
               <option value="16:9">16:9</option>
               <option value="3:2">3:2</option>
             </select>
+            <FieldError error={validationErrors?.aspectRatio} />
           </div>
 
-          {/* Critic Rounds */}
           <div>
             <label
               htmlFor="critic-rounds"
@@ -149,12 +162,13 @@ export function ConfigPanel({
               value={config.criticRounds}
               onChange={handleCriticRoundsChange}
               disabled={disabled}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              className={getInputClass(!!validationErrors?.criticRounds)}
               aria-label={t('generate.criticRounds')}
+              aria-invalid={!!validationErrors?.criticRounds}
             />
+            <FieldError error={validationErrors?.criticRounds} />
           </div>
 
-          {/* Retrieval Mode */}
           <div>
             <label
               htmlFor="retrieval-mode"
@@ -167,17 +181,18 @@ export function ConfigPanel({
               value={config.retrievalMode}
               onChange={handleRetrievalModeChange}
               disabled={disabled}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              className={getInputClass(!!validationErrors?.retrievalMode)}
               aria-label={t('generate.retrievalMode')}
+              aria-invalid={!!validationErrors?.retrievalMode}
             >
               <option value="auto">{t('generate.modes.auto')}</option>
               <option value="manual">{t('generate.modes.manual')}</option>
               <option value="random">{t('generate.modes.random')}</option>
               <option value="none">{t('generate.modes.none')}</option>
             </select>
+            <FieldError error={validationErrors?.retrievalMode} />
           </div>
 
-          {/* Pipeline Mode */}
           <div>
             <label
               htmlFor="pipeline-mode"
@@ -190,16 +205,17 @@ export function ConfigPanel({
               value={config.pipelineMode}
               onChange={handlePipelineModeChange}
               disabled={disabled}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              className={getInputClass(!!validationErrors?.pipelineMode)}
               aria-label={t('generate.pipelineMode')}
+              aria-invalid={!!validationErrors?.pipelineMode}
             >
               <option value="full">{t('generate.pipelines.full')}</option>
               <option value="planner-critic">{t('generate.pipelines.planner-critic')}</option>
               <option value="vanilla">{t('generate.pipelines.vanilla')}</option>
             </select>
+            <FieldError error={validationErrors?.pipelineMode} />
           </div>
 
-          {/* Query Model */}
           <div>
             <label
               htmlFor="query-model"
@@ -218,36 +234,39 @@ export function ConfigPanel({
                 </button>
               </p>
             ) : (
-              <select
-                id="query-model"
-                value={config.queryModel || ''}
-                onChange={handleQueryModelChange}
-                disabled={disabled}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                aria-label={t('generate.queryModel')}
-              >
-                <option value="">{t('settings.default')}</option>
-                {configuredProviders.map((provider) => {
-                  const enabledModels = provider.models?.filter((m) => m.enabled);
-                  if (!enabledModels || enabledModels.length === 0) return null;
-                  return (
-                    <optgroup key={provider.name} label={provider.display_name}>
-                      {enabledModels.map((model) => (
-                        <option
-                          key={`${provider.name}:${model.id}`}
-                          value={`${provider.name}:${model.id}`}
-                        >
-                          {model.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
+              <>
+                <select
+                  id="query-model"
+                  value={config.queryModel || ''}
+                  onChange={handleQueryModelChange}
+                  disabled={disabled}
+                  className={getInputClass(!!validationErrors?.queryModel)}
+                  aria-label={t('generate.queryModel')}
+                  aria-invalid={!!validationErrors?.queryModel}
+                >
+                  <option value="">{t('settings.default')}</option>
+                  {configuredProviders.map((provider) => {
+                    const enabledModels = provider.models?.filter((m) => m.enabled);
+                    if (!enabledModels || enabledModels.length === 0) return null;
+                    return (
+                      <optgroup key={provider.name} label={provider.display_name}>
+                        {enabledModels.map((model) => (
+                          <option
+                            key={`${provider.name}:${model.id}`}
+                            value={`${provider.name}:${model.id}`}
+                          >
+                            {model.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                <FieldError error={validationErrors?.queryModel} />
+              </>
             )}
           </div>
 
-          {/* Generation Model */}
           <div>
             <label
               htmlFor="gen-model"
@@ -266,32 +285,36 @@ export function ConfigPanel({
                 </button>
               </p>
             ) : (
-              <select
-                id="gen-model"
-                value={config.genModel || ''}
-                onChange={handleGenModelChange}
-                disabled={disabled}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                aria-label={t('generate.genModel')}
-              >
-                <option value="">{t('settings.default')}</option>
-                {configuredProviders.map((provider) => {
-                  const enabledModels = provider.models?.filter((m) => m.enabled);
-                  if (!enabledModels || enabledModels.length === 0) return null;
-                  return (
-                    <optgroup key={provider.name} label={provider.display_name}>
-                      {enabledModels.map((model) => (
-                        <option
-                          key={`${provider.name}:${model.id}`}
-                          value={`${provider.name}:${model.id}`}
-                        >
-                          {model.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
+              <>
+                <select
+                  id="gen-model"
+                  value={config.genModel || ''}
+                  onChange={handleGenModelChange}
+                  disabled={disabled}
+                  className={getInputClass(!!validationErrors?.genModel)}
+                  aria-label={t('generate.genModel')}
+                  aria-invalid={!!validationErrors?.genModel}
+                >
+                  <option value="">{t('settings.default')}</option>
+                  {configuredProviders.map((provider) => {
+                    const enabledModels = provider.models?.filter((m) => m.enabled);
+                    if (!enabledModels || enabledModels.length === 0) return null;
+                    return (
+                      <optgroup key={provider.name} label={provider.display_name}>
+                        {enabledModels.map((model) => (
+                          <option
+                            key={`${provider.name}:${model.id}`}
+                            value={`${provider.name}:${model.id}`}
+                          >
+                            {model.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                <FieldError error={validationErrors?.genModel} />
+              </>
             )}
           </div>
         </div>

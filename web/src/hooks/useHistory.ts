@@ -22,17 +22,20 @@ export interface HistoryState {
 
 export interface RestoredSession {
   id: string;
+  projectId: string;
+  visualizationId?: string;
   status: string;
+  currentStage?: string;
   mode: 'generate' | 'batch' | 'refine';
   prompt: string;
   artifacts: Array<{
     kind: string;
     mimeType: string;
+    summary?: string;
     data?: string;
     assetId?: string;
     projectId?: string;
     uri?: string;
-    summary?: string;
   }>;
   stages?: Array<{
     stage: string;
@@ -56,10 +59,17 @@ export interface RestoredSession {
     artifacts: Array<{
       kind: string;
       mimeType: string;
+      summary?: string;
       data?: string;
       assetId?: string;
       projectId?: string;
+      uri?: string;
+    }>;
+    stages?: Array<{
+      stage: string;
+      status: StageStatus;
       summary?: string;
+      error?: string;
     }>;
     error?: string;
   }>;
@@ -81,11 +91,14 @@ export function useHistory(projectId?: string) {
     try {
       const response = await apiClient.listHistory(projectId);
       setState({
-        sessions: response.sessions.map((s) => ({
+        sessions: (response.sessions || []).map((s) => ({
           id: s.id,
           projectId: s.project_id,
           createdAt: s.created_at,
           status: s.status,
+          prompt: (s as { prompt?: string }).prompt,
+          summary: (s as { summary?: string }).summary,
+          mode: (s as { mode?: 'generate' | 'batch' | 'refine' | 'workspace' }).mode,
         })),
         isLoading: false,
         error: null,
@@ -130,7 +143,7 @@ export function useHistory(projectId?: string) {
 
       // Determine mode from snapshot metadata
       const mode = snapshot.metadata?.['history.mode'] ||
-        (snapshot.current_stage === 'polish' ? 'refine' :
+        (response.current_stage === 'polish' ? 'refine' :
           (snapshot.metadata?.['batch.group_id'] ? 'batch' : 'generate'));
 
       // Extract artifacts from stage states or final output
@@ -153,8 +166,9 @@ export function useHistory(projectId?: string) {
               artifacts.push({
                 kind: artifact.kind,
                 mimeType: artifact.mime_type,
-                data: artifact.data || artifact.content,
-                assetId: artifact.asset_id,
+                summary: artifact.metadata?.summary,
+                data: artifact.bytes || artifact.content,
+                assetId: artifact.id,
                 projectId: artifact.metadata?.project_id,
                 uri: artifact.uri,
               });
@@ -163,16 +177,17 @@ export function useHistory(projectId?: string) {
         }
       }
 
-      // Also check final output for artifacts
+      // Also check final output for artifacts (used for refine mode)
       if (snapshot.final_output?.generated_artifacts) {
         for (const artifact of snapshot.final_output.generated_artifacts) {
           // Avoid duplicates
-          if (!artifacts.find((a) => a.assetId === artifact.asset_id)) {
+          if (!artifacts.find((a) => a.assetId === artifact.id)) {
             artifacts.push({
               kind: artifact.kind,
               mimeType: artifact.mime_type,
-              data: artifact.data || artifact.content,
-              assetId: artifact.asset_id,
+              summary: artifact.metadata?.summary,
+              data: artifact.bytes || artifact.content,
+              assetId: artifact.id,
               projectId: artifact.metadata?.project_id,
               uri: artifact.uri,
             });
@@ -183,27 +198,103 @@ export function useHistory(projectId?: string) {
       // Extract prompt from initial input
       const prompt = snapshot.initial_input?.content ||
         snapshot.initial_input?.visual_intent?.goal ||
-        snapshot.initial_input?.metadata?.['http.visual_intent'] ||
         snapshot.metadata?.['http.prompt'] || '';
 
       // Handle batch mode
       if (mode === 'batch') {
+        // Check if this is a batch root session with candidate session IDs
         const batchGroupId = snapshot.metadata?.['batch.group_id'] || response.id;
         const sessionIdsRaw = snapshot.metadata?.['batch.session_ids'] || '';
-        const sessionIds = sessionIdsRaw.split(',').map((s) => s.trim()).filter(Boolean);
+        const candidateSessionIds = sessionIdsRaw.split(',').map((s) => s.trim()).filter(Boolean);
 
-        // For batch, we need to construct candidates from the session_ids
-        // Since we only have one session's snapshot, we treat the current one as representative
-        const candidates: RestoredSession['candidates'] = sessionIds.map((sid, index) => ({
-          candidateId: index + 1,
-          sessionId: sid,
-          status: response.status === 'completed' ? 'completed' : 'failed',
-          artifacts: artifacts.slice(0, 1), // Use first artifact as representative
-        }));
+        // If we have candidate session IDs, fetch each candidate
+        const candidates: RestoredSession['candidates'] = [];
+
+        if (candidateSessionIds.length > 0) {
+          for (let i = 0; i < candidateSessionIds.length; i++) {
+            const candidateSessionId = candidateSessionIds[i];
+            try {
+              const candidateResponse = await apiClient.getSession(candidateSessionId);
+              const candidateSnapshot = candidateResponse.snapshot;
+
+              const candidateArtifacts: RestoredSession['artifacts'] = [];
+              const candidateStages: RestoredSession['stages'] = [];
+
+              if (candidateSnapshot?.stage_states) {
+                for (const stageState of candidateSnapshot.stage_states) {
+                  candidateStages.push({
+                    stage: stageState.stage,
+                    status: mapStatusToStageStatus(stageState.status),
+                    summary: stageState.output?.content?.slice(0, 100),
+                    error: stageState.error?.message,
+                  });
+
+                  if (stageState.output?.generated_artifacts) {
+                    for (const artifact of stageState.output.generated_artifacts) {
+                      candidateArtifacts.push({
+                        kind: artifact.kind,
+                        mimeType: artifact.mime_type,
+                        summary: artifact.metadata?.summary,
+                        data: artifact.bytes || artifact.content,
+                        assetId: artifact.id,
+                        projectId: artifact.metadata?.project_id,
+                      });
+                    }
+                  }
+                }
+              }
+
+              if (candidateSnapshot?.final_output?.generated_artifacts) {
+                for (const artifact of candidateSnapshot.final_output.generated_artifacts) {
+                  if (!candidateArtifacts.find((a) => a.assetId === artifact.id)) {
+                    candidateArtifacts.push({
+                      kind: artifact.kind,
+                      mimeType: artifact.mime_type,
+                      summary: artifact.metadata?.summary,
+                      data: artifact.bytes || artifact.content,
+                      assetId: artifact.id,
+                      projectId: artifact.metadata?.project_id,
+                    });
+                  }
+                }
+              }
+
+              candidates.push({
+                candidateId: i,
+                sessionId: candidateSessionId,
+                status: candidateResponse.status,
+                artifacts: candidateArtifacts,
+                stages: candidateStages,
+                error: candidateSnapshot?.error?.message,
+              });
+            } catch {
+              // If fetching a candidate fails, add it as failed
+              candidates.push({
+                candidateId: i,
+                sessionId: candidateSessionId,
+                status: 'failed',
+                artifacts: [],
+                error: 'Failed to fetch candidate session',
+              });
+            }
+          }
+        } else {
+          // Fallback: treat current session artifacts as the only candidate
+          candidates.push({
+            candidateId: 0,
+            sessionId: response.id,
+            status: response.status,
+            artifacts: artifacts.slice(0, 1),
+            stages: stages,
+          });
+        }
 
         return {
           id: response.id,
+          projectId: response.project_id,
+          visualizationId: response.visualization_id,
           status: response.status,
+          currentStage: response.current_stage,
           mode: 'batch',
           prompt,
           artifacts,
@@ -213,14 +304,17 @@ export function useHistory(projectId?: string) {
           candidates,
           successful: candidates.filter((c) => c.status === 'completed').length,
           failed: candidates.filter((c) => c.status === 'failed').length,
-          startedAt: snapshot.started_at,
-          completedAt: snapshot.completed_at,
+          startedAt: snapshot.started_at || response.created_at,
+          completedAt: snapshot.completed_at || response.completed_at,
         };
       }
 
       return {
         id: response.id,
+        projectId: response.project_id,
+        visualizationId: response.visualization_id,
         status: response.status,
+        currentStage: response.current_stage,
         mode: mode as 'generate' | 'refine',
         prompt,
         artifacts,

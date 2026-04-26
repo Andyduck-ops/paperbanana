@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -423,7 +422,7 @@ func (h *WorkspaceHandler) RestoreItem(c *gin.Context) {
 
 // isNotFoundError checks if an error indicates a not found condition.
 func isWorkspaceNotFoundError(err error) bool {
-	return errors.Is(err, errors.New("not found")) ||
+	return err.Error() == "not found" ||
 		err.Error() == "project not found" ||
 		err.Error() == "folder not found" ||
 		err.Error() == "visualization not found"

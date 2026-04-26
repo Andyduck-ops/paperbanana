@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/paperbanana/paperbanana/internal/api"
+	apiMiddleware "github.com/paperbanana/paperbanana/internal/api/middleware"
 	criticagent "github.com/paperbanana/paperbanana/internal/application/agents/critic"
 	planneragent "github.com/paperbanana/paperbanana/internal/application/agents/planner"
 	retrieveragent "github.com/paperbanana/paperbanana/internal/application/agents/retriever"
@@ -137,7 +141,7 @@ func main() {
 		apiKeyRepo,
 	)
 
-	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot, cfg.StageTimeout, cfg.Plot.Enabled)
+	runner, err := buildRunner(providerConfig, queryClient, genClient, snapshotStore, nodeCatalog, benchRoot, cfg.StageTimeout, cfg.Plot.Enabled, cfg.Pipeline.GracefulDegrade)
 	if err != nil {
 		logger.Fatal("failed to build runner", zap.Error(err))
 	}
@@ -154,6 +158,21 @@ func main() {
 	}
 
 	// Wire up the full router with persistence and config endpoints
+	// Build middleware configs from security configuration
+	authCfg := apiMiddleware.AuthConfig{
+		Enabled:    cfg.Security.AuthEnabled,
+		APIKeys:    cfg.Security.APIKeys,
+		HeaderName: "X-API-Key",
+	}
+	rateLimitCfg := apiMiddleware.RateLimitConfig{
+		RequestsPerMinute: cfg.Security.RateLimit.RequestsPerMinute,
+		Burst:             cfg.Security.RateLimit.Burst,
+	}
+	// If rate limiting is disabled in config, set RequestsPerMinute to 0 to skip
+	if !cfg.Security.RateLimit.Enabled {
+		rateLimitCfg.RequestsPerMinute = 0
+	}
+
 	router := api.SetupRouterWithConfigAndBatchAndDB(runner, api.PersistenceServices{
 		WorkspaceService: workspaceService,
 		HistoryService:   historyService,
@@ -166,7 +185,19 @@ func main() {
 	}, &api.RefineServices{
 		Generator:    genClient,
 		SessionSaver: historyService,
-	}, db, logger)
+	}, db, logger, authCfg, rateLimitCfg)
+
+	// Serve built frontend static files if they exist (production mode)
+	webDistPath := findWebDist()
+	if webDistPath != "" {
+		router.Static("/assets", filepath.Join(webDistPath, "assets"))
+		router.Static("/images", filepath.Join(webDistPath, "images"))
+		router.StaticFile("/", filepath.Join(webDistPath, "index.html"))
+		router.NoRoute(func(c *gin.Context) {
+			c.File(filepath.Join(webDistPath, "index.html"))
+		})
+		logger.Info("serving frontend", zap.String("path", webDistPath))
+	}
 
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
@@ -219,6 +250,33 @@ func main() {
 	logger.Info("server exited")
 }
 
+// findWebDist locates the built frontend files relative to the executable.
+func findWebDist() string {
+	// Try relative to executable path
+	_, exePath, _, ok := runtime.Caller(0)
+	if ok {
+		exeDir := filepath.Dir(exePath)
+		candidates := []string{
+			filepath.Join(exeDir, "..", "..", "web", "dist"),
+			filepath.Join(exeDir, "..", "web", "dist"),
+			filepath.Join(exeDir, "web", "dist"),
+		}
+		for _, candidate := range candidates {
+			if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+				return candidate
+			}
+		}
+	}
+	// Try working directory
+	if wd, err := os.Getwd(); err == nil {
+		candidate := filepath.Join(wd, "web", "dist")
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate
+		}
+	}
+	return ""
+}
+
 func buildRunner(
 	providerConfig config.ProviderConfig,
 	queryClient domainllm.LLMClient,
@@ -228,12 +286,13 @@ func buildRunner(
 	benchRoot string,
 	stageTimeouts config.StageTimeoutConfig,
 	plotEnabled bool,
+	gracefulDegrade bool,
 ) (*orchestrator.Runner, error) {
 	visualizerAgent := visualizeragent.NewAgent(genClient, visualizeragent.Config{
-		Model:        providerConfig.Model,
-		NodeCatalog:  nodeCatalog,
-		NodeAdapter:  httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", providerConfig.Timeout)),
-		PlotEnabled:  plotEnabled,
+		Model:       providerConfig.Model,
+		NodeCatalog: nodeCatalog,
+		NodeAdapter: httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", providerConfig.Timeout)),
+		PlotEnabled: plotEnabled,
 	})
 	criticAgent := criticagent.NewAgent(queryClient, criticagent.Config{
 		Model:         providerConfig.Model,
@@ -262,6 +321,7 @@ func buildRunner(
 			domainagent.StageVisualizer: stageTimeouts.Visualizer,
 			domainagent.StageCritic:     stageTimeouts.Critic,
 		}),
+		orchestrator.WithGracefulDegradation(gracefulDegrade),
 	), nil
 }
 
@@ -330,10 +390,10 @@ func (f *agentFactory) CreateStylist() domainagent.BaseAgent {
 
 func (f *agentFactory) CreateVisualizer() domainagent.BaseAgent {
 	return visualizeragent.NewAgent(f.genClient, visualizeragent.Config{
-		Model:        f.providerConfig.Model,
-		NodeCatalog:  f.nodeCatalog,
-		NodeAdapter:  httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", f.providerConfig.Timeout)),
-		PlotEnabled:  f.plotEnabled,
+		Model:       f.providerConfig.Model,
+		NodeCatalog: f.nodeCatalog,
+		NodeAdapter: httpnode.NewAdapter(resilience.NewResilientClient("visualizer-node", f.providerConfig.Timeout)),
+		PlotEnabled: f.plotEnabled,
 	})
 }
 

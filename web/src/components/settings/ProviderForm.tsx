@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Provider, ProviderPreset } from '../../hooks/useProviders';
 import { ModelTagList } from './ModelTagList';
+import { parseValidationErrors, type FieldError } from '../../utils/errorParser';
 
 interface ModelTag {
   id: string;
@@ -49,6 +50,7 @@ export function ProviderForm({ provider, presets, onSave, onCancel }: ProviderFo
   const [errors, setErrors] = useState<Partial<Record<keyof ProviderFormData | 'models', string>>>({});
   const [remoteModels, setRemoteModels] = useState<RemoteModel[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
 
   useEffect(() => {
     if (provider) {
@@ -158,13 +160,19 @@ export function ProviderForm({ provider, presets, onSave, onCancel }: ProviderFo
 
     setSaving(true);
     setSaveError(null);
+    setFieldErrors([]);
     try {
       await onSave({
         ...formData,
         models: models.map((model) => ({ id: model.id, name: model.name, enabled: true })),
       });
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save');
+      const parsedErrors = parseValidationErrors(err);
+      if (parsedErrors.length > 0 && parsedErrors[0].field !== 'general') {
+        setFieldErrors(parsedErrors);
+      } else {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save');
+      }
     } finally {
       setSaving(false);
     }
@@ -347,6 +355,16 @@ export function ProviderForm({ provider, presets, onSave, onCancel }: ProviderFo
       </section>
 
       {saveError && <div className="provider-form__save-error">{saveError}</div>}
+
+      {fieldErrors.length > 0 && (
+        <div className="provider-form__field-errors">
+          {fieldErrors.map((error, index) => (
+            <div key={index} className="provider-form__field-error">
+              <span className="provider-form__field-error-field">{error.field}:</span> {error.message}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="provider-form__actions">
         <button type="submit" disabled={saving} className="provider-form__primary-button">

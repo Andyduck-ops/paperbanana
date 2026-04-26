@@ -2,13 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="description" content="PaperBanana — AI-powered academic illustration generation and refinement. Transform research ideas into publication-ready scientific figures." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PaperBanana</title>
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="PaperBanana — AI Academic Illustration Generator" />
+    <meta property="og:description" content="Transform research ideas into publication-ready scientific figures with AI-powered generation and refinement." />
+    <meta property="og:type" content="website" />
+
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    <title>PaperBanana — AI Academic Illustration Generator</title>
 
     <!-- Preconnect to Google Fonts for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
     <!-- Theme fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -16,18 +24,46 @@
     <script>
       // Prevent a first-paint theme mismatch before React hydrates.
       (function() {
-        var stored = localStorage.getItem('paperbanana-theme');
-        if (stored) {
-          document.documentElement.setAttribute('data-theme', stored);
-        } else {
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var defaultTheme = prefersDark ? 'japanese-bw' : 'qi-baishi';
-          document.documentElement.setAttribute('data-theme', defaultTheme);
+        var theme = 'qi-baishi';
+        var colorScheme = 'system';
+
+        // Try reading from Zustand app store (primary source)
+        try {
+          var raw = localStorage.getItem('paperbanana-app-store');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state) {
+              if (parsed.state.theme) theme = parsed.state.theme;
+              if (parsed.state.colorScheme) colorScheme = parsed.state.colorScheme;
+            }
+          }
+        } catch (e) {
+          // Fallback: legacy theme key
+          var legacyTheme = localStorage.getItem('paperbanana-theme');
+          if (legacyTheme) theme = legacyTheme;
         }
+
+        // Migrate old theme IDs
+        var migrationMap = { 'pop-art': 'pop-anime', 'classical-chinese': 'qi-baishi', 'minimalist-bw': 'japanese-bw' };
+        theme = migrationMap[theme] || theme;
+
+        // Validate theme
+        var validThemes = ['academic', 'qi-baishi', 'pop-anime', 'rococo', 'japanese-bw'];
+        if (validThemes.indexOf(theme) === -1) theme = 'qi-baishi';
+
+        document.documentElement.setAttribute('data-theme', theme);
+
+        // Apply color scheme
+        var effectiveScheme = colorScheme;
+        if (colorScheme === 'system') {
+          effectiveScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-color-scheme', effectiveScheme);
       })();
     </script>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
