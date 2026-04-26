@@ -402,9 +402,15 @@ Single quotes and double quotes are mixed across files. This is a cosmetic issue
 
 Some tests assert on literal CSS class names (e.g., `expect(el).toHaveClass('bg-green-500')`) while others use semantic design tokens (e.g., `expect(el).toHaveClass('bg-status-success')`). When writing tests, prefer semantic token assertions.
 
-### 3. ESLint Declared But Not Installed
+### 3. ESLint Warnings Backlog
 
-The `package.json` declares `"lint": "eslint ."` but ESLint is not in `devDependencies`. The lint script will fail. Do not rely on `npm run lint` until ESLint is properly installed and configured.
+ESLint v10.2.1 is installed and `npm run lint` runs cleanly (`eslint .` from `web/`). Current state: **0 errors, 25 warnings**. The warnings cluster into:
+
+- `@typescript-eslint/ban-ts-comment` — `@ts-nocheck` headers in `useHistory.test.ts`, `VisualizationDetailPage.tsx`, `test/integration/sse-flow.test.ts`
+- `@typescript-eslint/no-explicit-any` — explicit `any` in `lib/performance.ts`
+- `@typescript-eslint/no-unused-vars` — unused `e` in `catch (e)` blocks in `lib/performance.ts` (rename to `_e` or omit)
+
+These are non-blocking but should be paid down. Treat the warning count as a quality signal — new code should not raise it.
 
 ### 4. Vitest Does Not Exclude Playwright Specs
 
