@@ -1,78 +1,77 @@
 # PaperBanana Design System
 
-> Inspired by RunwayML's cinematic dark UI and creative-tool precision. Adapted for PaperBanana's multi-art-theme scientific visualization workflow.
+> Two anchor stylesheets — Claude (light) and Linear (dark). No third style.
+> Authoritative spec: [`.trellis/spec/ui-design/design-principles.md`](../.trellis/spec/ui-design/design-principles.md) §0 §7.
 
 ---
 
 ## 1. Visual Theme & Atmosphere
 
 ### Mood
-Cinematic, focused, gallery-like. The UI exists to showcase generated visuals — it should feel like a darkroom or editing suite, not a dashboard.
+Editorial, focused, gallery-like. The UI exists to showcase generated visuals — it should feel like a creative studio or scholarly journal, not a dashboard.
 
 ### Density
 Medium-low density. Generous whitespace around the canvas. Controls are grouped and collapsible. The generated image is always the hero.
 
 ### Design Philosophy
 - **Content-first**: Generated artifacts occupy the visual center; chrome recedes.
-- **Theme-aware**: The base UI is neutral and adaptive. Art themes (academic, Qi Baishi, pop-anime, Rococo, Night Mono) inject personality through color, typography, and texture — but never compromise readability.
-- **Dark-first**: Default dark mode is optimized for long creative sessions. Light mode is supported but secondary.
+- **Two anchors only**: Claude/Anthropic light (parchment + Source Serif 4 + terracotta) and Linear dark (marketing-black + Inter Variable + indigo). Adding a third anchor requires updating `design-principles.md` §0 first.
+- **Single axis**: Switch is driven by `data-color-scheme="light" | "dark"` only. The legacy `data-theme` attribute is forbidden.
 - **Motion with purpose**: Transitions guide attention; no decorative animation.
 
 ---
 
 ## 2. Color Palette & Roles
 
-### Base Tokens (Dark Mode — Default)
+Tokens are defined in `web/src/themes/`:
+- `tokens.css` — Tailwind v4 `@theme` bridge mapping `--theme-*` to `--color-*`
+- `claude-light.css` — `:root` and `[data-color-scheme="light"]` overrides
+- `linear-dark.css` — `[data-color-scheme="dark"]` overrides
 
-| Token | Hex / OKLCH | Role |
-|-------|-------------|------|
-| `--color-background` | `#0a0a0f` | App canvas, deepest layer |
-| `--color-surface` | `#13131a` | Cards, panels, drawers |
-| `--color-surface-elevated` | `#1a1a24` | Modals, popovers, dropdowns |
-| `--color-border` | `#2a2a3a` | Dividers, outlines |
-| `--color-border-subtle` | `#1e1e2a` | Hairline separators |
-| `--color-foreground` | `#f0f0f5` | Primary text |
-| `--color-foreground-muted` | `#8a8a9a` | Secondary text, placeholders |
-| `--color-foreground-dim` | `#5a5a6a` | Tertiary text, disabled |
-| `--color-primary` | `#e8d5b5` | CTA buttons, active states, accent (warm champagne) |
-| `--color-primary-hover` | `#f0e0c8` | Primary hover |
-| `--color-primary-active` | `#dcc0a0` | Primary pressed |
-| `--color-accent` | `#c4a45a` | Highlights, badges, progress indicators |
-| `--color-accent-glow` | `rgba(196, 164, 90, 0.25)` | Focus rings, selection glow |
-| `--color-status-success` | `#6abe6a` | Success states |
-| `--color-status-error` | `#e05a5a` | Errors, failures |
-| `--color-status-warning` | `#e0b85a` | Warnings |
-| `--color-status-info` | `#6a9ae0` | Info, running states |
+### Light Anchor (Claude / Anthropic) — `[data-color-scheme="light"]`
 
-### Light Mode
+| Token | OKLCH | Role |
+|-------|-------|------|
+| `--theme-background` | `oklch(0.96 0.01 95)` | Parchment canvas (#f5f4ed) |
+| `--theme-card` | `oklch(0.98 0.005 95)` | Cards, panels |
+| `--theme-muted` | `oklch(0.93 0.01 90)` | Muted backgrounds |
+| `--theme-foreground` | `oklch(0.20 0.005 80)` | Primary text (#141413) |
+| `--theme-muted-foreground` | `oklch(0.46 0.01 80)` | Secondary text |
+| `--theme-primary` | `oklch(0.56 0.16 40)` | Terracotta CTA (#c96442) |
+| `--theme-secondary` | `oklch(0.82 0.05 85)` | Secondary surfaces |
+| `--theme-accent` | `oklch(0.58 0.08 150)` | Highlights, progress |
+| `--theme-border` | `oklch(0.93 0.01 90)` | Dividers |
+| `--theme-ring` | `oklch(0.85 0.01 80)` | Ring shadow (no drop shadow) |
+| Focus blue | `#3898ec` | Form-field focus ring (only allowed cool color) |
 
-| Token | Hex | Role |
-|-------|-----|------|
-| `--color-background` | `#f6f2ea` | Warm paper-like canvas |
-| `--color-surface` | `#fcfaf5` | Cards, panels |
-| `--color-surface-elevated` | `#ffffff` | Modals, popovers |
-| `--color-border` | `#e0ddd5` | Dividers |
-| `--color-foreground` | `#1a1a20` | Primary text |
-| `--color-foreground-muted` | `#6a6a75` | Secondary text |
-| `--color-primary` | `#2a4a7a` | Primary actions (deep academic blue) |
-| `--color-accent` | `#c44a3a` | Accent (ink red) |
+### Dark Anchor (Linear) — `[data-color-scheme="dark"]`
 
-### Art Theme Overrides
+| Token | OKLCH | Role |
+|-------|-------|------|
+| `--theme-background` | `oklch(0.10 0.005 264)` | Marketing Black canvas (#08090a) |
+| `--theme-card` | `oklch(0.13 0.005 264)` | Cards, panels |
+| `--theme-muted` | `oklch(0.16 0.005 264)` | Muted backgrounds |
+| `--theme-foreground` | `oklch(0.97 0.005 264)` | Primary text |
+| `--theme-muted-foreground` | `oklch(0.62 0.01 260)` | Secondary text |
+| `--theme-primary` | `oklch(0.58 0.16 285)` | Brand Indigo CTA (#5e6ad2) |
+| `--theme-secondary` | `oklch(0.35 0.03 260)` | Secondary surfaces |
+| `--theme-accent` | `oklch(0.65 0.10 150)` | Highlights, progress |
+| `--theme-border` | `rgba(255,255,255,0.08)` | Semi-transparent white edges |
+| `--theme-border-subtle` | `rgba(255,255,255,0.05)` | Hairline separators |
 
-Art themes override a **subset** of base tokens to inject personality. They never redefine functional colors (status, error, success).
+### Status Tokens (both anchors)
 
-| Theme | Override Character |
-|-------|-------------------|
-| `academic` | Deep blues, scholarly neutrals, serif headings |
-| `qi-baishi` | Warm rice-paper white, ink red accents, traditional serif |
-| `pop-anime` | Vibrant cream, bold red/blue accents, playful sans |
-| `rococo` | Soft blush white, gold accents, ornamental serif |
-| `japanese-bw` | True black, high-contrast white, monospace |
+| Token | Light | Dark |
+|-------|-------|------|
+| `--theme-status-success` | `oklch(0.61 0.16 145)` | `oklch(0.70 0.14 145)` |
+| `--theme-status-warning` | `oklch(0.75 0.16 85)` | `oklch(0.78 0.14 85)` |
+| `--theme-status-error` | `oklch(0.59 0.19 25)` | `oklch(0.68 0.16 25)` |
+| `--theme-status-info` | `oklch(0.57 0.12 245)` | `oklch(0.68 0.10 245)` |
 
 ### Usage Rules
-- **Never** hardcode hex values in components. Always use CSS custom properties.
-- Art themes set `data-theme`; luminance mode sets `data-color-scheme`.
-- Both attributes coexist: `<html data-theme="qi-baishi" data-color-scheme="dark">`.
+- **Never** hardcode hex values in components. Use `var(--theme-*)` or Tailwind v4 `bg-primary` / `text-foreground` (mapped via `tokens.css`).
+- **Never** reference `data-theme` — it is forbidden. Only `data-color-scheme="light" | "dark"` exists.
+- Adding a third stylesheet requires editing `design-principles.md` §0 first; the gating procedure is in that file.
 
 ---
 
@@ -80,29 +79,27 @@ Art themes override a **subset** of base tokens to inject personality. They neve
 
 ### Font Stack
 
-| Role | Font | Fallback | Usage |
-|------|------|----------|-------|
-| Heading | `Fraunces` | `Noto Serif SC`, serif | Page titles, section headers, brand |
-| Body | `IBM Plex Sans` | `Noto Sans SC`, sans-serif | UI text, labels, body copy |
-| Mono | `IBM Plex Mono` | `monospace` | Code, timestamps, metadata |
+| Anchor | Heading | Body | Mono |
+|--------|---------|------|------|
+| Light (Claude) | `Source Serif 4` (single weight 500) | `Inter Variable` | `JetBrains Mono` |
+| Dark (Linear) | `Inter Variable` (weight 510, `cv01` + `ss03`) | `Inter Variable` (weight 510) | `JetBrains Mono` |
 
 ### Type Scale
 
-| Token | Size | Weight | Line-Height | Letter-Spacing | Usage |
-|-------|------|--------|-------------|----------------|-------|
-| `text-display` | 2.5rem (40px) | 600 | 1.1 | -0.02em | Hero titles |
-| `text-h1` | 1.75rem (28px) | 600 | 1.2 | -0.01em | Page headings |
-| `text-h2` | 1.375rem (22px) | 600 | 1.3 | 0 | Section headings |
-| `text-h3` | 1.125rem (18px) | 500 | 1.4 | 0 | Card titles |
-| `text-body` | 0.9375rem (15px) | 400 | 1.6 | 0 | Body text |
-| `text-small` | 0.8125rem (13px) | 400 | 1.5 | 0.01em | Captions, meta |
+| Token | Size | Weight (Light / Dark) | Line-Height | Letter-Spacing | Usage |
+|-------|------|----------------------|-------------|----------------|-------|
+| `text-display` | 2.5rem (40px) | 500 / 510 | 1.10 | -0.01em / -0.022em | Hero titles |
+| `text-h1` | 1.75rem (28px) | 500 / 510 | 1.10 | -0.01em / -0.022em | Page headings |
+| `text-h2` | 1.375rem (22px) | 500 / 510 | 1.20 | 0 / -0.022em | Section headings |
+| `text-h3` | 1.125rem (18px) | 500 / 510 | 1.30 | 0 | Card titles |
+| `text-body` | 0.9375rem (15px) | 400 / 510 | 1.6 | 0 | Body text |
+| `text-small` | 0.8125rem (13px) | 400 / 510 | 1.5 | 0.01em | Captions, meta |
 | `text-label` | 0.75rem (12px) | 500 | 1.4 | 0.02em | Buttons, badges, labels |
-| `text-mono` | 0.8125rem (13px) | 400 | 1.5 | 0 | Timestamps, IDs |
 
 ### Typography Rules
-- Headings use `font-heading`; body uses `font-body`.
-- Chinese text always falls back to `Noto Serif SC` / `Noto Sans SC`.
-- Uppercase + wide tracking only for `text-label` in English.
+- Light anchor headings use **Source Serif 4 weight 500 only** (Anthropic single-weight rule).
+- Dark anchor sets `font-variation-settings: "wght" 510` and `font-feature-settings: "cv01" on, "ss03" on, "cv11" on` on `[data-color-scheme="dark"]`.
+- Chinese fallbacks: `Noto Serif SC` for headings, `Noto Sans SC` for body.
 - Minimum readable size: 12px.
 
 ---
@@ -111,53 +108,45 @@ Art themes override a **subset** of base tokens to inject personality. They neve
 
 ### Button
 
-| Variant | Background | Text | Border | Hover | Active |
-|---------|-----------|------|--------|-------|--------|
-| Primary | `var(--color-primary)` | `var(--color-background)` | none | lighten 8%, lift shadow | darken 5%, scale(0.98) |
-| Secondary | transparent | `var(--color-foreground)` | `1px solid var(--color-border)` | `var(--color-surface)` bg | scale(0.98) |
-| Ghost | transparent | `var(--color-foreground-muted)` | none | `var(--color-foreground)` text | — |
-| Destructive | `var(--color-status-error)` | `#fff` | none | lighten 8% | darken 5% |
+| Variant | Background | Text | Hover | Active |
+|---------|-----------|------|-------|--------|
+| Primary | `var(--theme-primary)` | `var(--theme-primary-foreground)` | lighten 8% | scale(0.98) |
+| Secondary | transparent | `var(--theme-foreground)` | `var(--theme-card)` bg | scale(0.98) |
+| Ghost | transparent | `var(--theme-muted-foreground)` | `var(--theme-foreground)` text | — |
+| Destructive | `var(--theme-status-error)` | `#fff` | lighten 8% | scale(0.98) |
 
 - **Height**: 40px (standard), 48px (hero CTA), 32px (compact).
 - **Radius**: 8px (standard), 9999px (pill/tag).
-- **Icon + Text**: 8px gap, icon 16×16.
 
 ### Card / Panel
 
-```
-background: var(--color-surface);
-border: 1px solid var(--color-border);
+```css
+background: var(--theme-card);
+border: 1px solid var(--theme-border);
 border-radius: 12px;
 padding: 20px;
+box-shadow: var(--theme-surface-shadow);
 ```
-
-- Hover: `border-color` shifts to `var(--color-border-hover)` (if defined).
-- No box-shadow by default in dark mode; subtle shadow in light mode.
 
 ### Input / Textarea
 
-```
-background: var(--color-surface-elevated);
-border: 1px solid var(--color-border);
+```css
+background: var(--theme-card);
+border: 1px solid var(--theme-border);
 border-radius: 10px;
 padding: 12px 14px;
-color: var(--color-foreground);
+color: var(--theme-foreground);
 ```
 
-- Focus: `outline: 2px solid var(--color-accent-glow); border-color: var(--color-accent);`
-- Placeholder: `var(--color-foreground-dim)`.
-- Error state: `border-color: var(--color-status-error)`.
+- Light focus: `box-shadow: 0 0 0 1px var(--theme-border), 0 0 0 3px color-mix(in srgb, #3898ec 30%, transparent);`
+- Dark focus: indigo ring via `--theme-primary-alpha`.
+- Error state: `border-color: var(--theme-status-error)`.
 
 ### Drawer / Modal
 
-- **Drawer**: slides from left/right, `backdrop-filter: blur(12px)`, bg `rgba(10,10,15,0.85)`.
-- **Modal**: centered, `box-shadow: 0 24px 80px rgba(0,0,0,0.5)`, max-width 560px.
+- **Drawer**: slides from left/right, `backdrop-filter: blur(12px)`.
+- **Modal**: centered, max-width 560px, ring shadow only (no drop shadows).
 - **Animation**: 200ms ease-out transform + 150ms opacity.
-
-### Progress / Status
-
-- Progress line: 2px height, `var(--color-accent)` fill, `var(--color-border)` track.
-- Stage indicators: 8px dots, colored by status token.
 
 ---
 
@@ -199,39 +188,32 @@ color: var(--color-foreground);
 
 ## 6. Depth & Elevation
 
-### Shadow System
+Both anchors use **ring shadows** (no drop shadows), per the Anthropic and Linear references.
 
-| Token | Dark Mode | Light Mode |
-|-------|-----------|------------|
-| `shadow-sm` | none | `0 1px 2px rgba(0,0,0,0.05)` |
-| `shadow-md` | `0 4px 16px rgba(0,0,0,0.3)` | `0 4px 16px rgba(0,0,0,0.08)` |
-| `shadow-lg` | `0 12px 40px rgba(0,0,0,0.4)` | `0 12px 40px rgba(0,0,0,0.1)` |
-| `shadow-xl` | `0 24px 80px rgba(0,0,0,0.5)` | `0 24px 80px rgba(0,0,0,0.12)` |
+### Shadow Tokens
 
-### Surface Hierarchy
-
-1. **Background**: deepest, no shadow.
-2. **Surface**: cards, panels — `shadow-sm` in light.
-3. **Surface Elevated**: modals, dropdowns — `shadow-md` or higher.
-4. **Overlay**: backdrops with blur + semi-transparent black.
+| Token | Light | Dark |
+|-------|-------|------|
+| `--theme-shadow-whisper` | `0 4px 24px rgba(0,0,0,0.05)` | `0 0 0 1px rgba(0,0,0,0.20)` |
+| `--theme-shadow-ring` | `0 0 0 1px var(--theme-ring)` | `0 0 0 1px var(--theme-border)` |
+| `--theme-surface-shadow` | `var(--theme-shadow-whisper)` | `var(--theme-shadow-whisper)` |
 
 ---
 
 ## 7. Do's and Don'ts
 
 ### Do
-- Use `data-theme` + `data-color-scheme` together.
-- Use semantic tokens (`--color-primary`, `--color-surface`) instead of raw colors.
+- Use `data-color-scheme="light"` or `"dark"` on `<html>`. That is the only switch.
+- Use `var(--theme-*)` tokens instead of raw colors.
 - Keep generated images as the visual focal point.
-- Use OKLCH for color definitions where possible.
+- Use OKLCH for new color definitions.
 - Respect `prefers-reduced-motion`.
-- Use `font-heading` for titles, `font-body` for everything else.
 
 ### Don't
-- Don't use pure black (`#000`) or pure white (`#fff`) as backgrounds.
-- Don't hardcode Tailwind color utilities like `bg-green-500`.
-- Don't place decorative elements above generated content.
-- Don't use more than 2 font families on the same screen.
+- Don't reference `data-theme` — it is forbidden.
+- Don't import `themes/base.css`, `themes/qi-baishi.css`, `themes/pop-anime.css`, `themes/rococo.css`, `themes/japanese-bw.css`, or `themes/workspace.css`. They have been deleted.
+- Don't hardcode Tailwind color utilities like `bg-green-500`. Use `bg-primary`, `text-foreground`, etc.
+- Don't add a third anchor without updating `design-principles.md` §0 first.
 - Don't animate layout properties (width, height, top, left) — use transform.
 
 ---
@@ -248,12 +230,6 @@ color: var(--color-foreground);
 
 ### Touch Targets
 - Minimum: 44×44px for all interactive elements.
-- Buttons in mobile: full-width where appropriate.
-
-### Collapsing Strategy
-- History drawer: full-screen overlay on mobile, 360px panel on desktop.
-- Settings drawer: same as history.
-- Batch candidate grid: 1 column mobile, 2 tablet, 3+ desktop.
 
 ---
 
@@ -262,29 +238,26 @@ color: var(--color-foreground);
 ### Quick Reference
 
 ```
-Primary:   #e8d5b5 (warm champagne)
-Accent:    #c4a45a (gold)
-Surface:   #13131a (dark panel)
-Background:#0a0a0f (deep void)
-Text:      #f0f0f5 (soft white)
-Muted:     #8a8a9a (gray)
+Light primary:   #c96442 (terracotta)
+Light bg:        #f5f4ed (parchment)
+Light heading:   Source Serif 4, weight 500
+
+Dark primary:    #5e6ad2 (indigo)
+Dark bg:         #08090a (marketing black)
+Dark heading:    Inter Variable, weight 510, cv01 + ss03
 ```
 
 ### Ready-to-Use Prompts
 
-**Create a card component:**
-> "Create a PaperBanana card using `var(--color-surface)` background, 12px radius, 1px `var(--color-border)` border, 20px padding. Hover should brighten the border."
+**Create a card:**
+> "Create a card using `var(--theme-card)` background, 12px radius, `1px solid var(--theme-border)`, 20px padding, and `box-shadow: var(--theme-surface-shadow)`."
 
 **Create a primary button:**
-> "Create a PaperBanana primary button with `var(--color-primary)` background, `var(--color-background)` text, 8px radius, 40px height. Active state scales to 0.98."
+> "Create a primary button with `var(--theme-primary)` background, `var(--theme-primary-foreground)` text, 8px radius, 40px height. Active state scales to 0.98."
 
-**Apply a theme:**
-> "Apply the `qi-baishi` art theme by setting `data-theme='qi-baishi'` and using warm rice-paper tones with ink-red accents."
-
-**Dark mode section:**
-> "Build a dark-mode-first section with `var(--color-background)` canvas, `var(--color-surface)` cards, and `var(--color-foreground)` text. Light mode should invert gracefully via `data-color-scheme`."
+**Switch color scheme:**
+> "Set `document.documentElement.dataset.colorScheme = 'dark'` to switch to the Linear dark anchor. Do not write `data-theme` — the legacy attribute is forbidden."
 
 ---
 
-*Last updated: 2026-04-18*
-*Format: Stitch DESIGN.md v1*
+*Last updated: 2026-04-27 (post `themes-light-dark-only` task)*

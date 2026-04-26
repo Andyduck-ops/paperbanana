@@ -65,7 +65,6 @@ web/src/
 │   ├── Toast.tsx
 │   ├── ErrorBoundary.tsx
 │   ├── FieldError.tsx
-│   ├── ThemeSelector.tsx
 │   ├── WelcomeWizard.tsx
 │   ├── ProjectSelector.tsx
 │   ├── TemplateSelector.tsx
@@ -73,6 +72,9 @@ web/src/
 │   ├── ConfigPanel.tsx
 │   ├── HistorySidebar.tsx          # Legacy (deprecated, use V2 history/)
 │   ├── HistoryItem.tsx             # Legacy (deprecated, use V2 history/)
+│   ├── theme/                      # Color-scheme controls
+│   │   ├── DarkModeToggle.tsx      # Light / Dark / Auto tri-state toggle
+│   │   └── DarkModeToggle.test.tsx
 │   └── Layout.tsx / Header.tsx / Footer.tsx
 ├── hooks/                          # Custom React hooks
 │   ├── index.ts                    # Barrel exports
@@ -82,7 +84,6 @@ web/src/
 │   ├── useBatchGeneration.ts       # Batch generation
 │   ├── useRefine.ts                # Refinement
 │   ├── useHistory.ts               # History management
-│   ├── useTheme.ts                 # Theme switching
 │   ├── useLanguage.ts              # i18n
 │   ├── useProviders.ts             # Provider CRUD
 │   ├── useNetworkStatus.ts         # Online/offline detection
@@ -93,11 +94,10 @@ web/src/
 │   ├── useLocalWorkRecords.ts      # Local work record persistence
 │   ├── useToast.ts                 # Toast notifications
 │   ├── useKeyboardShortcuts.ts     # Keyboard shortcut handler
-│   ├── useAppStoreAdapter.ts       # Zustand store adapter (migration)
 │   └── useProviderStoreAdapter.ts  # Zustand store adapter (migration)
 ├── stores/                         # Zustand global state stores
 │   ├── index.ts                    # Barrel exports
-│   ├── appStore.ts                 # UI state, theme, language, drawers, modals
+│   ├── appStore.ts                 # UI state, colorScheme, language, drawers, modals
 │   ├── providerStore.ts            # Provider/channel state, role assignments
 │   └── generationStore.ts          # Generation state, router, session selection
 ├── context/                        # React context providers (deprecated)
@@ -129,14 +129,10 @@ web/src/
 │   ├── index.ts                    # i18next setup
 │   ├── types.d.ts                  # Type declarations for translation keys
 │   └── locales/                    # en.json, zh.json
-├── themes/                         # CSS theme system
-│   ├── base.css                    # Base styles and CSS custom properties
-│   ├── qi-baishi.css               # Qi Baishi art style
-│   ├── pop-anime.css               # Pop anime style
-│   ├── rococo.css                  # Rococo style
-│   ├── japanese-bw.css             # Japanese black & white style
-│   ├── workspace.css               # Workspace-specific styles
-│   └── ...                         # Additional theme CSS files
+├── themes/                         # CSS color-scheme system (2 anchors only)
+│   ├── tokens.css                  # Tailwind v4 @theme bridge + shared --theme-* tokens
+│   ├── claude-light.css            # Claude / Anthropic light anchor (parchment, Source Serif 4)
+│   └── linear-dark.css             # Linear dark anchor (#08090a, Inter Variable wght 510)
 ├── features/                       # Feature modules (evolving structure)
 ├── utils/                          # Shared utility functions
 ├── services/                       # Service layer (evolving)
@@ -160,7 +156,7 @@ web/src/
 | Type files | `camelCase` | `api.ts`, `batch.ts` |
 | Test files | Mirror production name + `.test.ts` / `.test.tsx` | `useGenerate.test.ts`, `StageCard.test.tsx` |
 | Barrel files | `index.ts` or `index.tsx` | `components/index.ts`, `hooks/index.ts` |
-| CSS theme files | `kebab-case.css` | `qi-baishi.css`, `pop-anime.css` |
+| CSS theme files | `kebab-case.css` | `tokens.css`, `claude-light.css`, `linear-dark.css` |
 | Constants | `SCREAMING_SNAKE_CASE` | (within modules, not in filenames) |
 
 ---

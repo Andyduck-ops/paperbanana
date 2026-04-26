@@ -20,7 +20,7 @@ The project uses a **hook-and-context model** that is transitioning to **Zustand
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │  appStore     │  │ providerStore│  │ generationStore  │  │
 │  │  - UI state   │  │ - providers  │  │ - session state  │  │
-│  │  - theme      │  │ - channels   │  │ - router         │  │
+│  │  - colorScheme│  │ - channels   │  │ - router         │  │
 │  │  - language   │  │ - roles      │  │ - selection      │  │
 │  │  - drawers    │  │ - models     │  │                  │  │
 │  └──────────────┘  └──────────────┘  └──────────────────┘  │
@@ -94,13 +94,13 @@ Use for state that many unrelated components across the app need:
 export const useAppStore = create<UIState & UIActions>()(
   persist(
     (set) => ({
-      theme: 'qi-baishi',
+      colorScheme: 'system', // 'light' | 'dark' | 'system'
       language: 'en',
       currentPage: 'workspace',
       // ... actions
-      setTheme: (theme) => set({ theme }),
+      setColorScheme: (colorScheme) => set({ colorScheme }),
     }),
-    { name: 'paperbanana-ui' }
+    { name: 'paperbanana-app-store', version: 2 }
   )
 );
 ```
@@ -137,7 +137,7 @@ const { data: providers } = useQuery({
 
 | Store | File | Responsibility |
 |-------|------|---------------|
-| `useAppStore` | `appStore.ts` | UI state: theme, language, page, drawers, modals |
+| `useAppStore` | `appStore.ts` | UI state: colorScheme, language, page, drawers, modals |
 | `useProviderStore` | `providerStore.ts` | Provider/channel state, role assignments, model snapshots |
 | `useGenerationStore` | `generationStore.ts` | Generation state, router, session selection, export state |
 
@@ -158,7 +158,7 @@ const { data: providers } = useQuery({
 
 | Data | Storage | Mechanism |
 |------|---------|-----------|
-| Theme preference | localStorage | Zustand `persist` middleware |
+| Color scheme preference | localStorage | Zustand `persist` middleware (key `paperbanana-app-store`, version 2; migration drops legacy `theme` field) |
 | Language preference | localStorage | Zustand `persist` middleware |
 | Model/provider config | localStorage | Zustand `persist` middleware |
 | Generation state | Memory only | Lost on page refresh (intentional) |
@@ -200,11 +200,11 @@ The project is migrating from a pure hook-and-context model to Zustand stores:
 
 | Area | Status | Notes |
 |------|--------|-------|
-| UI state (theme, language, page) | **Migrated** | `appStore.ts` with persist |
+| UI state (colorScheme, language, page) | **Migrated** | `appStore.ts` with persist (version 2, migrate strips legacy `theme` field) |
 | Provider/channel state | **Migrated** | `providerStore.ts` |
 | Generation state | **Migrated** | `generationStore.ts` |
 | `ModelConfigContext` | **Deprecated** | Replaced by `providerStore.ts`, files in `context/deprecated/` |
-| Adapter hooks | **Bridge** | `useAppStoreAdapter.ts`, `useProviderStoreAdapter.ts` wrap store access for gradual migration |
+| Adapter hooks | **Bridge** | `useProviderStoreAdapter.ts` wraps store access for gradual migration (the former `useAppStoreAdapter.ts` was deleted with the 14→2 theme convergence — components consume `useAppStore` selectors directly) |
 | Generate/refine hooks | **Not migrated** | Still use `useState` internally. No plan to move these to Zustand -- they are workflow-scoped, not global. |
 
 **When adding new global state**: Put it in the appropriate Zustand store. Do not create new React contexts or hook-based global state.

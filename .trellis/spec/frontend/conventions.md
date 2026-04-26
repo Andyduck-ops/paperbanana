@@ -108,9 +108,10 @@ Imports follow this order within a file:
 3. **Local modules** (relative paths)
 
 ```typescript
-// 1. Style imports
-import "./themes/base.css";
-import "./themes/workspace.css";
+// 1. Style imports (only 2 anchors + tokens bridge — see component-patterns.md §CSS Theme System)
+import "./themes/tokens.css";
+import "./themes/claude-light.css";
+import "./themes/linear-dark.css";
 
 // 2. React and third-party
 import { useEffect, useRef, lazy, Suspense } from "react";

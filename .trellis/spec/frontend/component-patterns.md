@@ -86,22 +86,29 @@ Prefer semantic design tokens over raw color utility classes. The theme CSS file
 <div className="text-blue-600" />
 ```
 
-When writing new components, check the existing theme CSS files in `web/src/themes/` for available tokens. If a needed semantic token does not exist, add it to the base theme and all variant themes.
+When writing new components, check `web/src/themes/tokens.css` for available tokens. If a needed semantic token does not exist, add it there alongside the existing `--theme-*` definitions; the two anchor files (`claude-light.css`, `linear-dark.css`) only override colors, not the token surface.
 
 ### CSS Theme System
 
-The project uses multiple CSS theme files loaded via `App.tsx`:
+The project ships **exactly two anchor stylesheets** (per `.trellis/spec/ui-design/design-principles.md` §0): one for the Claude light anchor and one for the Linear dark anchor. They are loaded together in `App.tsx`:
 
 ```typescript
-import "./themes/base.css";
-import "./themes/qi-baishi.css";
-import "./themes/pop-anime.css";
-import "./themes/rococo.css";
-import "./themes/japanese-bw.css";
-import "./themes/workspace.css";
+import "./themes/tokens.css";        // Tailwind v4 @theme bridge + shared --theme-* tokens
+import "./themes/claude-light.css";  // [data-color-scheme="light"] overrides
+import "./themes/linear-dark.css";   // [data-color-scheme="dark"] overrides
 ```
 
-Theme switching works by toggling a CSS class on the root element. Each theme file overrides the base custom properties.
+Switching is driven by a single attribute on `<html>`:
+
+- `data-color-scheme="light"` → Claude / Anthropic anchor (parchment, terracotta CTA, Source Serif 4)
+- `data-color-scheme="dark"` → Linear anchor (`#08090a` canvas, indigo CTA, Inter Variable wght 510)
+
+The attribute is written by:
+1. `web/index.html` bootstrap script (pre-React, prevents flash)
+2. `appStore` `setColorScheme` action (after user toggles)
+3. `appStore` `onRehydrateStorage` (after persist hydrates)
+
+**Forbidden**: any reference to `data-theme` or to the deleted 14 theme files (`base.css`, `qi-baishi.css`, `pop-anime.css`, etc.). Adding a third anchor requires updating `design-principles.md` §0 first — see that file for the gating procedure.
 
 ### Tailwind Usage
 

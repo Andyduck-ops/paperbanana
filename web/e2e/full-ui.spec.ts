@@ -6,28 +6,11 @@ test('should load page with title', async ({ page }) => {
   await expect(page).toHaveTitle(/PaperBanana/);
 });
 
-test('should display header with logo and controls', async ({ page }) => {
+test('should display header with logo', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(1000);
-  
-  await expect(page.locator('span:has-text("PaperBanana")')).toBeVisible();
-  const themeButtons = page.locator('button[aria-pressed][style]');
-  expect(await themeButtons.count()).toBe(5);
-});
 
-test('should switch between all 5 themes', async ({ page }) => {
-  await page.goto('/');
-  await page.waitForTimeout(1000);
-  
-  const themeButtons = page.locator('button[aria-pressed]');
-  const themes = ['academic', 'qi-baishi', 'pop-anime', 'rococo', 'japanese-bw'];
-  
-  for (let i = 0; i < themes.length; i++) {
-    await themeButtons.nth(i).click();
-    await page.waitForTimeout(300);
-    const theme = await page.locator('html').getAttribute('data-theme');
-    expect(theme).toBe(themes[i]);
-  }
+  await expect(page.locator('span:has-text("PaperBanana")')).toBeVisible();
 });
 
 test('should toggle language', async ({ page }) => {
