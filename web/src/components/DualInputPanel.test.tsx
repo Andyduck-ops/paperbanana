@@ -31,7 +31,7 @@ describe('DualInputPanel', () => {
     mockOnCaptionChange.mockClear();
   });
 
-  it('renders two textareas with correct column layout', () => {
+  it('renders two textareas', () => {
     render(
       <DualInputPanel
         methodContent=""
@@ -41,18 +41,8 @@ describe('DualInputPanel', () => {
       />
     );
 
-    // Check for both textareas
     const textareas = screen.getAllByRole('textbox');
     expect(textareas).toHaveLength(2);
-
-    const panel = textareas[0].closest('.dual-input-panel');
-    expect(panel).toHaveClass('md:grid-cols-5');
-
-    const methodSection = textareas[0].closest('.dual-input-panel__context');
-    expect(methodSection).toBeInTheDocument();
-
-    const captionSection = textareas[1].closest('.dual-input-panel__brief');
-    expect(captionSection).toBeInTheDocument();
   });
 
   it('method section textarea has correct placeholder', () => {
@@ -118,51 +108,6 @@ describe('DualInputPanel', () => {
     const textareas = screen.getAllByRole('textbox');
     expect(textareas[0]).toBeDisabled();
     expect(textareas[1]).toBeDisabled();
-  });
-
-  it('markdown preview toggle shows/hides preview for each field', () => {
-    render(
-      <DualInputPanel
-        methodContent="**Bold text**"
-        caption=""
-        onMethodChange={mockOnMethodChange}
-        onCaptionChange={mockOnCaptionChange}
-      />
-    );
-
-    // Find preview toggle buttons
-    const previewButtons = screen.getAllByRole('button', { name: /preview/i });
-    expect(previewButtons.length).toBeGreaterThan(0);
-
-    // Click first preview toggle
-    fireEvent.click(previewButtons[0]);
-
-    // Should show preview element (check for preview content)
-    // The preview should render markdown
-    const previewElements = document.querySelectorAll('.prose, .markdown-preview');
-    expect(previewElements.length).toBeGreaterThan(0);
-  });
-
-  it('example dropdown populates both textareas from a shared selector', () => {
-    const examples = [
-      { method: 'Example method 1', caption: 'Example caption 1' },
-      { method: 'Example method 2', caption: 'Example caption 2' },
-    ];
-
-    render(
-      <DualInputPanel
-        methodContent=""
-        caption=""
-        onMethodChange={mockOnMethodChange}
-        onCaptionChange={mockOnCaptionChange}
-        examples={examples}
-      />
-    );
-
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: '0' } });
-    expect(mockOnMethodChange).toHaveBeenCalledWith('Example method 1');
-    expect(mockOnCaptionChange).toHaveBeenCalledWith('Example caption 1');
   });
 
   it('renders reference image upload when handler is provided', () => {

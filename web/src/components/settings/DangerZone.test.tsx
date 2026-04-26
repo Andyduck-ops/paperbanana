@@ -40,9 +40,9 @@ describe('DangerZone', () => {
     expect(screen.getByText('Danger Zone')).toBeInTheDocument();
   });
 
-  it('shows warning icon', () => {
+  it('shows warning eyebrow label', () => {
     render(<DangerZone />);
-    expect(screen.getByText('!')).toBeInTheDocument();
+    expect(screen.getByText('System safety')).toBeInTheDocument();
   });
 
   it('shows "Reset System Providers" button', () => {

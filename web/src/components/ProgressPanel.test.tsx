@@ -82,8 +82,7 @@ describe('ProgressPanel', () => {
       { stage: 'retriever', agent: 'Retriever', status: 'running' as const },
     ];
     render(<ProgressPanel stages={stages} estimatedTime={45} />);
-    expect(screen.getByText(/Est. time:/)).toBeInTheDocument();
-    expect(screen.getByText(/~45s/)).toBeInTheDocument();
+    expect(screen.getByText(/Est\.\s*~45s/)).toBeInTheDocument();
   });
 
   it('formats estimated time in minutes when over 60 seconds', () => {
@@ -99,7 +98,7 @@ describe('ProgressPanel', () => {
       { stage: 'retriever', agent: 'Retriever', status: 'running' as const },
     ];
     render(<ProgressPanel stages={stages} />);
-    expect(screen.queryByText(/Est. time:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Est\./)).not.toBeInTheDocument();
   });
 
   it('does not show estimated time when 0', () => {
@@ -107,6 +106,6 @@ describe('ProgressPanel', () => {
       { stage: 'retriever', agent: 'Retriever', status: 'running' as const },
     ];
     render(<ProgressPanel stages={stages} estimatedTime={0} />);
-    expect(screen.queryByText(/Est. time:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Est\./)).not.toBeInTheDocument();
   });
 });

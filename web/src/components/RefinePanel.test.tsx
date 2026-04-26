@@ -23,6 +23,7 @@ vi.mock('../hooks', () => ({
         'common.show': 'Show',
         'common.hide': 'Hide',
         'batch.review': 'Batch review',
+        'accessibility.uploadedPreview': 'Uploaded preview',
       };
       return translations[key] || key;
     },

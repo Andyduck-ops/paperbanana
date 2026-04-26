@@ -104,10 +104,12 @@ describe('GeneratePanel', () => {
     const button = screen.getByRole('button', { name: 'Generate' });
     fireEvent.click(button);
 
-    // The new interface uses options object
+    // The new interface uses options object with content/visualIntent split
     expect(mockOnGenerate).toHaveBeenCalledWith(
-      'Method Section:\nThis is the method section.\n\nFigure Caption:\nFigure 1: Results',
+      'Paper Context & References:\nThis is the method section.\n\nTarget Figure Brief:\nFigure 1: Results',
       expect.objectContaining({
+        content: 'This is the method section.',
+        visualIntent: 'Figure 1: Results',
         visualizerNode: undefined,
         numCandidates: undefined,
         config: expect.any(Object),
@@ -153,11 +155,15 @@ describe('GeneratePanel', () => {
 
   it('shows visualizer node selector when options provided', () => {
     render(<GeneratePanel onGenerate={mockOnGenerate} visualizerNodes={['node-a', 'node-b']} />);
+    fireEvent.click(screen.getByText('Advanced Settings'));
     expect(screen.getByLabelText('Visualizer')).toBeInTheDocument();
   });
 
   it('batch mode still works with dual inputs', () => {
     render(<GeneratePanel onGenerate={mockOnGenerate} />);
+
+    // Advanced settings collapsed by default; expand to access batch mode + num candidates
+    fireEvent.click(screen.getByText('Advanced Settings'));
 
     // Enable batch mode
     const batchCheckbox = screen.getByRole('checkbox');
@@ -167,18 +173,20 @@ describe('GeneratePanel', () => {
     const textareas = screen.getAllByRole('textbox');
     fireEvent.change(textareas[0], { target: { value: 'Test method' } });
 
-    // Find number input for candidates (should appear after batch mode is enabled)
+    // Find number input for candidates
     const numInput = screen.getByRole('spinbutton');
     expect(numInput).toBeInTheDocument();
     expect(numInput).toHaveValue(3); // default value
   });
 
-  it('disabled state passes through to DualInputPanel', () => {
+  it('disabled state collapses DualInputPanel into loading skeleton', () => {
     render(<GeneratePanel onGenerate={mockOnGenerate} isGenerating={true} />);
 
-    const textareas = screen.getAllByRole('textbox');
-    expect(textareas[0]).toBeDisabled();
-    expect(textareas[1]).toBeDisabled();
+    // While generating, DualInputPanel collapses; textareas are not rendered
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    // Submit button shows the generating label and is disabled
+    const submitButton = screen.getByRole('button', { name: /Generating/ });
+    expect(submitButton).toBeDisabled();
   });
 
   it('ConfigPanel renders below input fields', () => {

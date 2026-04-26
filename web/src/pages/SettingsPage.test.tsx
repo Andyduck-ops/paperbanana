@@ -10,6 +10,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: string) => fallback || _key,
   }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: vi.fn(),
+  },
 }));
 
 vi.mock('../stores', () => ({
@@ -26,6 +30,8 @@ vi.mock('../components', () => ({
   RoleMapping: ({ channels }: { channels: Array<{ id: string }> }) => (
     <div>roles:{channels.length}</div>
   ),
+  DarkModeToggle: () => null,
+  TemplateManager: () => null,
 }));
 
 describe('SettingsPage', () => {

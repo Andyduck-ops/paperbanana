@@ -1,0 +1,266 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`VersionTimeline > renders correctly when loading 1`] = `
+<div>
+  <div
+    class="version-timeline-loading"
+  >
+    <div
+      class="w-6 h-6 border-2 border-primary/25 border-t-primary rounded-full animate-spin"
+    />
+    <span>
+      version.loading
+    </span>
+  </div>
+</div>
+`;
+
+exports[`VersionTimeline > renders correctly with empty versions 1`] = `
+<div>
+  <div
+    class="version-timeline-empty"
+  >
+    <svg
+      class="w-12 h-12 text-muted-foreground/50"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <p>
+      version.noVersions
+    </p>
+  </div>
+</div>
+`;
+
+exports[`VersionTimeline > renders correctly with versions 1`] = `
+<div>
+  <div
+    class="version-timeline"
+  >
+    <div
+      class="version-timeline-header"
+    >
+      <h3
+        class="version-timeline-title"
+      >
+        version.title
+      </h3>
+      <span
+        class="version-timeline-count"
+      >
+        3
+         
+        version.versions
+      </span>
+    </div>
+    <div
+      class="version-timeline-list"
+    >
+      <div
+        class="version-timeline-item version-timeline-item--latest"
+      >
+        <div
+          class="version-timeline-marker"
+        >
+          <div
+            class="version-timeline-dot"
+          />
+          <div
+            class="version-timeline-line"
+          />
+        </div>
+        <div
+          class="version-timeline-content"
+        >
+          <div
+            class="version-timeline-card"
+          >
+            <div
+              class="version-timeline-card-header"
+            >
+              <div
+                class="version-timeline-info"
+              >
+                <span
+                  class="version-timeline-number"
+                >
+                  version.v
+                  3
+                  <span
+                    class="version-timeline-badge"
+                  >
+                    version.latest
+                  </span>
+                </span>
+                <span
+                  class="version-timeline-date"
+                >
+                  2024/1/3 20:00:00
+                </span>
+              </div>
+              <div
+                class="version-timeline-actions"
+              >
+                <button
+                  class="version-timeline-btn version-timeline-btn--secondary"
+                >
+                  version.preview
+                </button>
+                <button
+                  class="version-timeline-btn version-timeline-btn--primary"
+                >
+                  version.restore
+                </button>
+              </div>
+            </div>
+            <div
+              class="version-timeline-expand"
+            >
+              <svg
+                class="w-4 h-4 transition-transform "
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 9l-7 7-7-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="version-timeline-item "
+      >
+        <div
+          class="version-timeline-marker"
+        >
+          <div
+            class="version-timeline-dot"
+          />
+          <div
+            class="version-timeline-line"
+          />
+        </div>
+        <div
+          class="version-timeline-content"
+        >
+          <div
+            class="version-timeline-card"
+          >
+            <div
+              class="version-timeline-card-header"
+            >
+              <div
+                class="version-timeline-info"
+              >
+                <span
+                  class="version-timeline-number"
+                >
+                  version.v
+                  2
+                </span>
+                <span
+                  class="version-timeline-date"
+                >
+                  2024/1/2 18:00:00
+                </span>
+              </div>
+              <div
+                class="version-timeline-actions"
+              >
+                <button
+                  class="version-timeline-btn version-timeline-btn--secondary"
+                >
+                  version.preview
+                </button>
+                <button
+                  class="version-timeline-btn version-timeline-btn--primary"
+                >
+                  version.restore
+                </button>
+              </div>
+            </div>
+            <div
+              class="version-timeline-expand"
+            >
+              <svg
+                class="w-4 h-4 transition-transform "
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 9l-7 7-7-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="version-timeline-item "
+      >
+        <div
+          class="version-timeline-marker"
+        >
+          <div
+            class="version-timeline-dot"
+          />
+        </div>
+        <div
+          class="version-timeline-content"
+        >
+          <div
+            class="version-timeline-card"
+          >
+            <div
+              class="version-timeline-card-header"
+            >
+              <div
+                class="version-timeline-info"
+              >
+                <span
+                  class="version-timeline-number"
+                >
+                  version.v
+                  1
+                </span>
+                <span
+                  class="version-timeline-date"
+                >
+                  2024/1/1 16:00:00
+                </span>
+              </div>
+              <div
+                class="version-timeline-actions"
+              >
+                <button
+                  class="version-timeline-btn version-timeline-btn--primary"
+                >
+                  version.restore
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

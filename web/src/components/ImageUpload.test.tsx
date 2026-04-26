@@ -9,6 +9,7 @@ vi.mock('../hooks', () => ({
       const translations: Record<string, string> = {
         'refine.dropImage': 'Drop image here or click to upload',
         'common.clear': 'Clear',
+        'accessibility.uploadedPreview': 'Uploaded preview',
       };
       return translations[key] || key;
     },

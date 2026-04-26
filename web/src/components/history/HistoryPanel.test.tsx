@@ -31,6 +31,12 @@ vi.mock('../../hooks', () => ({
     refresh: vi.fn(),
     restoreSession: vi.fn(),
   }),
+  useLocalWorkRecords: () => ({
+    records: [],
+    addRecord: vi.fn(),
+    removeRecord: vi.fn(),
+    clearRecords: vi.fn(),
+  }),
 }));
 
 describe('HistoryPanel', () => {

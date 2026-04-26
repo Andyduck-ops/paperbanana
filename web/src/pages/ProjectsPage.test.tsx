@@ -8,6 +8,7 @@ vi.mock('../hooks', () => ({
   useLanguage: () => ({
     t: (key: string) => key,
   }),
+  useFocusTrap: () => ({ current: null }),
 }));
 
 vi.mock('../lib/api', () => ({
