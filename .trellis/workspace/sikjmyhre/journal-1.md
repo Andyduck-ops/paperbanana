@@ -38,3 +38,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: themes-light-dark-only: 14 themes converged to 2 anchors
+
+**Date**: 2026-04-27
+**Task**: themes-light-dark-only: 14 themes converged to 2 anchors
+**Branch**: `UI`
+
+### Summary
+
+Collapsed 14 legacy theme files to claude-light + linear-dark + tokens; replaced useTheme with DarkModeToggle; new persist v2 + bootstrap script. -2,801 net lines. Browser anchors verified.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dd5a825` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
