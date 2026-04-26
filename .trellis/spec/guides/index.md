@@ -23,6 +23,7 @@ These guides help you **ask the right questions before coding**.
 |-------|---------|-------------|
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
+| [Deletion & Migration Sweep Guide](./deletion-and-migration-sweep-guide.md) | Catch dangling refs in specs/docs/e2e/i18n after deletions | Whenever you delete files, rename APIs, or collapse N→M variants |
 | [Pre-Tauri Reference](./pre-tauri-reference.md) | Architecture snapshot before Tauri migration | Understanding what will change in migration |
 | [Tauri Migration Research](./tauri-migration-research.md) | Tauri + Go sidecar best practices | Planning and implementing Tauri migration |
 
@@ -48,6 +49,16 @@ These guides help you **ask the right questions before coding**.
 - [ ] **You're creating a new utility/helper function** ← Search first!
 
 → Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
+
+### When to Think About Deletion / Migration Sweep
+
+- [ ] You're deleting files or removing exports
+- [ ] You're renaming an attribute (e.g., `data-theme` → `data-color-scheme`)
+- [ ] You're collapsing N variants to M (N > M)
+- [ ] You just merged a refactor that removed any identifier
+- [ ] You're about to mark a deletion task "completed"
+
+→ Read [Deletion & Migration Sweep Guide](./deletion-and-migration-sweep-guide.md)
 
 ---
 
