@@ -1,4 +1,4 @@
-import { useLanguage } from '../../hooks';
+import { useEffect, useRef } from 'react';
 import { SettingsPage } from '../../pages/SettingsPage';
 
 export interface SettingsDrawerProps {
@@ -7,29 +7,45 @@ export interface SettingsDrawerProps {
 }
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
-  const { t } = useLanguage();
+  const drawerRef = useRef<HTMLDivElement>(null);
 
-  if (!isOpen) {
-    return null;
-  }
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
       <div
-        className={`settings-drawer__backdrop ${isOpen ? 'settings-drawer__backdrop--open' : ''}`}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
-        aria-hidden={!isOpen}
+        aria-hidden="true"
       />
 
+      {/* Drawer panel */}
       <div
-        className={`settings-drawer ${isOpen ? 'settings-drawer--open' : ''}`}
+        ref={drawerRef}
+        className="relative w-full max-w-2xl h-full bg-background shadow-2xl overflow-auto border-l border-border"
         role="dialog"
         aria-modal="true"
-        aria-hidden={!isOpen}
-        aria-label={t('settings.title') || 'Settings'}
+        aria-label="Settings"
       >
-        <SettingsPage onBack={onClose} variant="drawer" />
+        <SettingsPage variant="drawer" onBack={onClose} />
       </div>
-    </>
+    </div>
   );
 }

@@ -7,7 +7,7 @@ import { useVersions, useFolders, useToast } from '../hooks';
 
 /**
  * Visualization Detail Page
- * 
+ *
  * Demonstrates:
  * - FolderTree component for navigation
  * - VersionTimeline component for version history and restore
@@ -81,11 +81,11 @@ export function VisualizationDetailPage() {
     <div className="min-h-screen bg-background">
       <div className="flex h-screen">
         {/* Folder Sidebar */}
-        <aside className="folder-sidebar">
-          <div className="folder-sidebar__header">
-            <h2 className="folder-sidebar__title">{t('folder.title')}</h2>
+        <aside className="w-72 shrink-0 bg-card border-r border-border flex flex-col">
+          <div className="px-4 py-3 border-b border-border/50">
+            <h2 className="text-base font-semibold text-foreground">{t('folder.title')}</h2>
           </div>
-          <div className="folder-sidebar__content">
+          <div className="flex-1 overflow-auto p-3">
             <FolderTree
               items={items}
               currentFolderId={currentFolderId}

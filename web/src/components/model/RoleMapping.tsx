@@ -10,20 +10,20 @@ export interface RoleMappingProps {
   className?: string;
 }
 
-export function RoleMapping({ 
-  channels: _channels = [], 
-  roles = [], 
+export function RoleMapping({
+  channels: _channels = [],
+  roles = [],
   assignments = {} as Record<WorkflowRole, RoleAssignment | null>,
   onRoleUpdate: _onRoleUpdate,
   onAssign: _onAssign,
   onClear,
-  className = '' 
+  className = ''
 }: RoleMappingProps) {
   // Build role list from assignments if provided, otherwise fall back to roles prop
-  const roleList = Object.keys(assignments).length > 0 
+  const roleList = Object.keys(assignments).length > 0
     ? Object.entries(assignments).map(([key, value]) => ({
         id: key,
-        name: key === 'image_generation' ? 'Image Generation' : 
+        name: key === 'image_generation' ? 'Image Generation' :
               key === 'retrieval_reasoning' ? 'Retrieval & Reasoning' : key,
         modelId: value?.model_id,
         providerId: value?.provider_id,
@@ -37,21 +37,21 @@ export function RoleMapping({
   };
 
   return (
-    <div className={`role-mapping ${className}`}>
-      <div className="role-mapping__header">
-        <h3>Role Mappings</h3>
+    <div className={`bg-card rounded-xl border border-border/30 p-6 ${className}`}>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-foreground">Role Mappings</h3>
       </div>
-      <div className="role-mapping__list">
+      <div className="space-y-2">
         {roleList.map((role) => (
-          <div key={role.id} className="role-mapping__item">
-            <span className="role-mapping__role-name">{role.name}</span>
-            <div className="role-mapping__actions">
-              <span className="role-mapping__model-id">{role.modelId || 'Unassigned'}</span>
+          <div key={role.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors">
+            <span className="text-sm font-medium text-foreground">{role.name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{role.modelId || 'Unassigned'}</span>
               {role.modelId && onClear && (
-                <button 
+                <button
                   onClick={() => handleClear(role.id)}
                   type="button"
-                  className="role-mapping__clear-btn"
+                  className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-status-error hover:bg-status-error/10 transition-colors"
                   title="Clear assignment"
                 >
                   ×
@@ -61,8 +61,8 @@ export function RoleMapping({
           </div>
         ))}
         {roleList.length === 0 && (
-          <div className="role-mapping__empty">
-            <p>No roles defined</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No roles defined</p>
           </div>
         )}
       </div>

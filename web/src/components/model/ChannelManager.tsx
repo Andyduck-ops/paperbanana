@@ -24,29 +24,29 @@ export function ChannelManager({
   className = ''
 }: ChannelManagerProps) {
   return (
-    <div className={`channel-manager ${className}`}>
-      <div className="channel-manager__header">
-        <h3>Channels</h3>
+    <div className={`bg-card rounded-xl border border-border/30 p-6 ${className}`}>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-foreground">Channels</h3>
       </div>
-      <div className="channel-manager__list">
+      <div className="space-y-1">
         {channels.map((channel) => (
           <button
             key={channel.id}
-            className={`channel-manager__item ${selectedChannelId === channel.id ? 'selected' : ''}`}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${selectedChannelId === channel.id ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted/40'}`}
             onClick={() => onChannelSelect?.(channel.id)}
           >
-            <span className="channel-manager__name">{channel.display_name || channel.name}</span>
-            <span className="channel-manager__count">{channel.models.length} models</span>
+            <span className="font-medium">{channel.display_name || channel.name}</span>
+            <span className="text-xs text-muted-foreground">{channel.models.length} models</span>
           </button>
         ))}
         {channels.length === 0 && !loading && (
-          <div className="channel-manager__empty">
-            <p>No channels configured</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No channels configured</p>
           </div>
         )}
         {loading && (
-          <div className="channel-manager__loading">
-            <p>Loading channels...</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">Loading channels...</p>
           </div>
         )}
       </div>

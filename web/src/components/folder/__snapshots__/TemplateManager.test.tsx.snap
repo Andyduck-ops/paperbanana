@@ -3,7 +3,7 @@
 exports[`TemplateManager > renders correctly when loading 1`] = `
 <div>
   <div
-    class="template-manager-loading"
+    class="flex items-center gap-2 py-8 text-muted-foreground"
   >
     <div
       class="w-6 h-6 border-2 border-primary/25 border-t-primary rounded-full animate-spin"
@@ -18,18 +18,18 @@ exports[`TemplateManager > renders correctly when loading 1`] = `
 exports[`TemplateManager > renders correctly with empty templates 1`] = `
 <div>
   <div
-    class="template-manager"
+    class="space-y-4"
   >
     <div
-      class="template-manager-header"
+      class="flex items-center justify-between"
     >
       <h3
-        class="template-manager-title"
+        class="text-lg font-semibold text-foreground"
       >
         template.title
       </h3>
       <button
-        class="template-manager-btn template-manager-btn--primary"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-background bg-primary rounded-lg hover:opacity-90 transition-opacity"
       >
         <svg
           class="w-4 h-4"
@@ -48,19 +48,19 @@ exports[`TemplateManager > renders correctly with empty templates 1`] = `
       </button>
     </div>
     <div
-      class="template-manager-filters"
+      class="flex flex-wrap gap-2"
     >
       <button
-        class="template-manager-filter template-manager-filter--active"
+        class="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-primary text-background"
       >
         template.allCategories
       </button>
     </div>
     <div
-      class="template-manager-list"
+      class="space-y-2"
     >
       <div
-        class="template-manager-empty"
+        class="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground"
       >
         <svg
           class="w-12 h-12 text-muted-foreground/50"
@@ -75,7 +75,9 @@ exports[`TemplateManager > renders correctly with empty templates 1`] = `
             stroke-linejoin="round"
           />
         </svg>
-        <p>
+        <p
+          class="text-sm"
+        >
           template.noTemplates
         </p>
       </div>
@@ -87,18 +89,18 @@ exports[`TemplateManager > renders correctly with empty templates 1`] = `
 exports[`TemplateManager > renders correctly with templates 1`] = `
 <div>
   <div
-    class="template-manager"
+    class="space-y-4"
   >
     <div
-      class="template-manager-header"
+      class="flex items-center justify-between"
     >
       <h3
-        class="template-manager-title"
+        class="text-lg font-semibold text-foreground"
       >
         template.title
       </h3>
       <button
-        class="template-manager-btn template-manager-btn--primary"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-background bg-primary rounded-lg hover:opacity-90 transition-opacity"
       >
         <svg
           class="w-4 h-4"
@@ -117,54 +119,58 @@ exports[`TemplateManager > renders correctly with templates 1`] = `
       </button>
     </div>
     <div
-      class="template-manager-filters"
+      class="flex flex-wrap gap-2"
     >
       <button
-        class="template-manager-filter template-manager-filter--active"
+        class="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-primary text-background"
       >
         template.allCategories
       </button>
       <button
-        class="template-manager-filter "
+        class="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-muted text-muted-foreground hover:text-foreground"
       >
         general
       </button>
       <button
-        class="template-manager-filter "
+        class="px-3 py-1 text-xs font-medium rounded-full transition-colors bg-muted text-muted-foreground hover:text-foreground"
       >
         custom
       </button>
     </div>
     <div
-      class="template-manager-list"
+      class="space-y-2"
     >
       <div
-        class="template-manager-item"
+        class="flex items-start justify-between gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/30 transition-colors"
       >
         <div
-          class="template-manager-item-info"
+          class="flex-1 min-w-0"
         >
-          <h4
-            class="template-manager-item-name"
+          <div
+            class="flex items-center gap-2"
           >
-            Test Template 1
-          </h4>
-          <span
-            class="template-manager-item-category"
-          >
-            general
-          </span>
+            <h4
+              class="text-sm font-semibold text-foreground"
+            >
+              Test Template 1
+            </h4>
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground"
+            >
+              general
+            </span>
+          </div>
           <p
-            class="template-manager-item-description"
+            class="text-xs text-muted-foreground mt-1"
           >
             Description 1
           </p>
         </div>
         <div
-          class="template-manager-item-actions"
+          class="flex items-center gap-1 shrink-0"
         >
           <button
-            class="template-manager-item-btn"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="common.edit"
           >
             <svg
@@ -182,7 +188,7 @@ exports[`TemplateManager > renders correctly with templates 1`] = `
             </svg>
           </button>
           <button
-            class="template-manager-item-btn template-manager-item-btn--danger"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-status-error hover:bg-status-error/10 transition-colors"
             title="common.delete"
           >
             <svg
@@ -202,32 +208,36 @@ exports[`TemplateManager > renders correctly with templates 1`] = `
         </div>
       </div>
       <div
-        class="template-manager-item"
+        class="flex items-start justify-between gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/30 transition-colors"
       >
         <div
-          class="template-manager-item-info"
+          class="flex-1 min-w-0"
         >
-          <h4
-            class="template-manager-item-name"
+          <div
+            class="flex items-center gap-2"
           >
-            Test Template 2
-          </h4>
-          <span
-            class="template-manager-item-category"
-          >
-            custom
-          </span>
+            <h4
+              class="text-sm font-semibold text-foreground"
+            >
+              Test Template 2
+            </h4>
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground"
+            >
+              custom
+            </span>
+          </div>
           <p
-            class="template-manager-item-description"
+            class="text-xs text-muted-foreground mt-1"
           >
             Description 2
           </p>
         </div>
         <div
-          class="template-manager-item-actions"
+          class="flex items-center gap-1 shrink-0"
         >
           <button
-            class="template-manager-item-btn"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="common.edit"
           >
             <svg
@@ -245,7 +255,7 @@ exports[`TemplateManager > renders correctly with templates 1`] = `
             </svg>
           </button>
           <button
-            class="template-manager-item-btn template-manager-item-btn--danger"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-status-error hover:bg-status-error/10 transition-colors"
             title="common.delete"
           >
             <svg

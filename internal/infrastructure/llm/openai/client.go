@@ -268,6 +268,8 @@ func (c *Client) buildImageResponseParts(ctx context.Context, resp openaisdk.Ima
 	return parts, content, nil
 }
 
+const maxImageDownloadSize = 20 * 1024 * 1024 // 20MB
+
 func (c *Client) downloadImage(ctx context.Context, url string) (string, []byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -289,7 +291,7 @@ func (c *Client) downloadImage(ctx context.Context, url string) (string, []byte,
 		return "", nil, fmt.Errorf("download openai image payload: unexpected status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxImageDownloadSize))
 	if err != nil {
 		return "", nil, fmt.Errorf("read openai image payload: %w", err)
 	}

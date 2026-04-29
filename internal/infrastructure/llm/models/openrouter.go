@@ -38,7 +38,7 @@ func (l *OpenRouterModelLister) ListModels(ctx context.Context) ([]domainllm.Mod
 		return nil, fmt.Errorf("openrouter API error: %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
 	if err != nil {
 		return nil, err
 	}

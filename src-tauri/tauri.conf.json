@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PaperBanana",
+  "version": "0.1.0",
+  "identifier": "com.paperbanana.app",
+  "build": {
+    "frontendDist": "../web/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "cd web && npm run dev",
+    "beforeBuildCommand": "cd web && npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "PaperBanana",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 768,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* http://localhost:* ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/paperbanana-server"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5QzUyNjE3NjE4NTFCRjYKUldRbUt5bFlnT3RzU1B0T0V5c1R5dDJJcE5aM1dKdGJ2aG5Yb2R2a0J5eXlab1l3eE9YRmZ3Mgo=",
+      "endpoints": [
+        "https://api.paperbanana.com/releases/{{target}}/{{current_version}}"
+      ]
+    }
+  }
+}

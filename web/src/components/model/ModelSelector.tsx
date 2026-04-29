@@ -23,7 +23,7 @@ export function ModelSelector({
   className = ''
 }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Flatten all models from all channels
   const allModels = useMemo(() => {
     const models: Array<{ id: string; name: string; provider: string }> = [];
@@ -41,7 +41,7 @@ export function ModelSelector({
     }
     return models;
   }, [channels]);
-  
+
   const selectedModel = allModels.find(m => m.id === selectedModelId);
 
   const handleSelect = (modelId: string) => {
@@ -58,27 +58,32 @@ export function ModelSelector({
   };
 
   return (
-    <div className={`model-selector ${className}`}>
+    <div className={`relative ${className}`}>
       <button
-        className="model-selector__trigger"
+        className="w-full flex items-center justify-between px-3 py-2 text-sm bg-background border border-border rounded-lg hover:border-primary/50 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {selectedModel?.name || placeholder}
+        <span className={selectedModel ? 'text-foreground' : 'text-muted-foreground'}>
+          {selectedModel?.name || placeholder}
+        </span>
+        <svg className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
       {isOpen && (
-        <div className="model-selector__dropdown">
+        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-auto">
           {allModels.map((model) => (
             <button
               key={model.id}
-              className={`model-selector__option ${selectedModelId === model.id ? 'selected' : ''}`}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/60 transition-colors flex items-center justify-between ${selectedModelId === model.id ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
               onClick={() => handleSelect(model.id)}
             >
-              {model.name}
-              {model.provider && <span className="model-selector__provider">{model.provider}</span>}
+              <span>{model.name}</span>
+              {model.provider && <span className="text-xs text-muted-foreground">{model.provider}</span>}
             </button>
           ))}
           {allModels.length === 0 && (
-            <div className="model-selector__empty">
+            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
               <p>No models available</p>
             </div>
           )}
@@ -128,11 +133,11 @@ export function CompactModelSelector({
   };
 
   return (
-    <div className={`compact-model-selector ${className}`}>
+    <div className={className}>
       <select
         value={selectedModelId || ''}
         onChange={(e) => handleChange(e.target.value)}
-        className="compact-model-selector__select"
+        className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <option value="" disabled>{placeholder}</option>
         {allModels.map((model) => (

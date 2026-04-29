@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/paperbanana/paperbanana/internal/api/handlers"
 	"github.com/paperbanana/paperbanana/internal/api/middleware"
@@ -101,6 +102,8 @@ func SetupRouter(runner *orchestrator.Runner, logger *zap.Logger) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
+	// Gzip compression for API responses (skip SSE streams)
+	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/v1/generate/stream", "/api/v1/generate/batch", "/api/v1/config/stream"})))
 	// Apply secure default CORS middleware
 	router.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 
@@ -132,6 +135,8 @@ func SetupRouterWithPersistenceAndDB(runner *orchestrator.Runner, services Persi
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
+	// Gzip compression for API responses (skip SSE streams)
+	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/v1/generate/stream", "/api/v1/generate/batch", "/api/v1/config/stream"})))
 	// Apply secure default CORS middleware
 	router.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 
@@ -229,6 +234,8 @@ func SetupRouterWithPersistenceWithRegistryAndDB(runner *orchestrator.Runner, se
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger(logger))
 	router.Use(middleware.Metrics())
+	// Gzip compression for API responses (skip SSE streams)
+	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/v1/generate/stream", "/api/v1/generate/batch", "/api/v1/config/stream"})))
 	// Apply secure default CORS middleware
 	router.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 

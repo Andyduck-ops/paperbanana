@@ -69,7 +69,7 @@ export function TemplateManager({
 
   if (isLoading) {
     return (
-      <div className="template-manager-loading">
+      <div className="flex items-center gap-2 py-8 text-muted-foreground">
         <div className="w-6 h-6 border-2 border-primary/25 border-t-primary rounded-full animate-spin" />
         <span>{t('template.loading') || 'Loading templates...'}</span>
       </div>
@@ -77,11 +77,11 @@ export function TemplateManager({
   }
 
   return (
-    <div className="template-manager">
-      <div className="template-manager-header">
-        <h3 className="template-manager-title">{t('template.title') || 'Template Management'}</h3>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground">{t('template.title') || 'Template Management'}</h3>
         <button
-          className="template-manager-btn template-manager-btn--primary"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-background bg-primary rounded-lg hover:opacity-90 transition-opacity"
           onClick={() => setIsEditing(true)}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -92,11 +92,11 @@ export function TemplateManager({
       </div>
 
       {/* Category Filter */}
-      <div className="template-manager-filters">
+      <div className="flex flex-wrap gap-2">
         {categories.map((cat) => (
           <button
             key={cat}
-            className={`template-manager-filter ${selectedCategory === cat ? 'template-manager-filter--active' : ''}`}
+            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${selectedCategory === cat ? 'bg-primary text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
             onClick={() => setSelectedCategory(cat)}
           >
             {cat === 'all' ? t('template.allCategories') || 'All' : cat}
@@ -106,57 +106,62 @@ export function TemplateManager({
 
       {/* Edit/Create Form */}
       {isEditing && (
-        <div className="template-manager-modal">
-          <div className="template-manager-modal-content">
-            <div className="template-manager-modal-header">
-              <h4>{editingTemplate ? t('template.edit') || 'Edit Template' : t('template.create') || 'Create Template'}</h4>
-              <button className="template-manager-modal-close" onClick={resetForm}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={resetForm} />
+          <div className="relative bg-card rounded-2xl border border-border shadow-2xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-semibold text-foreground">{editingTemplate ? t('template.edit') || 'Edit Template' : t('template.create') || 'Create Template'}</h4>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={resetForm}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="template-manager-form">
-              <div className="template-manager-field">
-                <label>{t('template.name') || 'Name'}</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">{t('template.name') || 'Name'}</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
+                  className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <div className="template-manager-field">
-                <label>{t('template.category') || 'Category'}</label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">{t('template.category') || 'Category'}</label>
                 <input
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   required
+                  className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <div className="template-manager-field">
-                <label>{t('template.description') || 'Description'}</label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">{t('template.description') || 'Description'}</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={2}
+                  className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
               </div>
-              <div className="template-manager-field">
-                <label>{t('template.content') || 'Content'}</label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">{t('template.content') || 'Content'}</label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={6}
                   required
+                  className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
               </div>
-              <div className="template-manager-actions">
-                <button type="button" className="template-manager-btn" onClick={resetForm}>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button type="button" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={resetForm}>
                   {t('common.cancel') || 'Cancel'}
                 </button>
-                <button type="submit" className="template-manager-btn template-manager-btn--primary">
+                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium text-background bg-primary rounded-xl hover:opacity-90 transition-opacity">
                   {editingTemplate ? t('common.save') || 'Save' : t('common.create') || 'Create'}
                 </button>
               </div>
@@ -166,27 +171,29 @@ export function TemplateManager({
       )}
 
       {/* Templates List */}
-      <div className="template-manager-list">
+      <div className="space-y-2">
         {filteredTemplates.length === 0 ? (
-          <div className="template-manager-empty">
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
             <svg className="w-12 h-12 text-muted-foreground/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
             </svg>
-            <p>{t('template.noTemplates') || 'No templates yet'}</p>
+            <p className="text-sm">{t('template.noTemplates') || 'No templates yet'}</p>
           </div>
         ) : (
           filteredTemplates.map((template) => (
-            <div key={template.id} className="template-manager-item">
-              <div className="template-manager-item-info">
-                <h4 className="template-manager-item-name">{template.name}</h4>
-                <span className="template-manager-item-category">{template.category}</span>
+            <div key={template.id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/30 transition-colors">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-foreground">{template.name}</h4>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">{template.category}</span>
+                </div>
                 {template.description && (
-                  <p className="template-manager-item-description">{template.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{template.description}</p>
                 )}
               </div>
-              <div className="template-manager-item-actions">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
-                  className="template-manager-item-btn"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   onClick={() => handleEdit(template)}
                   title={t('common.edit') || 'Edit'}
                 >
@@ -195,7 +202,7 @@ export function TemplateManager({
                   </svg>
                 </button>
                 <button
-                  className="template-manager-item-btn template-manager-item-btn--danger"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-status-error hover:bg-status-error/10 transition-colors"
                   onClick={() => handleDelete(template.id)}
                   title={t('common.delete') || 'Delete'}
                 >

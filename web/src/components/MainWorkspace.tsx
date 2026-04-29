@@ -305,9 +305,9 @@ export function MainWorkspace() {
         />
       )}
 
-      <div className="workspace-shell" data-main-workspace tabIndex={-1}>
-        <section className="workspace-stage">
-          <div className="workspace-stage__surface">
+      <div className="flex flex-col h-full" data-main-workspace tabIndex={-1}>
+        <section className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-auto">
             <Workspace
               mode={mainTab}
               onModeChange={(mode) => setMainTab(mode)}

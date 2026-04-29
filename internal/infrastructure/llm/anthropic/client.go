@@ -107,7 +107,7 @@ func (c *Client) Generate(ctx context.Context, req domainllm.GenerateRequest) (*
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusBadRequest {
-		raw, _ := io.ReadAll(resp.Body)
+		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 		return nil, fmt.Errorf("anthropic API error %d: %s", resp.StatusCode, string(raw))
 	}
 

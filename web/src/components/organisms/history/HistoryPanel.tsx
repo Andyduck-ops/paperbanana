@@ -22,7 +22,7 @@ function HistoryPanelComponent({
   const { sessions: serverSessions, isLoading, error, refresh } = useHistory(projectId);
   const { records: localRecords } = useLocalWorkRecords();
   const panelRef = useRef<HTMLDivElement>(null);
-  
+
   // Merge server sessions with local work records as fallback
   const sessions = useMemo((): HistorySession[] => {
     // If we have server sessions, use those (they're the source of truth)
@@ -127,8 +127,8 @@ function HistoryPanelComponent({
       <div
         ref={panelRef}
         className={`
-          history-panel fixed left-0 top-0 bottom-0 z-50
-          w-[28rem] max-w-[92vw]
+          fixed left-0 top-0 bottom-0 z-50
+          w-[28rem] max-w-[92vw] bg-background border-r border-border
           transform transition-transform duration-300 ease-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
@@ -136,9 +136,9 @@ function HistoryPanelComponent({
         aria-modal="true"
         aria-label={t('history.title')}
       >
-        <div className="history-panel__header">
-          <div className="history-panel__header-main">
-            <div className="history-panel__icon" aria-hidden="true">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary" aria-hidden="true">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -155,16 +155,16 @@ function HistoryPanelComponent({
               </svg>
             </div>
             <div>
-              <h2 className="history-panel__title">{t('history.title')}</h2>
-              <p className="history-panel__subtitle">{t('history.subtitle')}</p>
+              <h2 className="text-base font-semibold text-foreground">{t('history.title')}</h2>
+              <p className="text-xs text-muted-foreground">{t('history.subtitle')}</p>
             </div>
           </div>
 
-          <div className="history-panel__actions">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={refresh}
-              className="history-panel__action"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               aria-label={t('common.retry')}
               title={t('common.retry')}
             >
@@ -185,7 +185,7 @@ function HistoryPanelComponent({
             <button
               type="button"
               onClick={onClose}
-              className="history-panel__action"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               aria-label={t('common.close')}
             >
               <svg
@@ -288,41 +288,41 @@ function HistoryPanelComponent({
           )}
         </div>
 
-        <div className="history-panel__body">
+        <div className="flex-1 overflow-auto">
           {isLoading && (
-            <div className="history-panel__state">
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
               <div className="w-8 h-8 border-2 border-primary/25 border-t-primary rounded-full animate-spin" />
               <p>{t('common.loading')}</p>
             </div>
           )}
 
           {error && !isLoading && (
-            <div className="history-panel__error">
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-status-error">
               <p>{error}</p>
-              <button type="button" onClick={refresh}>
+              <button type="button" onClick={refresh} className="px-3 py-1.5 text-sm bg-muted rounded-lg hover:bg-muted/80 transition-colors">
                 {t('common.retry')}
               </button>
             </div>
           )}
 
           {!isLoading && !error && sessions.length === 0 && (
-            <div className="history-panel__empty">
-              <div className="history-panel__empty-mark" aria-hidden="true">记</div>
-              <p className="history-panel__empty-title">{t('history.empty')}</p>
-              <p className="history-panel__empty-copy">{t('history.emptyHint')}</p>
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg" aria-hidden="true">记</div>
+              <p className="text-sm font-medium">{t('history.empty')}</p>
+              <p className="text-xs">{t('history.emptyHint')}</p>
             </div>
           )}
 
           {!isLoading && !error && sessions.length > 0 && filteredSessions.length === 0 && (
-            <div className="history-panel__empty">
-              <div className="history-panel__empty-mark" aria-hidden="true">搜</div>
-              <p className="history-panel__empty-title">{t('history.noResults')}</p>
-              <p className="history-panel__empty-copy">Try adjusting your search or filters</p>
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg" aria-hidden="true">搜</div>
+              <p className="text-sm font-medium">{t('history.noResults')}</p>
+              <p className="text-xs">Try adjusting your search or filters</p>
             </div>
           )}
 
           {!isLoading && !error && filteredSessions.length > 0 && (
-            <div className="history-panel__list">
+            <div className="divide-y divide-border/50">
               {filteredSessions.map((session) => (
                 <HistoryItem
                   key={session.id}

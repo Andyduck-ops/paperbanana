@@ -26,6 +26,8 @@ export interface ToastActions {
 // Store
 // ============================================================================
 
+const activeTimers = new Set<ReturnType<typeof setTimeout>>();
+
 export const useToastStore = create<ToastState & ToastActions>((set) => ({
   toasts: [],
 
@@ -35,11 +37,13 @@ export const useToastStore = create<ToastState & ToastActions>((set) => ({
       toasts: [...state.toasts, { id, message, type }],
     }));
     // Auto-dismiss after 5 seconds
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      activeTimers.delete(timer);
       set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id),
       }));
     }, 5000);
+    activeTimers.add(timer);
   },
 
   removeToast: (id) =>

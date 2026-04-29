@@ -200,25 +200,23 @@ export function ProviderForm({ provider, presets, onSave, onCancel }: ProviderFo
   const selectedPreset = presets.find((preset) => preset.type === formData.type);
 
   return (
-    <form onSubmit={handleSubmit} className="provider-form">
-      <div className="provider-form__grid">
-        <section className="provider-form__card">
-          <div className="provider-form__section-head">
-            <div>
-              <h2 className="provider-form__section-title">{t('settings.providerIdentity')}</h2>
-              <p className="provider-form__section-copy">{t('settings.providerIdentityHint')}</p>
-            </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="bg-card rounded-xl border border-border/30 p-6 space-y-4">
+          <div className="mb-2">
+            <h2 className="text-lg font-semibold text-foreground">{t('settings.providerIdentity')}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t('settings.providerIdentityHint')}</p>
           </div>
 
-          <div className="provider-form__field-grid">
-            <div className="provider-form__field">
-              <label className="provider-form__label">
-                {t('settings.providerType')} <span className="provider-form__required">*</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="block text-sm font-medium text-foreground">
+                {t('settings.providerType')} <span className="text-status-error">*</span>
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => updateField('type', e.target.value)}
-                className="provider-form__control"
+                className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 required
                 disabled={isEditMode}
               >
@@ -246,103 +244,101 @@ export function ProviderForm({ provider, presets, onSave, onCancel }: ProviderFo
                   <option value="custom">{t('settings.customProvider')}</option>
                 </optgroup>
               </select>
-              {errors.type && <p className="provider-form__error">{errors.type}</p>}
+              {errors.type && <p className="text-sm text-status-error">{errors.type}</p>}
               {selectedPreset?.docs_url && (
                 <a
                   href={selectedPreset.docs_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="provider-form__link"
+                  className="text-sm text-primary hover:underline"
                 >
                   {t('settings.getApiKey')} {'->'}
                 </a>
               )}
             </div>
 
-            <div className="provider-form__field">
-              <label className="provider-form__label">{t('settings.displayName')}</label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">{t('settings.displayName')}</label>
               <input
                 type="text"
                 value={formData.display_name}
                 onChange={(e) => updateField('display_name', e.target.value)}
-                className="provider-form__control"
+                className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={t('settings.displayNamePlaceholder')}
               />
             </div>
 
-            <div className="provider-form__field provider-form__field--full">
-              <label className="provider-form__label">{t('settings.baseUrl')}</label>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="block text-sm font-medium text-foreground">{t('settings.baseUrl')}</label>
               <input
                 type="url"
                 value={formData.base_url}
                 onChange={(e) => updateField('base_url', e.target.value)}
-                className="provider-form__control"
+                className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="https://api.example.com/v1"
               />
-              {errors.base_url && <p className="provider-form__error">{errors.base_url}</p>}
+              {errors.base_url && <p className="text-sm text-status-error">{errors.base_url}</p>}
             </div>
           </div>
         </section>
 
-        <section className="provider-form__card">
-          <div className="provider-form__section-head">
+        <section className="bg-card rounded-xl border border-border/30 p-6 space-y-4">
+          <div className="flex items-start justify-between mb-2">
             <div>
-              <h2 className="provider-form__section-title">{t('settings.credentials')}</h2>
-              <p className="provider-form__section-copy">{t('settings.credentialsHint')}</p>
+              <h2 className="text-lg font-semibold text-foreground">{t('settings.credentials')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('settings.credentialsHint')}</p>
             </div>
             {formData.api_key && (
               <button
                 type="button"
                 onClick={handleTest}
                 disabled={testing}
-                className="provider-form__secondary-button"
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-foreground bg-muted/70 hover:bg-muted border border-border/50 rounded-lg transition-colors disabled:opacity-50"
               >
                 {testing ? t('common.testing') : t('settings.testConnection')}
               </button>
             )}
           </div>
 
-          <div className="provider-form__field">
-            <label className="provider-form__label">
-              {t('settings.apiKey')} {(!isEditMode || provider?.status === 'no_keys') && <span className="provider-form__required">*</span>}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-foreground">
+              {t('settings.apiKey')} {(!isEditMode || provider?.status === 'no_keys') && <span className="text-status-error">*</span>}
               {isEditMode && provider?.status !== 'no_keys' && (
-                <span className="provider-form__hint-inline">({t('settings.apiKeyOptional')})</span>
+                <span className="text-sm text-muted-foreground ml-1">({t('settings.apiKeyOptional')})</span>
               )}
             </label>
 
-            <div className="provider-form__password-wrap">
+            <div className="relative">
               <input
                 type={showApiKey ? 'text' : 'password'}
                 value={formData.api_key}
                 onChange={(e) => updateField('api_key', e.target.value)}
-                className={`provider-form__control provider-form__control--password ${errors.api_key ? 'provider-form__control--error' : ''}`}
+                className={`w-full px-3 py-2 pr-16 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${errors.api_key ? 'border-status-error' : 'border-border'}`}
                 placeholder="sk-..."
               />
               <button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
-                className="provider-form__toggle-visibility"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground px-2 py-1"
               >
                 {showApiKey ? t('common.hide') : t('common.show')}
               </button>
             </div>
-            {errors.api_key && <p className="provider-form__error">{errors.api_key}</p>}
+            {errors.api_key && <p className="text-sm text-status-error">{errors.api_key}</p>}
           </div>
 
           {testResult && (
-            <div className={`provider-form__test-result ${testResult.valid ? 'is-success' : 'is-error'}`}>
+            <div className={`px-3 py-2 rounded-lg text-sm ${testResult.valid ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}>
               {testResult.message}
             </div>
           )}
         </section>
       </div>
 
-      <section className="provider-form__card provider-form__card--models">
-        <div className="provider-form__section-head">
-          <div>
-            <h2 className="provider-form__section-title">{t('settings.models')}</h2>
-            <p className="provider-form__section-copy">{t('settings.modelsHint')}</p>
-          </div>
+      <section className="bg-card rounded-xl border border-border/30 p-6 space-y-4">
+        <div className="mb-2">
+          <h2 className="text-lg font-semibold text-foreground">{t('settings.models')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('settings.modelsHint')}</p>
         </div>
 
         <ModelTagList
@@ -351,26 +347,26 @@ export function ProviderForm({ provider, presets, onSave, onCancel }: ProviderFo
           remoteModels={testResult?.valid ? remoteModels.map((model) => ({ id: model.id, name: model.name || model.id })) : undefined}
           loading={testing}
         />
-        {errors.models && <p className="provider-form__error">{errors.models}</p>}
+        {errors.models && <p className="text-sm text-status-error">{errors.models}</p>}
       </section>
 
-      {saveError && <div className="provider-form__save-error">{saveError}</div>}
+      {saveError && <div className="px-3 py-2 rounded-lg text-sm bg-status-error/10 text-status-error">{saveError}</div>}
 
       {fieldErrors.length > 0 && (
-        <div className="provider-form__field-errors">
+        <div className="space-y-1">
           {fieldErrors.map((error, index) => (
-            <div key={index} className="provider-form__field-error">
-              <span className="provider-form__field-error-field">{error.field}:</span> {error.message}
+            <div key={index} className="px-3 py-2 rounded-lg text-sm bg-status-error/10 text-status-error">
+              <span className="font-medium">{error.field}:</span> {error.message}
             </div>
           ))}
         </div>
       )}
 
-      <div className="provider-form__actions">
-        <button type="submit" disabled={saving} className="provider-form__primary-button">
+      <div className="flex items-center gap-3 pt-2">
+        <button type="submit" disabled={saving} className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-background bg-primary rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
           {saving ? t('common.saving') : t('common.save')}
         </button>
-        <button type="button" onClick={onCancel} className="provider-form__ghost-button">
+        <button type="button" onClick={onCancel} className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
           {t('common.cancel')}
         </button>
       </div>

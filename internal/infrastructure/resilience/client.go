@@ -95,12 +95,14 @@ func (rt *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
+const maxRequestBodySize = 10 * 1024 * 1024 // 10MB
+
 func snapshotBody(req *http.Request) ([]byte, error) {
 	if req.Body == nil {
 		return nil, nil
 	}
 
-	body, err := io.ReadAll(req.Body)
+	body, err := io.ReadAll(io.LimitReader(req.Body, maxRequestBodySize))
 	if err != nil {
 		return nil, fmt.Errorf("read request body: %w", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -78,6 +79,11 @@ func Bootstrap(ctx context.Context, cfg BootstrapConfig) (*BootstrapResult, erro
 			return nil, fmt.Errorf("set wal_autocheckpoint pragma: %w", err)
 		}
 	}
+
+	// Connection pool tuning for desktop SQLite (single-user, moderate concurrency)
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
 	// Run AutoMigrate for all Phase 3 models
 	if err := db.WithContext(ctx).AutoMigrate(AllModels()...); err != nil {

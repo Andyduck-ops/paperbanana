@@ -1,6 +1,7 @@
 import type { GenerateRequest } from '../types/api';
+import { getApiBase } from './api';
 
-const API_BASE = '/api/v1';
+const API_BASE = getApiBase();
 
 // SSE event types from backend runner lifecycle
 // Must match internal/domain/agent/events.go EventType constants

@@ -238,7 +238,7 @@ func TestStreamGenerateHandlerEmitsOrderedStageEvents(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "text/event-stream", rec.Header().Get("Content-Type"))
+	assert.True(t, strings.HasPrefix(rec.Header().Get("Content-Type"), "text/event-stream"))
 	streamBody := rec.Body.String()
 	assert.Contains(t, streamBody, "event:stage_started")
 	assert.Contains(t, streamBody, "\"stage\":\"retriever\"")

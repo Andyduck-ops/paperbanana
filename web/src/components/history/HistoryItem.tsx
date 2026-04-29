@@ -77,13 +77,13 @@ function getStatusLabel(status: string, language: string) {
 function statusClass(status: string) {
   switch (status) {
     case 'completed':
-      return 'history-item__status history-item__status--completed';
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-status-success/10 text-status-success';
     case 'failed':
-      return 'history-item__status history-item__status--failed';
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-status-error/10 text-status-error';
     case 'running':
-      return 'history-item__status history-item__status--running';
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-status-running/10 text-status-running';
     default:
-      return 'history-item__status';
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground';
   }
 }
 
@@ -115,15 +115,15 @@ export function HistoryItem({ session, isSelected, onClick }: HistoryItemProps) 
     <button
       type="button"
       onClick={onClick}
-      className={`history-item ${isSelected ? 'history-item--selected' : ''}`}
+      className={`w-full text-left px-4 py-3 transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5 border-l-2 border-primary' : 'border-l-2 border-transparent'}`}
     >
-      <div className="history-item__header">
-        <div className="history-item__stamp" aria-hidden="true">
+      <div className="flex items-start gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold shrink-0 ${mode === 'refine' ? 'bg-amber-100 text-amber-700' : mode === 'batch' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`} aria-hidden="true">
           {mode === 'refine' ? '修' : mode === 'batch' ? '批' : '生'}
         </div>
-        <div className="history-item__copy">
-          <p className="history-item__title">{title}</p>
-          <p className="history-item__meta">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">{title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
             <span>{timeLabel}</span>
             <span>·</span>
             <span>{getModeLabel(mode, language)}</span>
@@ -135,7 +135,7 @@ export function HistoryItem({ session, isSelected, onClick }: HistoryItemProps) 
       </div>
 
       {session.prompt && (
-        <p className="history-item__prompt">
+        <p className="mt-2 text-xs text-muted-foreground line-clamp-2 pl-11">
           {session.prompt}
         </p>
       )}

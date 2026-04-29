@@ -29,7 +29,7 @@ export function ModeSwitcher({
 
   return (
     <div
-      className="mode-switcher inline-flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border/50 relative"
+      className="inline-flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border/50 relative"
       role="radiogroup"
       aria-label="Workspace mode"
     >
@@ -40,12 +40,11 @@ export function ModeSwitcher({
         onClick={() => onChange('generate')}
         disabled={disabled}
         className={`
-          mode-switcher__option
           relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
           transition-all duration-200 ease-out
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
           ${mode === 'generate'
-            ? 'text-primary-foreground'
+            ? 'bg-primary text-primary-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -76,12 +75,11 @@ export function ModeSwitcher({
         onClick={() => onChange('refine')}
         disabled={disabled}
         className={`
-          mode-switcher__option
           relative z-10 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
           transition-all duration-200 ease-out
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
           ${mode === 'refine'
-            ? 'text-primary-foreground'
+            ? 'bg-primary text-primary-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}

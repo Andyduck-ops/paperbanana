@@ -131,18 +131,16 @@ export default function ProviderEditPage({ providerId, isNew, onBack, onSaveSucc
 
   if (!isNew && loading) {
     return (
-      <div className="settings-shell settings-shell--compact">
-        <header className="settings-shell__header settings-shell__header--stacked">
-          <div className="settings-shell__title-block">
-            <span className="settings-shell__eyebrow">Provider setup</span>
-            <div>
-              <h1 className="settings-shell__title">{pageTitle}</h1>
-              <p className="settings-shell__description">{pageDescription}</p>
-            </div>
+      <div className="w-full max-w-6xl mx-auto px-4 py-6">
+        <header className="mb-6">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Provider setup</span>
+          <div className="mt-1">
+            <h1 className="text-2xl font-semibold text-foreground">{pageTitle}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{pageDescription}</p>
           </div>
         </header>
 
-        <section className="workspace-stage__surface settings-shell__section">
+        <section className="bg-card rounded-xl border border-border/30 p-6">
           <div className="animate-pulse space-y-4">
             {[1, 2, 3, 4, 5].map((item) => (
               <div key={item} className="h-16 rounded-[1.25rem] bg-secondary/20" />
@@ -155,16 +153,19 @@ export default function ProviderEditPage({ providerId, isNew, onBack, onSaveSucc
 
   if (!isNew && error) {
     return (
-      <div className="settings-shell settings-shell--compact">
-        <header className="settings-shell__header settings-shell__header--stacked">
-          <div className="settings-shell__title-block">
-            <span className="settings-shell__eyebrow">Provider setup</span>
-            <div>
-              <h1 className="settings-shell__title">{pageTitle}</h1>
-              <p className="settings-shell__description">{pageDescription}</p>
+      <div className="w-full max-w-6xl mx-auto px-4 py-6">
+        <header className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex-1 min-w-0">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Provider setup</span>
+            <div className="mt-1">
+              <h1 className="text-2xl font-semibold text-foreground">{pageTitle}</h1>
+              <p className="text-sm text-muted-foreground mt-1">{pageDescription}</p>
             </div>
           </div>
-          <button onClick={onBack} className="settings-shell__back-button">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 18-6-6 6-6" />
             </svg>
@@ -172,7 +173,7 @@ export default function ProviderEditPage({ providerId, isNew, onBack, onSaveSucc
           </button>
         </header>
 
-        <section className="workspace-stage__surface settings-shell__section">
+        <section className="bg-card rounded-xl border border-border/30 p-6">
           <div className="rounded-[1.25rem] border border-destructive/20 bg-destructive/10 px-4 py-4 text-sm font-medium text-destructive">
             {t('common.error')}: {error}
           </div>
@@ -182,17 +183,20 @@ export default function ProviderEditPage({ providerId, isNew, onBack, onSaveSucc
   }
 
   return (
-    <div className="settings-shell settings-shell--compact">
-      <header className="settings-shell__header settings-shell__header--stacked">
-        <div className="settings-shell__title-block">
-          <span className="settings-shell__eyebrow">Provider setup</span>
-          <div>
-            <h1 className="settings-shell__title">{pageTitle}</h1>
-            <p className="settings-shell__description">{pageDescription}</p>
+    <div className="w-full max-w-6xl mx-auto px-4 py-6">
+      <header className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Provider setup</span>
+          <div className="mt-1">
+            <h1 className="text-2xl font-semibold text-foreground">{pageTitle}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{pageDescription}</p>
           </div>
         </div>
 
-        <button onClick={onBack} className="settings-shell__back-button">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6" />
           </svg>
@@ -200,7 +204,7 @@ export default function ProviderEditPage({ providerId, isNew, onBack, onSaveSucc
         </button>
       </header>
 
-      <section className="workspace-stage__surface settings-shell__section">
+      <section className="bg-card rounded-xl border border-border/30 p-6">
         <ProviderForm
           provider={isNew ? undefined : provider || undefined}
           presets={presets}

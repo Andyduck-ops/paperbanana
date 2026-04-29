@@ -9,8 +9,8 @@ export function WorkspaceHero({ onOpenSettings, onOpenHistory }: WorkspaceHeroPr
   const { t } = useLanguage();
 
   return (
-    <section className="workspace-hero rounded-[2rem] border border-border/70 bg-card/95 px-5 py-5 shadow-[var(--theme-surface-shadow)] sm:px-7 sm:py-7">
-      <div className="workspace-hero__grid grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.9fr)] lg:items-start">
+    <section className="rounded-[2rem] border border-border/70 bg-card/95 px-5 py-5 shadow-[var(--theme-surface-shadow)] sm:px-7 sm:py-7">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.9fr)] lg:items-start">
         <div className="space-y-4">
           <div className="space-y-3">
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-primary/80">

@@ -106,8 +106,8 @@ func InputSanitizer() gin.HandlerFunc {
 			return
 		}
 
-		// Read body
-		body, err := io.ReadAll(c.Request.Body)
+		// Read body with size limit
+		body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1024*1024))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": "Failed to read request body",

@@ -105,7 +105,8 @@ func (a *Adapter) Execute(ctx context.Context, node pbconfig.NodeDefinition) (Re
 	}
 	defer resp.Body.Close()
 
-	raw, err := io.ReadAll(resp.Body)
+	const maxResponseBodySize = 50 * 1024 * 1024 // 50MB
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
 	if err != nil {
 		return Result{}, &ExecutionError{
 			NodeName:   node.Name,

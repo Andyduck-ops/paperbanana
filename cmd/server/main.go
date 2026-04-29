@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -190,8 +191,15 @@ func main() {
 	// Serve built frontend static files if they exist (production mode)
 	webDistPath := findWebDist()
 	if webDistPath != "" {
-		router.Static("/assets", filepath.Join(webDistPath, "assets"))
-		router.Static("/images", filepath.Join(webDistPath, "images"))
+		// Static assets with aggressive cache headers (immutable hashed filenames from Vite)
+		assetFS := gin.Dir(filepath.Join(webDistPath, "assets"), false)
+		router.StaticFS("/assets", assetFS)
+		jsFS := gin.Dir(filepath.Join(webDistPath, "js"), false)
+		router.StaticFS("/js", jsFS)
+		cssFS := gin.Dir(filepath.Join(webDistPath, "css"), false)
+		router.StaticFS("/css", cssFS)
+		imageFS := gin.Dir(filepath.Join(webDistPath, "images"), false)
+		router.StaticFS("/images", imageFS)
 		router.StaticFile("/", filepath.Join(webDistPath, "index.html"))
 		router.NoRoute(func(c *gin.Context) {
 			c.File(filepath.Join(webDistPath, "index.html"))
@@ -199,7 +207,12 @@ func main() {
 		logger.Info("serving frontend", zap.String("path", webDistPath))
 	}
 
-	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	// Auto-select available port if configured port is in use (for Tauri sidecar mode)
+	port := cfg.Server.Port
+	if cfg.Server.Host == "127.0.0.1" || cfg.Server.Host == "localhost" {
+		port = findAvailablePort(cfg.Server.Port)
+	}
+	address := fmt.Sprintf("%s:%d", cfg.Server.Host, port)
 
 	logger.Info("starting server",
 		zap.String("address", address),
@@ -208,6 +221,9 @@ func main() {
 		zap.String("database", cfg.Persistence.DatabasePath),
 		zap.String("bench_root", benchRoot),
 	)
+
+	// Signal backend port to parent process (Tauri sidecar reads this from stdout)
+	fmt.Printf("BACKEND_PORT=%d\n", port)
 
 	// Create HTTP server with graceful shutdown support
 	srv := &http.Server{
@@ -436,4 +452,18 @@ func resolveBenchRoot() string {
 		return value
 	}
 	return defaultBenchRoot
+}
+
+// findAvailablePort scans for an available TCP port starting from the given port.
+// It tries up to 100 ports to avoid collisions when running as a Tauri sidecar.
+func findAvailablePort(start int) int {
+	for p := start; p < start+100; p++ {
+		addr := fmt.Sprintf("127.0.0.1:%d", p)
+		ln, err := net.Listen("tcp", addr)
+		if err == nil {
+			ln.Close()
+			return p
+		}
+	}
+	return start
 }

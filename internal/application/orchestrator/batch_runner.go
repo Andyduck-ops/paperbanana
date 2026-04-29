@@ -54,6 +54,7 @@ type BatchRunner struct {
 	progress      map[string]*BatchProgress // 中间进度跟踪
 	resultStore   BatchResultStore
 	mu            sync.RWMutex
+	resultTTL     time.Duration
 }
 
 // BatchOption configures the BatchRunner.
@@ -67,6 +68,7 @@ func NewBatchRunner(factory AgentFactory, opts ...BatchOption) *BatchRunner {
 		eventBuffer:   256,
 		results:       make(map[string]*domainagent.BatchResult),
 		progress:      make(map[string]*BatchProgress),
+		resultTTL:     30 * time.Minute,
 	}
 	for _, opt := range opts {
 		opt(runner)
@@ -88,6 +90,15 @@ func WithBatchEventBuffer(size int) BatchOption {
 	return func(r *BatchRunner) {
 		if size > 0 {
 			r.eventBuffer = size
+		}
+	}
+}
+
+// WithBatchResultTTL sets the TTL for in-memory batch results.
+func WithBatchResultTTL(ttl time.Duration) BatchOption {
+	return func(r *BatchRunner) {
+		if ttl > 0 {
+			r.resultTTL = ttl
 		}
 	}
 }
@@ -158,11 +169,14 @@ func (r *BatchRunner) GetBatchProgress(batchID string) (*BatchProgress, error) {
 
 // storeResult saves a batch result for later retrieval.
 // Persists to the database if a result store is configured.
+// Old results are evicted if the in-memory cache exceeds a reasonable size.
 func (r *BatchRunner) storeResult(batchID string, result *domainagent.BatchResult) {
 	r.mu.Lock()
 	r.results[batchID] = result
 	// 完成后删除进度跟踪
 	delete(r.progress, batchID)
+	// Evict old completed results to prevent unbounded growth
+	r.evictOldResultsLocked()
 	r.mu.Unlock()
 
 	// Persist to database if store is configured
@@ -174,10 +188,35 @@ func (r *BatchRunner) storeResult(batchID string, result *domainagent.BatchResul
 	}
 }
 
+// evictOldResultsLocked removes completed results older than resultTTL.
+// Must be called with mu held for writing.
+func (r *BatchRunner) evictOldResultsLocked() {
+	const maxInMemoryResults = 100
+	if len(r.results) <= maxInMemoryResults {
+		return
+	}
+	cutoff := time.Now().UTC().Add(-r.resultTTL)
+	for id, result := range r.results {
+		if result.Timing.CompletedAt.Before(cutoff) {
+			delete(r.results, id)
+		}
+	}
+}
+
 // updateProgress 更新批处理中间进度
 func (r *BatchRunner) updateProgress(progress *BatchProgress) {
 	r.mu.Lock()
 	r.progress[progress.BatchID] = progress
+	// Evict stale progress entries for batches that haven't updated recently
+	const maxInMemoryProgress = 50
+	if len(r.progress) > maxInMemoryProgress {
+		cutoff := time.Now().UTC().Add(-r.resultTTL)
+		for id, p := range r.progress {
+			if p.UpdatedAt.Before(cutoff) {
+				delete(r.progress, id)
+			}
+		}
+	}
 	r.mu.Unlock()
 
 	// 创建临时结果用于持久化

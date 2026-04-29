@@ -48,7 +48,7 @@ func TestBatchHandler_StreamBatchGenerate(t *testing.T) {
 
 	// Verify response
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/event-stream", w.Header().Get("Content-Type"))
+	assert.True(t, strings.HasPrefix(w.Header().Get("Content-Type"), "text/event-stream"))
 
 	// Verify SSE events
 	bodyStr := w.Body.String()

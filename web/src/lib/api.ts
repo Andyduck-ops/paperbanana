@@ -1,4 +1,14 @@
-const API_BASE = '/api/v1';
+export function getApiBase(): string {
+  if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+    const port = (window as any).__PAPERBANANA_BACKEND_PORT__;
+    if (port) {
+      return `http://127.0.0.1:${port}/api/v1`;
+    }
+  }
+  return '/api/v1';
+}
+
+const API_BASE = getApiBase();
 
 export class ApiError extends Error {
   constructor(

@@ -10,10 +10,10 @@ export interface ModelPopoverProps {
 
 export function ModelPopover({ trigger, children, isOpen = false, className = '' }: ModelPopoverProps) {
   return (
-    <div className={`model-popover ${className}`}>
-      <div className="model-popover__trigger">{trigger}</div>
+    <div className={`relative ${className}`}>
+      <div>{trigger}</div>
       {isOpen && (
-        <div className="model-popover__content">
+        <div className="absolute z-50 mt-1 w-64 bg-card border border-border rounded-xl shadow-lg p-3">
           {children}
         </div>
       )}
