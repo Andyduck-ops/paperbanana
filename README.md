@@ -4,7 +4,7 @@
 
 PaperBanana is an intelligent workspace for researchers to generate, refine, and manage publication-ready figures for academic papers. It combines a multi-agent AI pipeline with an elegant, themeable UI to transform paper context and visual intent into high-quality diagrams and plots.
 
-[English](#overview) | [中文](#概述)
+[中文文档](README.zh.md)
 
 ---
 
@@ -217,45 +217,3 @@ go fmt ./...
 ## License
 
 MIT License — see LICENSE file for details.
-
----
-
-## 概述
-
-PaperBanana 是一个面向学术研究者的智能图表生成与精修工作空间。它通过专门的多智能体流水线，将论文上下文和视觉意图转化为高质量的学术插图。
-
-### 核心能力
-
-- **五阶段智能体流水线**：检索 → 规划 → 风格化 → 可视化 → 评审
-- **批量生成与对比**：并行生成多个候选图表，择优选用
-- **迭代精修**：将生成结果反馈进行风格和内容的持续优化
-- **多模型路由**：支持 Gemini、OpenAI、Anthropic、OpenRouter，可按阶段分配不同模型
-- **项目化管理**：图表按项目组织，支持版本历史和资产追踪
-- **桌面端应用**：基于 Tauri v2 的跨平台原生应用
-
-### 技术栈
-
-- **后端**：Go 1.25 + Gin + GORM + SQLite
-- **前端**：React 19 + TypeScript + Tailwind CSS 4 + Vite 6
-- **状态管理**：Zustand 5 + React Query 5
-- **桌面端**：Tauri v2 (Rust)
-
-### 快速开始
-
-```bash
-# Windows
-start.bat
-
-# Linux/Mac
-./start.sh
-```
-
-或手动启动：
-
-```bash
-# 后端
-go run ./cmd/server --config ./configs/config.yaml
-
-# 前端
-cd web && npm install && npm run dev
-```
