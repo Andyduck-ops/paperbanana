@@ -66,4 +66,24 @@ Thumbs.db
 
 # Windows alternate data stream metadata
 *:Zone.Identifier
+
+# AI assistant workspace (already removed from repo)
 .trellis/
+
+# SQLite database files
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Backup files
+*.bak
+
+# Test reports
+test-results/
+web/playwright-report/
+
+# One-off analysis reports (not source code)
+code-quality-*.md
+*-REPORT.md
+*-REVIEW.md
+PROJECT_DASHBOARD.md
