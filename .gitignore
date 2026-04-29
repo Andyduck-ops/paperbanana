@@ -66,3 +66,4 @@ Thumbs.db
 
 # Windows alternate data stream metadata
 *:Zone.Identifier
+.trellis/
